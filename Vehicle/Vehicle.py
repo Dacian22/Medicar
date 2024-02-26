@@ -1,8 +1,8 @@
-import paho.mqtt.client as paho
-from paho import mqtt
 import os
-from dotenv import load_dotenv
 
+import paho.mqtt.client as paho
+from dotenv import load_dotenv
+from paho import mqtt
 
 
 class Vehicle:
@@ -10,10 +10,10 @@ class Vehicle:
     This is a class for Vehicle. It gets commands from the simulation ("_2_Simulation") via MQTT and executes them.
     """
 
-    vehicle_id = None # String
-    current_position = None # NetworkXNode or NetworkXEdge as string
-    current_speed = 60 # nodes per minute
-    current_task = None # Task as string
+    vehicle_id = None  # String
+    current_position = None  # NetworkXNode or NetworkXEdge as string
+    current_speed = 60  # nodes per minute
+    current_task = None  # Task as string
     moving = False
 
     def __init__(self, _vehicle_id):
@@ -52,5 +52,3 @@ class Vehicle:
         client.publish("vehicles/" + self.vehicle_id + "/status", "online", qos=2)
         print(client.is_connected())
         client.loop_forever()
-
-
