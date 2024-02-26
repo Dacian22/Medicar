@@ -296,7 +296,7 @@
  <node id="1280377564" visible="true" version="3" changeset="105980053" timestamp="2021-06-07T14:56:20Z" user="skyper" uid="152744" lat="48.0052758" lon="7.8382272"/>
  <node id="1280377565" visible="true" version="8" changeset="79359642" timestamp="2020-01-08T23:39:22Z" user="FbrG" uid="10503526" lat="48.0057661" lon="7.8355153">
   <tag k="entrance" v="main"/>
-  <tag k="name" v="Neurozentrum"/>
+  <tag k="name" v="Neurozentrum [1]"/>
  </node>
  <node id="1280377567" visible="true" version="2" changeset="79207687" timestamp="2020-01-05T09:06:16Z" user="FbrG" uid="10503526" lat="48.0060797" lon="7.8371971"/>
  <node id="1280377569" visible="true" version="3" changeset="79250797" timestamp="2020-01-06T13:44:25Z" user="FbrG" uid="10503526" lat="48.0069626" lon="7.8369236"/>
@@ -439,7 +439,7 @@
  <node id="2406471860" visible="true" version="4" changeset="147235287" timestamp="2024-02-08T22:19:23Z" user="FbrG" uid="10503526" lat="48.0032966" lon="7.8407060"/>
  <node id="2450284435" visible="true" version="7" changeset="118966601" timestamp="2022-03-27T01:10:25Z" user="FbrG" uid="10503526" lat="48.0064257" lon="7.8350169">
   <tag k="entrance" v="yes"/>
-  <tag k="name" v="Neurozentrum"/>
+  <tag k="name" v="Neurozentrum [2]"/>
  </node>
  <node id="2450294128" visible="true" version="6" changeset="144112553" timestamp="2023-11-16T20:42:38Z" user="Bence Mélykúti" uid="8387374" lat="48.0044675" lon="7.8376103"/>
  <node id="2450298483" visible="true" version="3" changeset="83058064" timestamp="2020-04-04T02:08:52Z" user="FbrG" uid="10503526" lat="48.0066931" lon="7.8392527"/>
@@ -689,7 +689,7 @@
  <node id="7047823175" visible="true" version="5" changeset="93190833" timestamp="2020-10-28T16:41:26Z" user="skyper" uid="152744" lat="48.0054457" lon="7.8387178">
   <tag k="door" v="sliding"/>
   <tag k="entrance" v="yes"/>
-  <tag k="name" v="Klinik für Frauenheilkunde"/>
+  <tag k="name" v="Klinik für Frauenheilkunde [1]"/>
  </node>
  <node id="7047823176" visible="true" version="3" changeset="79315025" timestamp="2020-01-08T00:12:54Z" user="FbrG" uid="10503526" lat="48.0061706" lon="7.8375113">
   <tag k="entrance" v="yes"/>
@@ -786,7 +786,7 @@
  <node id="7108797191" visible="true" version="2" changeset="105980053" timestamp="2021-06-07T14:56:20Z" user="skyper" uid="152744" lat="48.0054624" lon="7.8379595"/>
  <node id="7108797192" visible="true" version="2" changeset="105980053" timestamp="2021-06-07T14:56:20Z" user="skyper" uid="152744" lat="48.0053052" lon="7.8376662">
   <tag k="entrance" v="yes"/>
-  <tag k="name" v="Klinik für Frauenheilkunde"/>
+  <tag k="name" v="Klinik für Frauenheilkunde [2]"/>
  </node>
  <node id="7112240013" visible="true" version="2" changeset="138439568" timestamp="2023-07-12T21:43:49Z" user="FbrG" uid="10503526" lat="48.0075680" lon="7.8360270"/>
  <node id="7112240014" visible="true" version="1" changeset="79250797" timestamp="2020-01-06T13:44:25Z" user="FbrG" uid="10503526" lat="48.0068057" lon="7.8372289">
