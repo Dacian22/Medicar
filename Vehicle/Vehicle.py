@@ -1,3 +1,5 @@
+import datetime
+import json
 import os
 import time
 
@@ -12,10 +14,12 @@ class Vehicle:
     """
 
     vehicle_id = None  # String
-    current_position = None  # NetworkXNode or NetworkXEdge as string
+    current_position = None  # nodeId or edgeId
     current_speed = 60  # nodes per minute
     current_task = None
     client = None
+    status = None  # one of "idle", "busy", "moving"
+
     # moving = False
 
     def __init__(self, _vehicle_id):
@@ -34,16 +38,42 @@ class Vehicle:
 
     def on_message(self, client, userdata, msg):
         print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-        if msg.topic == "vehicles/" + self.vehicle_id + "/newtask":
-            if self.current_task is None:
-                print("Received new task: " + msg.payload.decode("utf-8"))
-                self.dotask(msg.payload.decode("utf-8"))
-            else:
-                print("Vehicle is busy")
-                client.publish("vehicles/" + self.vehicle_id + "/status", "busy", qos=2)
-        elif msg.topic == "vehicles/" + self.vehicle_id + "/canceltask":
-            print("Received cancel task")
-            self.canceltask()
+        if msg.topic == "vehicles/" + self.vehicle_id + "/route":
+            print("Received new task: " + msg.payload.decode("utf-8"))
+            self.receive_route(msg.payload.decode("utf-8"))
+        else:
+            print("ERROR: Received unsupported message: " + msg.topic)
+
+    def send_vehicle_status(self):
+        payload = dict()
+        # VDA 5050 standard properties
+        payload["headerId"] = "NAN"  # TODO: headerId not implemented (not VDA 5050 compliant)
+        payload["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        payload["vehicleId"] = self.vehicle_id
+        payload["position"] = self.current_position  # TODO: format is not VDA 5050 compliant
+        payload["speeed"] = self.current_speed
+
+        # custom properties
+        payload["status"] = self.status
+
+        self.client.publish("vehicles/" + self.vehicle_id + "/status", json.dumps(payload), qos=2)
+
+    def send_incident(self, incident):
+        # TODO not implemented
+        pass
+
+    def receive_route(self, message):
+        payload = json.loads(message)
+
+        if self.current_task is not None:
+            print("Vehicle is busy")
+            self.send_vehicle_status()
+            return
+
+        self.current_task = payload
+        self.status = "busy"
+        self.send_vehicle_status()
+        self.dotask()
 
     def connect_to_mqtt(self):
         # Connect to MQTT
@@ -60,22 +90,21 @@ class Vehicle:
         # connect to HiveMQ Cloud on port 8883 (default for MQTT)
         self.client.connect(os.getenv("HYVE_MQTT_URL"), 8883)
         # test connection
-        self.client.publish("vehicles/" + self.vehicle_id + "/status", "online", qos=2)
-        self.client.subscribe("vehicles/" + self.vehicle_id + "/newtask", qos=2)
-        self.client.subscribe("vehicles/" + self.vehicle_id + "/hello", qos=2)
+        self.client.subscribe("vehicles/" + self.vehicle_id + "/route", qos=2)
         print("start")
+        self.status = "idle"
+        self.send_vehicle_status()
         self.client.loop_forever()
 
-    def dotask(self, route):
-        self.current_task = route.split(",")
+    def dotask(self):
         print(self.current_task)
-        for step in self.current_task:
+        self.status = "moving"
+        # TODO handle single node (edges are empty)
+        for edge in self.current_task["edges"]:
             time.sleep(60 / self.current_speed)
-            self.current_position = step
-            self.client.publish("vehicles/" + self.vehicle_id + "/position", self.current_position, qos=2)
+            self.current_position = edge
+            self.send_vehicle_status()
             print("newposition: " + self.current_position)
+        self.status = "idle"
         self.current_task = None
-        self.client.publish("vehicles/" + self.vehicle_id + "/status", "idle", qos=2)
-
-    def canceltask(self):
-        pass
+        self.send_vehicle_status()
