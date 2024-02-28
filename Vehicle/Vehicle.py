@@ -1,4 +1,5 @@
 import os
+import time
 
 import paho.mqtt.client as paho
 from dotenv import load_dotenv
@@ -13,8 +14,9 @@ class Vehicle:
     vehicle_id = None  # String
     current_position = None  # NetworkXNode or NetworkXEdge as string
     current_speed = 60  # nodes per minute
-    current_task = None  # Task as string
-    moving = False
+    current_task = None
+    client = None
+    # moving = False
 
     def __init__(self, _vehicle_id):
         load_dotenv()
@@ -32,23 +34,48 @@ class Vehicle:
 
     def on_message(self, client, userdata, msg):
         print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+        if msg.topic == "vehicles/" + self.vehicle_id + "/newtask":
+            if self.current_task is None:
+                print("Received new task: " + msg.payload.decode("utf-8"))
+                self.dotask(msg.payload.decode("utf-8"))
+            else:
+                print("Vehicle is busy")
+                client.publish("vehicles/" + self.vehicle_id + "/status", "busy", qos=2)
+        elif msg.topic == "vehicles/" + self.vehicle_id + "/canceltask":
+            print("Received cancel task")
+            self.canceltask()
 
     def connect_to_mqtt(self):
         # Connect to MQTT
-        client = paho.Client(client_id=self.vehicle_id, userdata=None, protocol=paho.MQTTv5)
-        client.on_connect = self.on_connect
-        client.on_publish = self.on_publish
-        client.on_subscribe = self.on_subscribe
-        client.on_message = self.on_message
+        self.client = paho.Client(client_id=self.vehicle_id, userdata=None, protocol=paho.MQTTv5)
+        self.client.on_connect = self.on_connect
+        self.client.on_publish = self.on_publish
+        self.client.on_subscribe = self.on_subscribe
+        self.client.on_message = self.on_message
 
         # enable TLS for secure connection
-        client.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
+        self.client.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
         # set username and password
-        client.username_pw_set(os.getenv("HYVE_MQTT_USR"), os.getenv("HYVE_MQTT_PWD"))
+        self.client.username_pw_set(os.getenv("HYVE_MQTT_USR"), os.getenv("HYVE_MQTT_PWD"))
         # connect to HiveMQ Cloud on port 8883 (default for MQTT)
-        client.connect(os.getenv("HYVE_MQTT_URL"), 8883)
+        self.client.connect(os.getenv("HYVE_MQTT_URL"), 8883)
         # test connection
-        client.subscribe("vehicles/" + self.vehicle_id + "/commands", qos=2)
-        client.publish("vehicles/" + self.vehicle_id + "/status", "online", qos=2)
-        print(client.is_connected())
-        client.loop_forever()
+        self.client.publish("vehicles/" + self.vehicle_id + "/status", "online", qos=2)
+        self.client.subscribe("vehicles/" + self.vehicle_id + "/newtask", qos=2)
+        self.client.subscribe("vehicles/" + self.vehicle_id + "/hello", qos=2)
+        print("start")
+        self.client.loop_forever()
+
+    def dotask(self, route):
+        self.current_task = route.split(",")
+        print(self.current_task)
+        for step in self.current_task:
+            time.sleep(60 / self.current_speed)
+            self.current_position = step
+            self.client.publish("vehicles/" + self.vehicle_id + "/position", self.current_position, qos=2)
+            print("newposition: " + self.current_position)
+        self.current_task = None
+        self.client.publish("vehicles/" + self.vehicle_id + "/status", "idle", qos=2)
+
+    def canceltask(self):
+        pass
