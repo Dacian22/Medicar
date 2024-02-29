@@ -3,12 +3,13 @@ from order import Order
 import threading
 import time
 import json
+import csv
 
 
 class OrderManager:
     
     
-    def __init__(self, mqtt_broker_url, mqtt_username, mqtt_password,heuristics):
+    def __init__(self, mqtt_broker_url, mqtt_username, mqtt_password,heuristics_file):
         # create a MQTT client
         self.client = mqtt.Client()
         self.client.on_connect = self.on_connect
@@ -28,7 +29,8 @@ class OrderManager:
         # subscribe to topic
         self.client.subscribe("order_manager/transportation/orders", qos = 2)
         
-        self.heuristics = heuristics
+        self.heuristics_file = heuristics_file
+        self.heuristics = self.load_heuristics()
 
     def on_connect(self, client, userdata, flags, rc):
         print("Connected with result code " + str(rc))
@@ -41,6 +43,15 @@ class OrderManager:
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
         print("Subscribed to topic with QoS:", granted_qos)
+    
+    def load_heuristics(self):
+        heuristics = []
+        with open(self.heuristics_file, 'r') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                heuristics.append(row[0])
+        return heuristics
+
     
     def process_heuristics(self,heuristics):
 
