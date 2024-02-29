@@ -1,16 +1,25 @@
 import re
-
+import time
 
 class Order:
+
+    # dictionary to store order IDs for each heuristic
+    order_id_dict = {}
     
-    
-    def __init__(self,heuristic, order_id_counter):
+    def __init__(self,heuristic):
         
         # read heuristics from the provided file
         self.heuristic = heuristic
+
+        # initialize order ID for the current heuristic
+        if heuristic not in Order.order_id_dict:
+            Order.order_id_dict[heuristic] = 1
+
+        # set the order ID for the current instance
+        self.order_id = Order.order_id_dict[heuristic]
         
         #declare class attributes
-        self.order_id_counter = order_id_counter
+        self.timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         self.origin = ""
         self.destination = ""
         self.objects = []
@@ -38,8 +47,6 @@ class Order:
             "objects": objects,
             "interval": interval
         }
-        # increment order ID counter for the next order
-        self.order_id_counter += 1
         self.order_interval = interval
         self.origin = origin
         self.destination = destination
@@ -51,7 +58,8 @@ class Order:
     # Convert the Order instance to a dictionary
     def to_dict(self):
        return {
-           "order_id_counter": self.order_id_counter,
+           "order_id": self.order_id,
+           "timestamp": self.timestamp,
            "origin": self.origin,
            "destination": self.destination,
            "objects": self.objects,
