@@ -53,7 +53,7 @@ class OrderManager:
         return heuristics
 
     
-    def process_heuristics(self,heuristics):
+    def process_heuristics(self):
 
         for idx, heuristic in enumerate(self.heuristics):
             # initialize OrderManager with the current heuristic
