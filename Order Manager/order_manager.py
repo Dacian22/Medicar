@@ -60,7 +60,7 @@ class OrderManager:
             order_instance = Order(heuristic)
 
             # create orders from the current heuristic
-            order_instance.create_orders_from_heuristics()
+            order_instance.create_order()
 
             # start a new thread to send orders periodically for the current heuristic
             thread = threading.Thread(target=self.send_order_periodically,args=(order_instance,))
