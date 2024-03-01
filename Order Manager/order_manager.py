@@ -50,6 +50,7 @@ class OrderManager:
             reader = csv.reader(file)
             next(reader) #skip the first row
             for row in reader:
+                #divide the heuristics
                 heuristics.append(row[0]) 
         return heuristics
     
