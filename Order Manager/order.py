@@ -12,7 +12,7 @@ class Order:
         
         # initialize order ID for the current heuristic
         if heuristic not in Order.order_id_dict:
-            Order.order_id_dict[heuristic] = 1
+            Order.order_id_dict[heuristic] = len(Order.order_id_dict)+1
 
         # set the order ID for the current instance
         self.order_id = Order.order_id_dict[heuristic]
@@ -24,10 +24,11 @@ class Order:
         self.objects = []
         self.order_interval = 0
         
-    #extract the objects, origin, destination and interval of the order
-    def extract_order(self, heuristic):
-         # split the CSV row into individual components
-        components = heuristic.split(",")
+    
+   #extract the objects, origin, destination and interval of the order
+    def extract_order(self):
+        # split the CSV row into individual components
+        components = self.heuristic.split(",")
         
         objects = components[0]
         origin = components[1]
@@ -42,28 +43,24 @@ class Order:
             return origin, destination, objects, value
         else:
             raise ValueError("Invalid interval format")
-
-    @classmethod
-    #create an order from the extracted information
-    def create_order(cls, heuristic):
-        origin, destination, objects, interval = cls.extract_order(heuristic)
-        order = cls(heuristic)
-        order.origin = origin
-        order.destination = destination
-        order.objects = objects
-        order.order_interval = interval
-        return order
+    
+    # create an order from the extracted information
+    def create_order(self):
+        origin, destination, objects, interval = self.extract_order()
+        self.origin = origin
+        self.destination = destination
+        self.objects = objects
+        self.order_interval = interval
     
     
     # convert the Order instance to a dictionary
     def to_dict(self):
        return {
            "order_id": self.order_id,
-           "timestamp": self.timestamp,
+           "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
            "origin": self.origin,
            "destination": self.destination,
            "objects": self.objects,
-           "order_interval": self.order_interval
        }
                   
 
