@@ -1,9 +1,0 @@
-Transport Bandages, Syringes, Gloves from Warehouse to Surgical Room every 2 hours.
-Transport Bandages, Syringes, Gloves from Warehouse to Emergency Room every 1 hours.
-Transport Waste from Patient Room to Waste Disposal every 5 hours.
-Transport Waste from Administrative Office to Waste Disposal every 8 hours.
-Transport Blood Samples from Medical Laboratory to Storage Facility every 20 min.
-Transport Medication from Hospital Pharmacy to Patient Room every 12 hours.
-Transport Breakfast from Mensa to Patient Room every 24 hours.
-Transport Lunch from Mensa to Patient Room every 24 hours.
-Transport Dinner from Mensa to Patient Room every 24 hours.
