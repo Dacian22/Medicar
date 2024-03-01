@@ -48,6 +48,7 @@ class OrderManager:
         heuristics = []
         with open(self.heuristics_file, 'r') as file:
             reader = csv.reader(file)
+            next(reader)    #skip the first row
             for row in reader:
                 heuristics.append(row[0])
         return heuristics
