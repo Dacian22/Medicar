@@ -30,7 +30,7 @@ class Order:
         origin = heuristic[1]
         destination = heuristic[2]
         interval_str = heuristic[3]
-        match = re.match(r'(\d+)\s+(hour|min)', interval_str)
+        match = re.match(r'(\d+)\s+(hours|min)', interval_str)
         if match:
             value = int(match.group(1))
             unit = match.group(2)
