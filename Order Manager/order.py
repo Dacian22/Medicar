@@ -25,7 +25,7 @@ class Order:
         self.order_interval = 0
         
     #extract the objects, origin, destination and interval of the order
-    def extract_order(heuristic):
+    def extract_order(self, heuristic):
         objects = heuristic[0]
         origin = heuristic[1]
         destination = heuristic[2]
