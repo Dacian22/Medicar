@@ -43,6 +43,7 @@ class Order:
         else:
             raise ValueError("Invalid interval format")
 
+    @classmethod
     #create an order from the extracted information
     def create_order(cls, heuristic):
         origin, destination, objects, interval = cls.extract_order(heuristic)
