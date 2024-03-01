@@ -27,7 +27,7 @@ class OrderManager:
         self.client.connect(mqtt_broker_url, 8883)
 
         # subscribe to topic
-        self.client.subscribe("order_manager/transportation/orders", qos = 2)
+        self.client.subscribe("order_manager/transportation/orders", qos=2)
         
         self.heuristics_file = heuristics_file
         self.heuristics = self.load_heuristics()
@@ -43,25 +43,24 @@ class OrderManager:
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
         print("Subscribed to topic with QoS:", granted_qos)
-    
+        
     def load_heuristics(self):
         heuristics = []
         with open(self.heuristics_file, 'r') as file:
             reader = csv.reader(file)
-            next(reader)    #skip the first row
+            next(reader) #skip the first row
             for row in reader:
-                heuristics.append(row[0])
+                heuristics.append(row[0]) 
         return heuristics
-
     
     def process_heuristics(self):
 
         for idx, heuristic in enumerate(self.heuristics):
             # initialize OrderManager with the current heuristic
             order_instance = Order(heuristic)
-
+        
             # create orders from the current heuristic
-            order_instance.create_order(heuristic)
+            order_instance.create_order()
 
             # start a new thread to send orders periodically for the current heuristic
             thread = threading.Thread(target=self.send_order_periodically,args=(order_instance,))
@@ -75,8 +74,8 @@ class OrderManager:
         
         # publish the order to the MQTT broker
         topic = f"order_manager/transportation/orders/{order.order_id}"
-        self.client.publish(topic, order_json, qos = 2)
-        print(Order sent:", order_json)
+        self.client.publish(topic, order_json, qos=2)
+        print("Order sent:", order_json)
 
     def send_order_periodically(self, order_instance):
       while True:
@@ -84,5 +83,6 @@ class OrderManager:
          # send order only if the order interval has elapsed
          if interval > 0:
                 self.send_order(order_instance)
-                # sleep for the interval sec before sending the next order
+                # sleep for the interval before sending the next order
                 time.sleep(interval)
+               
