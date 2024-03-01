@@ -2,7 +2,6 @@ import re
 import time
 
 class Order:
-
     # dictionary to store order IDs for each heuristic
     order_id_dict = {}
     
@@ -10,7 +9,7 @@ class Order:
         
         # read heuristics from the provided file
         self.heuristic = heuristic
-
+        
         # initialize order ID for the current heuristic
         if heuristic not in Order.order_id_dict:
             Order.order_id_dict[heuristic] = 1
@@ -26,36 +25,32 @@ class Order:
         self.order_interval = 0
         
     
-    def extract_order(self, heuristic):
-        origin = re.search(r'from\s+(.*?)\s+to', heuristic, re.IGNORECASE).group(1)
-        destination = re.search(r'to\s+(.*?)\s+every', heuristic, re.IGNORECASE).group(1)
-        objects = re.search(r'Transport\s+(.*?)\s+from', heuristic, re.IGNORECASE).group(1).split(',')
-        order_interval = re.search(r'every\s+(\d+)\s+(\w+)', heuristic, re.IGNORECASE)
-        interval = int(order_interval.group(1))
-        unit = order_interval.group(2)
-        if unit == 'min':
-           interval *= 60
-        print(origin, destination, objects, interval)
-        return origin, destination, objects, interval
+    def extract_order(heuristic):
+        objects = heuristic[0]
+        origin = heuristic[1]
+        destination = heuristic[2]
+        interval_str = heuristic[3]
+        match = re.match(r'(\d+)\s+(hour|min)', interval_str)
+        if match:
+            value = int(match.group(1))
+            unit = match.group(2)
+            if unit == 'min':
+                value *= 60  # convert minutes to hours
+            return origin, destination, objects, value
+        else:
+            raise ValueError("Invalid interval format")
    
-    def create_orders_from_heuristics(self):
-        origin, destination, objects, interval = self.extract_order(self.heuristic)
-        #create order dictionary
-        order = {
-            "from_location": origin,
-            "to_location": destination,
-            "objects": objects,
-            "interval": interval
-        }
-        self.order_interval = interval
-        self.origin = origin
-        self.destination = destination
-        self.objects = objects
-        self.order = order
-        return self.order
+    def create_order_from_csv(cls, heuristic):
+        origin, destination, objects, interval = cls.extract_order_from_csv(heuristic)
+        order = cls(heuristic)
+        order.origin = origin
+        order.destination = destination
+        order.objects = objects
+        order.order_interval = interval
+        return order
     
     
-    # Convert the Order instance to a dictionary
+    # convert the Order instance to a dictionary
     def to_dict(self):
        return {
            "order_id": self.order_id,
