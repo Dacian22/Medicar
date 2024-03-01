@@ -24,7 +24,7 @@ class Order:
         self.objects = []
         self.order_interval = 0
         
-    
+    #extract the objects, origin, destination and interval of the order
     def extract_order(heuristic):
         objects = heuristic[0]
         origin = heuristic[1]
@@ -39,9 +39,10 @@ class Order:
             return origin, destination, objects, value
         else:
             raise ValueError("Invalid interval format")
-   
-    def create_order_from_csv(cls, heuristic):
-        origin, destination, objects, interval = cls.extract_order_from_csv(heuristic)
+
+    #create an order from the extracted information
+    def create_order(cls, heuristic):
+        origin, destination, objects, interval = cls.extract_order(heuristic)
         order = cls(heuristic)
         order.origin = origin
         order.destination = destination
