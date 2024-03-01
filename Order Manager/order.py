@@ -26,10 +26,13 @@ class Order:
         
     #extract the objects, origin, destination and interval of the order
     def extract_order(self, heuristic):
-        objects = heuristic[0]
-        origin = heuristic[1]
-        destination = heuristic[2]
-        interval_str = heuristic[3]
+         # split the CSV row into individual components
+        components = heuristic.split(",")
+        
+        objects = components[0]
+        origin = components[1]
+        destination = components[2]
+        interval_str = components[3]
         match = re.match(r'(\d+)\s+(hours|min)', interval_str)
         if match:
             value = int(match.group(1))
