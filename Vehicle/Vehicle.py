@@ -99,12 +99,14 @@ class Vehicle:
     def dotask(self):
         print(self.current_task)
         self.status = "moving"
-        # TODO handle single node (edges are empty)
-        for edge in self.current_task["edges"]:
-            time.sleep(60 / self.current_speed)
-            self.current_position = edge
-            self.send_vehicle_status()
-            print("newposition: " + self.current_position)
+        if self.current_task["edges"] is None: # edges are empty => do not move
+            pass
+        else:
+            for edge in self.current_task["edges"]:
+                time.sleep(60 / self.current_speed)
+                self.current_position = edge
+                self.send_vehicle_status()
+                print("newposition: " + self.current_position)
         self.status = "idle"
         self.current_task = None
         self.send_vehicle_status()

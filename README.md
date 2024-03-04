@@ -28,6 +28,8 @@ We are trying to use, if possible and reasonable, the "VDA5050" standard for MQT
 You can find it in the `Ressources/MQTT_APIS` folder as PDF and as txt. You can visualize the txt files nicely with the following
 online service https://studio.asyncapi.com/ (just paste the content there)
 
+If you want to monitor the mqtt messages in real time you can use the following open source app: https://mqttx.app/downloads
+
 ### Git "Workflow"
 For now, we want to use only the main branch. This may change, but currently we want full transparency. So please
 commit directly to main, even if your code isn't finished yet. If you want to try something out, please create a folder
