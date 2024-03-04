@@ -1,0 +1,419 @@
+asyncapi: 3.0.0
+info:
+  title: Medicar Routing API
+  version: 0.1.0
+  description: API communicating routes for vehicles.
+  license:
+    name: Apache 2.0
+    url: 'https://www.apache.org/licenses/LICENSE-2.0'
+defaultContentType: application/json
+servers:
+  mosquitto:
+    host: test.mosquitto.org
+    protocol: mqtt
+channels:
+  '{vehicleId}/status':
+    address: '{vehicleId}/status'
+    messages:
+      sendStatus.message:
+        $ref: '#/components/messages/status'
+    description: The topic on which the status for a given vehicle is communicated.
+    parameters:
+      vehicleId:
+        $ref: '#/components/parameters/vehicleId'
+  '{vehicleId}/incident':
+    address: '{vehicleId}/incident'
+    messages:
+      sendIncident.message:
+        $ref: '#/components/messages/incident'
+    description: The topic which is used to report incidents on the route
+  '{vehicleId}/route':
+    address: '{vehicleId}/route'
+    messages:
+      receiveRoute.message:
+        $ref: '#/components/messages/route'
+    description: The topic on which routes for a given vehicle are communicated.
+    parameters:
+      vehicleId:
+        $ref: '#/components/parameters/vehicleId'
+  '{vehicleId}/tour':
+    address: '{vehicleId}/tour'
+    messages:
+      receiveTour.message:
+        $ref: '#/components/messages/tour'
+    description: The topic on which tours for a given vehicle are communicated.
+    parameters:
+      vehicleId:
+        $ref: '#/components/parameters/vehicleId'
+operations:
+  receiveStatus:
+    action: receive
+    channel:
+      $ref: '#/channels/{vehicleId}~1status'
+    summary: Send information about vehicle's current status
+  sendRoute:
+    action: send
+    channel:
+      $ref: '#/channels/{vehicleId}~1route'
+    summary: Send information about the route that a vehicle should take
+  receiveTour:
+    action: receive
+    channel:
+      $ref: '#/channels/{vehicleId}~1tour'
+    summary: Consume information about vehicle's current tour
+    messages:
+      - $ref: '#/channels/{vehicleId}~1tour/messages/receiveTour.message'
+  receiveIncident:
+    action: receive
+    channel:
+      $ref: '#/channels/{vehicleId}~1incident'
+    summary: Report an observed incident
+components:
+  messages:
+    status:
+      name: status
+      title: Status
+      summary: Status of the vehicle
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/status'
+    route:
+      name: route
+      title: Route
+      summary: Route to be completed by the vehicle
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/route'
+    incident:
+      name: incident
+      title: Incident
+      summary: Incident reported by a vehicle.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/incident'
+    tour:
+      name: tour
+      title: Tour
+      summary: Tour (order) to be completed by a vehicle.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/tour'
+  parameters:
+    vehicleId:
+      description: The ID of the vehicle.
+  schemas:
+    status:
+      type: object
+      title: Status
+      required:
+        - headerId
+        - timestamp
+        - vehicleId
+        - position
+        - speed   
+      properties:
+        headerId:
+          type: integer
+          description: >-
+            (VDA5050) Header ID of the message. The headerId is defined per route
+            and incremented by 1 with each sent message.
+        timestamp:
+          type: string
+          format: date-time
+          description: Date and time when the message was sent.
+        vehicleId:
+          type: string
+        position:
+          $ref: '#/components/schemas/position'
+        speed:
+          type: integer
+          description:
+            Current driving speed of the vehicle
+    incident:
+      type: object
+      title: incident
+      required:
+        - headerId
+        - timestamp
+        - vehicleId
+        - description
+        - edge
+      properties:
+        headerId:
+          type: integer
+          description: >-
+            (VDA5050) Header ID of the message. The headerId is defined per route
+            and incremented by 1 with each sent message.
+        timestamp:
+          type: string
+          format: date-time
+          description: Date and time when the message was sent.
+        vehicleId:
+          type: string
+        description: 
+          type: string
+          description: Description of the incident
+        edges:
+          type: array
+          description: >-
+            (VDA5050) Directional connection between two nodes. Array of edge
+            objects to be traversed for fulfilling the route. One node is
+            enough for a valid order. Leave edge list empty for that case.
+          items:
+            $ref: '#/components/schemas/edge'
+    route:
+      type: object
+      title: route
+      required:
+        - headerId
+        - timestamp
+        - vehicleId
+        - routeId
+        - routeUpdateId
+        - nodes
+        - edges    
+      properties:
+        headerId:
+          type: integer
+          description: >-
+            (VDA5050) Header ID of the message. The headerId is defined per route
+            and incremented by 1 with each sent message.
+        timestamp:
+          type: string
+          format: date-time
+          description: Date and time when the message was sent.
+        vehicleId:
+          type: string
+        routeId:
+          type: string
+          description: >-
+            (VDA5050) Order Identification. This is to be used to identify multiple
+            order messages that belong to the same order.
+        routeUpdateId:
+          type: integer
+          description: >-
+            (VDA5050) orderUpdate identification. Is unique per orderId. If an
+            order update is rejected, this field is to be passed in the
+            rejection message.
+        nodes:
+          type: array
+          description: >-
+            (VDA5050) Array of nodes objects to be traversed for fulfilling the
+            route. One node is enough for a valid order. Leave edge list
+            empty for that case.
+          items:
+            $ref: '#/components/schemas/node'
+        edges:
+          type: array
+          description: >-
+            (VDA5050) Directional connection between two nodes. Array of edge
+            objects to be traversed for fulfilling the route. One node is
+            enough for a valid order. Leave edge list empty for that case.
+          items:
+            $ref: '#/components/schemas/edge'
+    tour:
+      type: object
+      title: tour
+      required:
+        - headerId
+        - timestamp
+        - vehicleId
+        - tourId
+        - tourUpdateId
+        - nodes
+        - edges
+      properties:
+        headerId:
+          type: integer
+          description: >-
+            (VDA5050) Header ID of the message. The headerId is defined per topic
+            and incremented by 1 with each sent message.
+        timestamp:
+          type: string
+          format: date-time
+          description: Date and time when the message was sent.
+        vehicleId:
+          type: string
+        tourId:
+          type: string
+          description: >-
+            (VDA5050) Order Identification. This is to be used to identify multiple
+            order messages that belong to the same order.
+        tourUpdateId:
+          type: integer
+          description: >-
+            (VDA5050) orderUpdate identification. Is unique per orderId. If an
+            order update is rejected, this field is to be passed in the
+            rejection message.
+        tourStartTime:
+          type: string
+          format: date-time
+        tourEndTime:
+          type: string
+          format: date-time
+        nodes:
+          type: array
+          description: >-
+            (VDA5050) Array of nodes objects to be traversed for fulfilling the
+            order [tour]. One node is enough for a valid order. Leave edge list
+            empty for that case.
+          items:
+            $ref: '#/components/schemas/node'
+        edges:
+          type: array
+          description: >-
+            (VDA5050) Directional connection between two nodes. Array of edge
+            objects to be traversed for fulfilling the order [tour]. One node is
+            enough for a valid order. Leave edge list empty for that case.
+          items:
+            $ref: '#/components/schemas/edge'
+    node:
+      type: object
+      title: node
+      required:
+        - nodeId
+        - sequenceId
+        - nodePosition
+        - actions
+      properties:
+        nodeId:
+          type: string
+          description: (VDA5050) Unique node identification
+        sequenceId:
+          type: integer
+          minimum: 0
+          description: >-
+            (VDA5050) Number to track the sequence of nodes and edges in an order
+            and to simplify order updates. The main purpose is to distinguish
+            between a node which is passed more than once within one orderId.
+            The variable sequenceId runs across all nodes and edges of the same
+            order and is reset when a new orderId is issued.
+        nodeDescription:
+          type: string
+          description: >-
+            (VDA5050) Additional information on the node. (FZI) Human-readable
+            address.
+        released:
+          type: boolean
+          description: >-
+            (VDA5050) True indicates that the node is part of the base. False
+            indicates that the node is part of the horizon.
+        nodePosition:
+          $ref: '#/components/schemas/position'
+        actions:
+          description: >-
+            (VDA5050) Array of actions to be executed on a node. Empty array, if no
+            actions required.
+          type: array
+          items:
+            $ref: '#/components/schemas/action'
+    position:
+      description: (FZI) Real-world position in geo-coordinates.
+      type: object
+      title: position
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+          description: (FZI) Latitude of the real-world position.
+        longitude:
+          type: number
+          description: (FZI) Longitude of the real-world position.
+        description:
+          type: string
+          description: '(FZI) optional location description, e.g. human readable address.'
+    action:
+      type: object
+      title: action
+      description: >-
+        (FZI) Corresponds to an order action which is to be performed at a tour
+        stop.
+      required:
+        - actionId
+        - actionType
+        - orderActionId
+      properties:
+        actionId:
+          type: string
+          description: >-
+            (VDA5050) Unique ID to identify the action and map them to the
+            actionState in the state. Suggestion - Use UUIDs. ((FZI) As produced
+            by tour scheduler.)
+        actionType:
+          $ref: '#/components/schemas/actionTypeEnum'
+        orderActionId:
+          type: string
+          description: >-
+            (FZI) Unique identifier of the corresponding order action. (As in
+            original order management)
+        sequenceId:
+          type: number
+          description: >-
+            (FZI) Sequence index of action within tour. Actions with lower
+            sequence id's are executed earlier.
+        actionDescription:
+          type: string
+          description: (VDA5050) Additional information on the action.
+        serviceDuration:
+          type: number
+          description: >-
+            (FZI) The duration predicted for a service action (only allowed in
+            case of actionType 'service')
+        loadAmount:
+          type: number
+          description: >-
+            (FZI) The load amount which is handled in a pick or drop action
+            (only allowed in case of actionType 'pick' or 'drop')
+        locationDescription:
+          type: string
+          description: '(FZI) Optional location description, e.g. human-readable address.'
+        earliestStartTime:
+          type: string
+          format: date-time
+          description: >-
+            (FZI) Earliest execution time of the action (should be consistent
+            with order time windows).
+    actionTypeEnum:
+      type: string
+      title: actionTypeEnum
+      enum:
+        - PICKUP
+        - DROPOFF
+        - SERVICE
+      description: >-
+        (VDA5050) Name of action as described in the first column of "Actions and
+        Parameters". Identifies the function of the action.
+    edge:
+      description: (FZI) Routing instructions between two nodes.
+      type: object
+      title: edge
+      required:
+        - edgeId
+        - sequenceId
+      properties:
+        edgeId:
+          type: string
+          description: (VDA5050) unique edge identification
+        sequenceId:
+          type: integer
+          minimum: 0
+          description: >-
+            (VDA5050) Number to track the sequence of nodes and edges in an order
+            and to simplify order updates. The variable sequenceId runs across
+            all nodes and edges of the same order and is reset when a new
+            orderId is issued.
+        released:
+          type: boolean
+          description: >-
+            (VDA5050) True indicates that the edge is part of the base. False
+            indicates that the edge is part of the horizon.
+        startNodeId:
+          type: string
+          description: (VDA5050) The nodeId of the start node.
+        endNodeId:
+          type: string
+          description: (VDA5050) The nodeId of the end node.
+
+
