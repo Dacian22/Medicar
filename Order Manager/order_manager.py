@@ -34,7 +34,9 @@ class OrderManager:
         self.heuristics_file = heuristics_file
         # load the heuristics file
         self.heuristics = self.load_heuristics()
-        self.vehicle_statuses = {}
+
+        # store the list of idle vehicles
+        self.idle_vehicles = []
 
     def on_connect(self, client, userdata, flags, rc):
         print("Connected with result code " + str(rc))
@@ -75,11 +77,15 @@ class OrderManager:
             # create orders from the current heuristic
             order_instance.create_order()
 
-            # update vehicle statuses
-            self.update_vehicle_statuses()
-
             # assign a vehicle to the order
             self.assign_vehicle(order_instance)
+
+            #get the vehicle id from simulation
+            try:
+                json.dumps(self.closest_vehicle_callback)
+                order_instance.vehicle_id = self.closest_vehicle_callback
+            except TypeError:
+                order_instance.vehicle_id = 1  #temporary
 
             # start a new thread to send orders periodically for the current heuristic
             thread = threading.Thread(target=self.send_order_periodically,args=(order_instance,))
@@ -105,24 +111,31 @@ class OrderManager:
                 # sleep for the interval before sending the next order
                 time.sleep(interval)
     
-    # update the vehicle status when it changes
     def update_vehicle_status(self, vehicle_id, status):
-        self.vehicle_statuses[vehicle_id] = status
+       """
+       Update the status of the given vehicle in the list of idle vehicles.
+       If the vehicle is now idle and was not previously, add it to the list.
+       If the vehicle is no longer idle and was previously, remove it from the list.
+       """
+        if status == "idle" and vehicle_id not in self.idle_vehicles:
+           self.idle_vehicles.append(vehicle_id)
+        elif status != "idle" and vehicle_id in self.idle_vehicles:
+           self.idle_vehicles.remove(vehicle_id)
 
     # require from the simulation which vehicle is the closest to the order source
-    def assign_vehicle(self, order, idle_vehicles):
+    def assign_vehicle(self, order):
         payload = {
             "order_id": order.order_id,
             "source": order.source,
-            "idle_vehicles": idle_vehicles
+            "idle_vehicles": self.idle_vehicles
         }
         self.client.publish("simulation/get_closest_vehicle", json.dumps(payload), qos=2)
     
     #assign the vehicle id to current order when a message with the closest vehicle
     # is received from simulation
-    def closest_vehicle_callback(self, client, userdata, message, order_instance):
+    def closest_vehicle_callback(self, client, userdata, message):
         vehicle_id = json.loads(message.payload.decode())
-        order_instance.vehicle_id = vehicle_id
+        return vehicle_id
 
     
 
