@@ -26,11 +26,15 @@ class OrderManager:
         # connect the client to MQTT broker
         self.client.connect(mqtt_broker_url, 8883)
 
-        # subscribe to topic
-        self.client.subscribe("order_manager/transportation/orders", qos=2)
+        # subscribe to topic to get the status of the vehicles
+        self.client.subscribe("vehicles/+/status", qos=2)
+        # get the closest vehicle from the message sent by simulation
+        self.client.message_callback_add("simulation/closest_vehicle", self.closest_vehicle_callback)
         
         self.heuristics_file = heuristics_file
+        # load the heuristics file
         self.heuristics = self.load_heuristics()
+        self.vehicle_statuses = {}
 
     def on_connect(self, client, userdata, flags, rc):
         print("Connected with result code " + str(rc))
@@ -39,7 +43,15 @@ class OrderManager:
         print("Message published")
 
     def on_message(self, client, userdata, message):
-        print("Received message:", message.payload.decode())
+       # get the message sent by the topic and decode it
+       topic = message.topic
+       payload = json.loads(message.payload.decode())
+
+       # create a dictionary that contains the status for every vehicle id
+       if topic.startswith("vehicles/") and topic.endswith("/status"):
+            vehicle_id = topic.split("/")[1]
+            vehicle_status = payload["status"]
+            self.update_vehicle_status(vehicle_id, vehicle_status)
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
         print("Subscribed to topic with QoS:", granted_qos)
@@ -86,4 +98,20 @@ class OrderManager:
                 self.send_order(order_instance)
                 # sleep for the interval before sending the next order
                 time.sleep(interval)
-               
+    
+    # update the vehicle status when it changes
+    def update_vehicle_status(self, vehicle_id, status):
+        self.vehicle_statuses[vehicle_id] = status
+    
+    # require from the simulation which vehicle is the closest to the order source
+    def assign_vehicle(self, order):
+        self.client.publish("simulation/get_idle_vehicles", json.dumps({"order_id": order.order_id, "source": order.source}), qos=2)
+    
+    #assign the vehicle id to current order when a message with the closest vehicle
+    # is received from simulation
+    def closest_vehicle_callback(self, client, userdata, message, order_instance):
+        vehicle_id = json.loads(message.payload.decode())
+        order_instance.vehicle_id = vehicle_id
+
+    
+
