@@ -117,10 +117,11 @@ class OrderManager:
        If the vehicle is now idle and was not previously, add it to the list.
        If the vehicle is no longer idle and was previously, remove it from the list.
        """
-        if status == "idle" and vehicle_id not in self.idle_vehicles:
+       if status == "idle" and vehicle_id not in self.idle_vehicles:
            self.idle_vehicles.append(vehicle_id)
-        elif status != "idle" and vehicle_id in self.idle_vehicles:
+       elif status != "idle" and vehicle_id in self.idle_vehicles:
            self.idle_vehicles.remove(vehicle_id)
+
 
     # require from the simulation which vehicle is the closest to the order source
     def assign_vehicle(self, order):
