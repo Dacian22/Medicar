@@ -31,14 +31,17 @@ class Routing():  # singleton class. Do not create more than one object of this 
     # define function that 'translates' the shortest path to MQTT messages
     def translate_path_to_mqtt(self, shortest_path):
         # create a list of messages
-        messages = []
+        edges = []
         # iterate over all edges in the shortest path
         edges_shortest_path = [(shortest_path[i], shortest_path[i + 1]) for i in range(len(shortest_path) - 1)]
         for index, edge in enumerate(edges_shortest_path):
-            messages.append(
+            edges.append(
                 {'edgeId': "edge_{}_{}".format(edge[0], edge[1]), 'sequenceId': index, 'startNodeId': edge[0],
                  'endNodeId': edge[1]})
-        return messages
+        message = {'edges': edges}
+        print(message)
+        print(json.dumps(message))
+        return message
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
         print("CONNACK received with code %s." % rc)
@@ -55,16 +58,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.handle_order(msg.payload.decode("utf-8"))
 
     def handle_order(self, order):
-        # TODO currently assumes exactly one vehicle named vehicle_1
+        # TODO currently assumes exactly one vehicle named Vehicle1
         order = json.loads(order)
         print(f"Received new order: {order}")
         # find the shortest path
         shortest_path = self.find_astar_path(self.graph, order["source"], order["target"])
         # translate the shortest path to MQTT messages
-        messages = self.translate_path_to_mqtt(shortest_path)
-        # send the messages to the MQTT broker
-        for message in messages:
-            self.client.publish("vehicles/Vehicle_1/route", json.dumps(message), qos=2)
+        message = self.translate_path_to_mqtt(shortest_path)
+        # send the message to the MQTT broker
+        self.client.publish("vehicles/Vehicle1/route", json.dumps(message), qos=2)
 
     def connect_to_mqtt(self):
         # Connect to MQTT
