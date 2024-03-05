@@ -60,6 +60,7 @@ class OrderManager:
         
     def load_heuristics(self):
         heuristics = []
+        #open the heuristics file and read the rows
         with open(self.heuristics_file, 'r') as file:
             reader = csv.reader(file)
             next(reader) #skip the first row
