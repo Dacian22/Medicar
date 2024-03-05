@@ -75,6 +75,12 @@ class OrderManager:
             # create orders from the current heuristic
             order_instance.create_order()
 
+            # update vehicle statuses
+            self.update_vehicle_statuses()
+
+            # assign a vehicle to the order
+            self.assign_vehicle(order_instance)
+
             # start a new thread to send orders periodically for the current heuristic
             thread = threading.Thread(target=self.send_order_periodically,args=(order_instance,))
             thread.start()
