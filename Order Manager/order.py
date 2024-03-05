@@ -23,7 +23,7 @@ class Order:
         self.target = ""
         self.items = []
         self.order_interval = 0
-        
+        self.vehicle_id  = None
     
    #extract the objects, origin, destination and interval of the order
     def extract_order(self):
@@ -55,14 +55,19 @@ class Order:
     
     # convert the Order instance to a dictionary
     def to_dict(self):
-       return {
+       order_dict = {
            "order_id": self.order_id,
            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
            "source": self.source,
            "target": self.target,
            "items": self.items,
        }
-                  
+       #add the vehicle id to the order
+       if self.vehicle_id is not None:
+            order_dict["vehicle_id"] = self.vehicle_id
+       else:
+           order_dict["vehicle_id"] = 1 #assign 1 if the vehicle id is not give -- temporary
+       return order_dict        
 
 
 
