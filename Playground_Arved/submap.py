@@ -127,6 +127,19 @@ class Submap():
         shortest_path = nx.astar_path(G, start_node_id, end_node_id, weight='weight')
         return shortest_path
     
+    # define function that 'translates' the shortest path to MQTT messages
+    def translate_path_to_mqtt(self, shortest_path):
+        # create a list of messages
+        messages = []
+        # iterate over all edges in the shortest path
+        edges_shortest_path = [(shortest_path[i], shortest_path[i+1]) for i in range(len(shortest_path)-1)]
+        for index, edge in enumerate(edges_shortest_path):
+            messages.append({'edgeId': "edge_{}_{}".format(edge[0], edge[1]),
+                             'sequenceId': index,
+                             'startNodeId': edge[0],
+                             'endNodeId': edge[1]})
+        return messages
+    
     # define function to plot the graph
     def plot_graph(self, G, edge_labels_highways, shortest_path):
         # plot the graph where all nodes are placed at their geographical position
