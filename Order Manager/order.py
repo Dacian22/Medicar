@@ -65,9 +65,10 @@ class Order:
        #add the vehicle id to the order
        if self.vehicle_id is not None:
             order_dict["vehicle_id"] = self.vehicle_id
+            return order_dict 
        else:
-           order_dict["vehicle_id"] = 1 #assign 1 if the vehicle id is not given -- temporary
-       return order_dict        
+           print("Not a valid vehicle ID")
+             
 
 
 
