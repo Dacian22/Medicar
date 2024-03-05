@@ -102,11 +102,12 @@ class Vehicle:
         if self.current_task["edges"] is None: # edges are empty => do not move
             pass
         else:
-            for edge in self.current_task["edges"]:
+            end_node_ids = [edge["endNodeId"] for edge in self.current_task["edges"]]
+            for node in end_node_ids:
                 time.sleep(60 / self.current_speed)
-                self.current_position = edge
+                self.current_position = node
                 self.send_vehicle_status()
-                print("newposition: " + self.current_position)
+                print("newposition: " + json.dumps(self.current_position))
         self.status = "idle"
         self.current_task = None
         self.send_vehicle_status()
