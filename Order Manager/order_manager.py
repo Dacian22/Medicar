@@ -102,10 +102,15 @@ class OrderManager:
     # update the vehicle status when it changes
     def update_vehicle_status(self, vehicle_id, status):
         self.vehicle_statuses[vehicle_id] = status
-    
+
     # require from the simulation which vehicle is the closest to the order source
-    def assign_vehicle(self, order):
-        self.client.publish("simulation/get_idle_vehicles", json.dumps({"order_id": order.order_id, "source": order.source}), qos=2)
+    def assign_vehicle(self, order, idle_vehicles):
+        payload = {
+            "order_id": order.order_id,
+            "source": order.source,
+            "idle_vehicles": idle_vehicles
+        }
+        self.client.publish("simulation/get_closest_vehicle", json.dumps(payload), qos=2)
     
     #assign the vehicle id to current order when a message with the closest vehicle
     # is received from simulation
