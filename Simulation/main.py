@@ -8,10 +8,6 @@ parameters = {
                           'Ernst von Bergmann'],
         'allowed_highway_types': ['footway', 'service']
     },
-    "shortest_path_params": {
-        'start': 'Zwischen den Räumen',
-        'end': 'Ernst von Bergmann'
-    }
 }
 
 
