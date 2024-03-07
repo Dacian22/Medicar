@@ -141,11 +141,11 @@ class Submap():
         return messages
     
     # define function to plot the graph
-    def plot_graph(self, G, edge_labels_highways, shortest_path):
+    def plot_graph(self, G, edge_labels_highways, shortest_path = None):
         # plot the graph where all nodes are placed at their geographical position
         pos = {key: (float(value[0]), float(value[1])) for key, value in nds.items()}
         # correct position for the labels
-        pos_labels = {key: (float(value[0]), float(value[1]) - 0.00008) for key, value in nds.items()}
+        pos_labels = {key: (float(value[0]), float(value[1]) - 0.00005) for key, value in nds.items()}
         # create a figure
         plt.figure(figsize=(25, 15))
         # draw the graph
@@ -157,8 +157,9 @@ class Submap():
         nx.draw_networkx_nodes(G, pos=pos, nodelist=[key for key, value in named_nodes.items() if value in self.special_nodes],
                                node_color='green', node_size=20)
         # draw the shortest path
-        nx.draw_networkx_edges(G, pos=pos, edgelist=[(shortest_path[i], shortest_path[i+1]) for i in range(len(shortest_path)-1)],
-                               edge_color='red', width=3)
+        if shortest_path:
+            nx.draw_networkx_edges(G, pos=pos, edgelist=[(shortest_path[i], shortest_path[i+1]) for i in range(len(shortest_path)-1)],
+                                edge_color='red', width=3)
         # add title
         plt.title('University Hospital Freiburg', fontsize=20, fontweight='bold')
         # show the plot
