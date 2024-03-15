@@ -119,3 +119,13 @@ def build_nx_graph(allowed_highway_types, special_nodes):
     edge_labels_highways = label_edges(G, ways)
 
     return G, edge_labels_highways, named_nodes, nds
+
+    # define function that sets all weights from a given list in the graph to infinity
+    def set_weights_to_inf(G, weight_list):
+        if weight_list is None:
+            return G
+        else:
+            for u, v in G.edges():
+                if G[u][v]['weight'] in weight_list:
+                    G[u][v]['weight'] = float('inf')
+            return G
