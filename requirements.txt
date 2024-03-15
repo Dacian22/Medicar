@@ -6,3 +6,5 @@ lxml
 langchain
 langchain-openai
 langchain-core
+osmnx
+folium
