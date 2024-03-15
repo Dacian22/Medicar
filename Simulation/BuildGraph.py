@@ -24,9 +24,9 @@ def get_graph_data():
         # first case: store has a name
         if node.find('tag', k='name'):
             # map node id to a tuple of (lat, lon, name)
-            nds[node['id']] = (node['lon'], node['lat'], node.find('tag', k='name').get('v'))
+            nds[node['id']] = (node['lat'], node['lon'], node.find('tag', k='name').get('v'))
         else:
-            nds[node['id']] = (node['lon'], node['lat'], None)
+            nds[node['id']] = (node['lat'], node['lon'], None)
 
     # create dictionary of all nodes that have a name and map id to name
     named_nodes = {k: v[2] for k, v in nds.items() if v[2]}
