@@ -8,7 +8,9 @@ import paho.mqtt.client as paho
 from dotenv import load_dotenv
 from matplotlib import pyplot as plt
 from paho import mqtt
-
+import osmnx as ox
+import plotly.graph_objects as go
+import folium
 
 class Routing():  # singleton class. Do not create more than one object of this class
     def __init__(self, graph, edge_labels_highways, named_nodes, nds):
@@ -151,6 +153,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.client.subscribe("vehicles/+/status", qos=2)
         print("start")
         self.client.publish("hello", "simulation online", qos=2)
+        threading.Thread(target=self.folium_plot)
         self.client.loop_forever()
 
     # define function to plot the graph
@@ -186,3 +189,29 @@ class Routing():  # singleton class. Do not create more than one object of this 
         plt.title('University Hospital Freiburg', fontsize=20, fontweight='bold')
         # show the plot
         plt.show()
+
+        def folium_plot(self):
+            while True:
+                # Downloading the map as a graph object 
+                G = ox.graph_from_bbox(north = 48.0081000, south = 48.0048000,
+                            east = 7.8391000, west = 7.8357000, network_type = 'all') 
+                # filter on nodes and edges that exist in self.graph
+                G_nodes = [nd for nd in G.nodes() if nd in self.graph.nodes()]
+                G_edges = [ed for ed in G.edges() if ed in self.edges.nodes()]
+                G = G.subgraph(G_nodes)
+                G = G.edge_subgraph(G_edges)
+                # Create a map
+                m = folium.Map(location=[48.006, 7.837], zoom_start=10,
+                        zoom_control=False, scrollWheelZoom=False)
+                # Defining the map boundaries 
+                m.fit_bounds([[48.0048000, 7.8357000], [48.0081000, 7.8391000]])
+                # read car icon
+                car_icon = folium.features.CustomIcon('Car Icon.jpeg', icon_size=(30, 30))
+                # include the car icon in the map
+                for vehicle in self.vehicles:
+                    folium.Marker(self.vehicles[vehicle]['position'], icon=car_icon).add_to(m)
+                # plot the graph on the map
+                ox.plot_graph_folium(G, map = m, graph_map = m, popup_attribute='osmid', color='gray')
+                # save the map
+                m.save('map.html')
+                time.sleep(20)
