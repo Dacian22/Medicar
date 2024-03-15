@@ -21,6 +21,7 @@ class Vehicle:
     current_task = None
     client = None  # mqtt client
     status = None  # one of "idle", "busy", "moving"
+    target_node = None  # String
 
     def __init__(self, _vehicle_id):
         load_dotenv()
@@ -55,6 +56,7 @@ class Vehicle:
 
         # custom properties
         payload["status"] = self.status
+        payload["targetNode"] = self.target_node
 
         self.client.publish("vehicles/" + self.vehicle_id + "/status", json.dumps(payload), qos=2)
 
@@ -93,6 +95,7 @@ class Vehicle:
         self.client.subscribe("vehicles/" + self.vehicle_id + "/route", qos=2)
         print("start")
         self.status = "idle"
+        self.send_vehicle_status()
         self.client.loop_forever() # loop start (if constantly sending status)
 
     def get_linear_function_for_edge(self, edge):
@@ -136,6 +139,7 @@ class Vehicle:
     def dotask(self):
         print(self.current_task)
         self.status = "moving"
+        self.target_node = self.current_task["edges"][-1]["endNodeId"]
         if self.current_task["edges"] is None:  # edges are empty => do not move
             return
         else:  # work on the task

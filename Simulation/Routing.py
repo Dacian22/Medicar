@@ -1,5 +1,7 @@
 import json
 import os
+import threading
+import time
 
 import networkx as nx
 import paho.mqtt.client as paho
@@ -15,6 +17,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.edge_labels_highways = edge_labels_highways
         self.named_nodes = named_nodes
         self.nds = nds
+        self.vehicles = {}
         self.connect_to_mqtt()
 
     def __repr__(self):
@@ -73,11 +76,44 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     def on_message(self, client, userdata, msg):
         print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-        print("Received new task: " + msg.payload.decode("utf-8"))
-        self.handle_order(msg.payload.decode("utf-8"))
+
+        if msg.topic.startswith("vehicles/") and msg.topic.endswith("/status"):
+            vehicle_id = msg.topic.split("/")[1]
+            vehicle_status = json.loads(msg.payload.decode())
+            self.vehicles[vehicle_id] = vehicle_status
+            print(f"Received status of vehicle {vehicle_id}: {vehicle_status}")
+        else: # received order
+            print("Received new task: " + msg.payload.decode("utf-8"))
+            self.handle_order(msg.payload.decode("utf-8"))
+
+    def get_distance(self, start_node_id, end_node_id):
+        return nx.astar_path_length(self.graph, start_node_id, end_node_id, weight='weight')
+
+    def get_distance_from_vehicle_to_order(self, vehicle_id, order):
+        vehicle = self.vehicles[vehicle_id]
+        start_node_id = [key for key, value in self.named_nodes.items() if value == order["source"]][0]
+        return self.get_distance(vehicle["targetNode"], start_node_id)
+
+    def get_distances_from_vehicles_to_order(self, order, use_only_idle_vehicles):
+        distances = {}
+        for vehicle_id, vehicle in self.vehicles.items():
+            if use_only_idle_vehicles and vehicle["status"] != "idle":
+                continue
+            distances[vehicle_id] = self.get_distance_from_vehicle_to_order(vehicle_id, order)
+        return distances
+
+    def get_vehicle_id_for_order(self, order):
+        # Heuristic: vehicle with the shortest distance to source node.
+        # Only if all vehicles busy, consider the (busy) vehicle with the shortest path to the target node.
+        if order["vehicle_id"] == "None":
+            distances = self.get_distances_from_vehicles_to_order(order, True)
+            if distances == {}:
+                distances = self.get_distances_from_vehicles_to_order(order, False)
+            return min(distances, key=distances.get)
+        else:
+            return order["vehicle_id"]
 
     def handle_order(self, order):
-        # TODO currently assumes exactly one vehicle named Vehicle1
         order = json.loads(order)
         print(f"Received new order: {order}")
         # find the shortest path
@@ -88,7 +124,12 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # translate the shortest path to MQTT messages
         message = self.translate_path_to_mqtt(shortest_path)
         # send the message to the MQTT broker
-        self.client.publish(f"vehicles/{order['vehicle_id']}/route", json.dumps(message), qos=2)
+        threading.Thread(target=self.send_route_to_vehicle_async, args=(self.get_vehicle_id_for_order(order), json.dumps(message))).start()
+
+    def send_route_to_vehicle_async(self, vehicle_id, route):  # please call this method async
+        while self.vehicles[vehicle_id]["status"] != "idle":
+            time.sleep(5)
+        self.client.publish(f"vehicles/{vehicle_id}/route", json.dumps(route), qos=2)
 
     def connect_to_mqtt(self):
         # Connect to MQTT
@@ -104,8 +145,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.client.username_pw_set(os.getenv("HYVE_MQTT_USR"), os.getenv("HYVE_MQTT_PWD"))
         # connect to HiveMQ Cloud on port 8883 (default for MQTT)
         self.client.connect(os.getenv("HYVE_MQTT_URL"), 8883)
-        # test connection
+        # subscribe to orders
         self.client.subscribe("order_manager/transportation/orders/#", qos=2)
+        # subscribe to vehicle status
+        self.client.subscribe("vehicles/+/status", qos=2)
         print("start")
         self.client.publish("hello", "simulation online", qos=2)
         self.client.loop_forever()
