@@ -3,3 +3,5 @@ python-dotenv
 networkx
 beautifulsoup4
 lxml
+langchain
+langchain-openai
