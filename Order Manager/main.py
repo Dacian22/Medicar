@@ -15,4 +15,3 @@ if __name__ == "__main__":
     order_manager = OrderManager(mqtt_broker_url, mqtt_username, mqtt_password,heuristics_file)
     # process heuristics concurrently
     order_manager.process_heuristics()
-
