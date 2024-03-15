@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 from matplotlib import pyplot as plt
 from paho import mqtt
 
-
 class Routing():  # singleton class. Do not create more than one object of this class
     def __init__(self, graph, edge_labels_highways, named_nodes, nds):
         load_dotenv()
@@ -49,6 +48,16 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # use Bellman-Ford algorithm to find the shortest path between the source and target node
         shortest_path = nx.bellman_ford_path(G, start_node_id, end_node_id, weight='weight')
         return shortest_path
+    
+    def evaluate_shortest_path_weight(G, shortest_path):
+        total_weight = 0
+        for i in range(len(shortest_path)-1):
+            source = shortest_path[i]
+            target = shortest_path[i+1]
+            edge_weight = G[source][target]['weight']
+            total_weight += edge_weight
+        return total_weight
+    
 
     # define function that 'translates' the shortest path to MQTT messages
     def translate_path_to_mqtt(self, shortest_path):
@@ -117,9 +126,22 @@ class Routing():  # singleton class. Do not create more than one object of this 
         order = json.loads(order)
         print(f"Received new order: {order}")
         # find the shortest path
-        shortest_path = self.find_astar_path(self.graph, order["source"], order["target"])
-        # shortest_path = self.find_dijkstra_path(self.graph, order["source"], order["target"])
-        # shortest_path = self.find_bellman_ford_path(self.graph, order["source"], order["target"])
+
+        shortest_path_astar = self.find_astar_path(self.graph, order["source"], order["target"])
+        shortest_path_dijkstra = self.find_dijkstra_path(self.graph, order["source"], order["target"])
+        shortest_path_bellman_ford = self.find_bellman_ford_path(self.graph, order["source"], order["target"])
+
+        evaluation_metric_astar = self.evaluate_shortest_path_weight(self.graph, shortest_path_astar)
+        evaluation_metric_dijkstra = self.evaluate_shortest_path_weight(self.graph, shortest_path_dijkstra)
+        evaluation_metric_bellman_ford = self.evaluate_shortest_path_weight(self.graph, shortest_path_bellman_ford)
+
+        shortest_path = None
+        if evaluation_metric_astar >= evaluation_metric_dijkstra and evaluation_metric_astar >= evaluation_metric_bellman_ford:
+            shortest_path = shortest_path_astar
+        elif evaluation_metric_dijkstra >= evaluation_metric_astar and evaluation_metric_dijkstra >= evaluation_metric_bellman_ford:
+            shortest_path = shortest_path_dijkstra
+        else:
+            shortest_path = shortest_path_bellman_ford
 
         # translate the shortest path to MQTT messages
         message = self.translate_path_to_mqtt(shortest_path)
