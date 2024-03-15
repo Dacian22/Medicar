@@ -118,4 +118,4 @@ def build_nx_graph(allowed_highway_types, special_nodes):
     # label the edges of the graph
     edge_labels_highways = label_edges(G, ways)
 
-    return G, edge_labels_highways, named_nodes
+    return G, edge_labels_highways, named_nodes, nds

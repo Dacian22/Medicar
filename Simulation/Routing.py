@@ -9,11 +9,12 @@ from paho import mqtt
 
 
 class Routing():  # singleton class. Do not create more than one object of this class
-    def __init__(self, graph, edge_labels_highways, named_nodes):
+    def __init__(self, graph, edge_labels_highways, named_nodes, nds):
         load_dotenv()
         self.graph = graph
         self.edge_labels_highways = edge_labels_highways
         self.named_nodes = named_nodes
+        self.nds = nds
         self.connect_to_mqtt()
 
     def __repr__(self):
@@ -37,7 +38,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         for index, edge in enumerate(edges_shortest_path):
             edges.append(
                 {'edgeId': "edge_{}_{}".format(edge[0], edge[1]), 'sequenceId': index, 'startNodeId': edge[0],
-                 'endNodeId': edge[1]})
+                 'endNodeId': edge[1], 'startCoordinate': self.nds[edge[0]][:2], 'endCoordinate': self.nds[edge[1]][:2]})
         message = {'edges': edges}
         print(message)
         print(json.dumps(message))
@@ -66,7 +67,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # translate the shortest path to MQTT messages
         message = self.translate_path_to_mqtt(shortest_path)
         # send the message to the MQTT broker
-        self.client.publish("vehicles/Vehicle1/route", json.dumps(message), qos=2)
+        self.client.publish(f"vehicles/{order['vehicle_id']}/route", json.dumps(message), qos=2)
 
     def connect_to_mqtt(self):
         # Connect to MQTT

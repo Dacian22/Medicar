@@ -86,7 +86,7 @@ class OrderManager:
                 json.dumps(self.closest_vehicle_callback)
                 order_instance.vehicle_id = self.closest_vehicle_callback
             except TypeError:
-                order_instance.vehicle_id = 1  #temporary
+                order_instance.vehicle_id = "1"  #temporary
 
             # start a new thread to send orders periodically for the current heuristic
             thread = threading.Thread(target=self.send_order_periodically,args=(order_instance,))

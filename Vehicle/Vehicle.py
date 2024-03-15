@@ -16,8 +16,8 @@ class Vehicle:
     """
 
     vehicle_id = None  # String
-    current_position = [0, 0]  # tuple of floats (latitude, longitude)
-    current_speed = 10  # meter per second
+    current_position = [48.0064705, 7.839265]  # tuple of floats (latitude, longitude)
+    current_speed = 10 * 10e-6  # meter per second
     current_task = None
     client = None  # mqtt client
     status = None  # one of "idle", "busy", "moving"
@@ -96,12 +96,16 @@ class Vehicle:
         self.client.loop_forever() # loop start (if constantly sending status)
 
     def get_linear_function_for_edge(self, edge):
-        m = (float(edge[1][1]) - float(edge[0][1])) / (float(edge[1][0]) - float(edge[0][0]))  # slope
-        n = float(edge[0][1]) - m * float(edge[0][0])  # y-intercept
+        m = (float(edge["endCoordinate"][1]) - float(edge["startCoordinate"][1])) / (float(edge["endCoordinate"][0]) - float(edge["startCoordinate"][0]))  # slope
+        n = float(edge["startCoordinate"][1]) - m * float(edge["startCoordinate"][0])  # y-intercept
         return m, n
 
     def move_along_edge(self, edge):
-        negative_x = edge[0][0] > edge[1][0]
+        edge["startCoordinate"][0] = float(edge["startCoordinate"][0])
+        edge["startCoordinate"][1] = float(edge["startCoordinate"][1])
+        edge["endCoordinate"][0] = float(edge["endCoordinate"][0])
+        edge["endCoordinate"][1] = float(edge["endCoordinate"][1])
+        negative_x = edge["startCoordinate"][0] > edge["endCoordinate"][0]
         m, n = self.get_linear_function_for_edge(edge)
         # calculated adjusted increase needed for x axis to match the speed
         x_increase = abs(self.current_speed / m)
@@ -117,10 +121,10 @@ class Vehicle:
                 new_y = m * new_x + n
 
             # check if new position is larger than the target position
-            if negative_x and new_x < edge[1][0] or not negative_x and new_x > edge[1][0]:
+            if negative_x and new_x < edge["endCoordinate"][0] or not negative_x and new_x > edge["endCoordinate"][0]:
                 print("reached end of edge")
-                new_x = edge[1][0]
-                new_y = edge[1][1]
+                new_x = edge["endCoordinate"][0]
+                new_y = edge["endCoordinate"][1]
                 end = True
             self.current_position = [new_x, new_y]
             print("newposition: " + str(self.current_position))

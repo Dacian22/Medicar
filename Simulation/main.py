@@ -12,9 +12,9 @@ parameters = {
 
 
 def main():
-    G, edge_labels_highways, named_nodes = BuildGraph.build_nx_graph(
+    G, edge_labels_highways, named_nodes, nds = BuildGraph.build_nx_graph(
         parameters['subgraph_params']['allowed_highway_types'], parameters['subgraph_params']['special_nodes'])
-    _ = Routing.Routing(G, edge_labels_highways, named_nodes)
+    _ = Routing.Routing(G, edge_labels_highways, named_nodes, nds)
 
 
 if __name__ == "__main__":
