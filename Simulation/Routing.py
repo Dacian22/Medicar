@@ -109,9 +109,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
     def get_distances_from_vehicles_to_order(self, order, use_only_idle_vehicles):
         distances = {}
         for vehicle_id, vehicle in self.vehicles.items():
-            if use_only_idle_vehicles and vehicle["status"] != "idle":
-                continue
-            distances[vehicle_id] = self.get_distance_from_vehicle_to_order(vehicle_id, order)
+            if not use_only_idle_vehicles or vehicle["status"] == "idle":
+                distances[vehicle_id] = self.get_distance_from_vehicle_to_order(vehicle_id, order)
+        print(distances)
         return distances
 
     def get_vehicle_id_for_order(self, order):
@@ -229,15 +229,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     zoom_control=False, scrollWheelZoom=False)
             # Defining the map boundaries
             m.fit_bounds([[48.0048000, 7.8357000], [48.0081000, 7.8391000]])
-            # read car icon
-            car_icon = folium.features.CustomIcon('Car Icon.jpeg', icon_size=(30, 30))
-            # include the car icon in the map
+            # include the car icon in the map as a marker
             for vehicle in self.vehicles.keys():
                 print("vehicle: " + vehicle)
-                folium.Marker(self.vehicles[vehicle]['position'], icon=car_icon).add_to(m)
+                # Create marker for vehicle using the car icon at the current vehicle position
+                folium.Marker(location=[float(self.vehicles[vehicle]["position"][0]), float(self.vehicles[vehicle]["position"][1])],
+                              icon=folium.features.CustomIcon('porsche-icon.svg', icon_size=(30, 30)), popup=f"Vehicle: {vehicle}").add_to(m)
             # plot the graph on the map
-            map = ox.plot_graph_folium(G, graph_map=m)
+            map = ox.plot_graph_folium(G, graph_map=m, color="grey")
             # save the map
             map.save('map.html')
             print("map plottet")
-            time.sleep(5)
+            time.sleep(1)

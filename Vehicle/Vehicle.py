@@ -17,7 +17,7 @@ class Vehicle:
 
     vehicle_id = None  # String
     current_position = [48.00686, 7.8371425]  # tuple of floats (latitude, longitude)
-    current_speed = 2 * 10e-6  # meter per second
+    current_speed = 5 * 10e-6  # meter per second
     current_task = None
     client = None  # mqtt client
     status = None  # one of "idle", "busy", "moving"

@@ -1,6 +1,4 @@
 "objects,origin,destination,interval"
 "Blood,Zwischen den Räumen,Stimme vom Berg,20 min,1"
-"Blood,Stimme vom Berg,Emmaus Kapelle,20 min,None"
-"Blood,Emmaus Kapelle,Klinik für Frauenheilkunde [1],20 min,None"
-"Blood,Klinik für Frauenheilkunde [1],Ernst von Bergmann,20 min,1"
-"Blood,Ernst von Bergmann,Zwischen den Räumen,20 min,1"
+"Blood,Stimme vom Berg,Emmaus Kapelle,20 min,2"
+"Blood,Emmaus Kapelle,Klinik für Frauenheilkunde [1],20 min,3"

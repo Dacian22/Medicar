@@ -45,15 +45,7 @@ class OrderManager:
         print("Message published")
 
     def on_message(self, client, userdata, message):
-       # get the message sent by the topic and decode it
-       topic = message.topic
-       payload = json.loads(message.payload.decode())
-
-       # create a dictionary that contains the status for every vehicle id
-       if topic.startswith("vehicles/") and topic.endswith("/status"):
-            vehicle_id = topic.split("/")[1]
-            vehicle_status = payload["status"]
-            self.update_vehicle_status(vehicle_id, vehicle_status)
+       pass
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
         print("Subscribed to topic with QoS:", granted_qos)
@@ -77,16 +69,6 @@ class OrderManager:
         
             # create orders from the current heuristic
             order_instance.create_order()
-
-            # assign a vehicle to the order
-            self.assign_vehicle(order_instance)
-
-            #get the vehicle id from simulation
-            try:
-                json.dumps(self.closest_vehicle_callback)
-                order_instance.vehicle_id = self.closest_vehicle_callback
-            except TypeError:
-                order_instance.vehicle_id = "1"  #temporary
 
             # start a new thread to send orders periodically for the current heuristic
             thread = threading.Thread(target=self.send_order_periodically,args=(order_instance,))
