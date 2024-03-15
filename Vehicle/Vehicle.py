@@ -20,12 +20,9 @@ class Vehicle:
     client = None
     status = None  # one of "idle", "busy", "moving"
 
-    # moving = False
-
     def __init__(self, _vehicle_id):
         load_dotenv()
         self.vehicle_id = _vehicle_id
-        self.connect_to_mqtt()
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
         print("CONNACK received with code %s." % rc)
