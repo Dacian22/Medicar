@@ -14,10 +14,10 @@ class Vehicle:
     """
 
     vehicle_id = None  # String
-    current_position = None  # nodeId or edgeId
-    current_speed = 60  # nodes per minute
+    current_position = (0, 0)  # tuple of floats (latitude, longitude)
+    current_speed = 10  # meter per second
     current_task = None
-    client = None
+    client = None  # mqtt client
     status = None  # one of "idle", "busy", "moving"
 
     def __init__(self, _vehicle_id):
@@ -91,12 +91,15 @@ class Vehicle:
         print("start")
         self.status = "idle"
         self.send_vehicle_status()
-        self.client.loop_forever()
+        self.client.loop_start()
+        while True:
+            self.send_vehicle_status()
+            time.sleep(1)  # sleep for 1 seconds before next call
 
     def dotask(self):
         print(self.current_task)
         self.status = "moving"
-        if self.current_task["edges"] is None: # edges are empty => do not move
+        if self.current_task["edges"] is None:  # edges are empty => do not move
             pass
         else:
             end_node_ids = [edge["endNodeId"] for edge in self.current_task["edges"]]
