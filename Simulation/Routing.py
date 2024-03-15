@@ -131,23 +131,23 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # find the shortest path
 
         shortest_path_astar = self.find_astar_path(self.graph, order["source"], order["target"])
-        shortest_path_dijkstra = self.find_dijkstra_path(self.graph, order["source"], order["target"])
-        shortest_path_bellman_ford = self.find_bellman_ford_path(self.graph, order["source"], order["target"])
+        # shortest_path_dijkstra = self.find_dijkstra_path(self.graph, order["source"], order["target"])
+        # shortest_path_bellman_ford = self.find_bellman_ford_path(self.graph, order["source"], order["target"])
+        #
+        # evaluation_metric_astar = self.evaluate_shortest_path_weight(self.graph, shortest_path_astar)
+        # evaluation_metric_dijkstra = self.evaluate_shortest_path_weight(self.graph, shortest_path_dijkstra)
+        # evaluation_metric_bellman_ford = self.evaluate_shortest_path_weight(self.graph, shortest_path_bellman_ford)
 
-        evaluation_metric_astar = self.evaluate_shortest_path_weight(self.graph, shortest_path_astar)
-        evaluation_metric_dijkstra = self.evaluate_shortest_path_weight(self.graph, shortest_path_dijkstra)
-        evaluation_metric_bellman_ford = self.evaluate_shortest_path_weight(self.graph, shortest_path_bellman_ford)
-
-        shortest_path = None
-        if evaluation_metric_astar <= evaluation_metric_dijkstra and evaluation_metric_astar <= evaluation_metric_bellman_ford:
-            shortest_path = shortest_path_astar
-        elif evaluation_metric_dijkstra <= evaluation_metric_astar and evaluation_metric_dijkstra <= evaluation_metric_bellman_ford:
-            shortest_path = shortest_path_dijkstra
-        else:
-            shortest_path = shortest_path_bellman_ford
+        # shortest_path = None
+        # if evaluation_metric_astar >= evaluation_metric_dijkstra and evaluation_metric_astar >= evaluation_metric_bellman_ford:
+        #     shortest_path = shortest_path_astar
+        # elif evaluation_metric_dijkstra >= evaluation_metric_astar and evaluation_metric_dijkstra >= evaluation_metric_bellman_ford:
+        #     shortest_path = shortest_path_dijkstra
+        # else:
+        #     shortest_path = shortest_path_bellman_ford
 
         # translate the shortest path to MQTT messages
-        message = self.translate_path_to_mqtt(shortest_path)
+        message = self.translate_path_to_mqtt(shortest_path_astar)
         # send the message to the MQTT broker
         threading.Thread(target=self.send_route_to_vehicle_async, args=(self.get_vehicle_id_for_order(order), message)).start()
 
