@@ -28,6 +28,24 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # use the a* algorithm to find the shortest path between the source and target node
         shortest_path = nx.astar_path(G, start_node_id, end_node_id, weight='weight')
         return shortest_path
+    
+    def find_dijkstra_path(self, G, start_node, end_node):
+        # find node id of source and target node
+        start_node_id = [key for key, value in self.named_nodes.items() if value == start_node][0]
+        end_node_id = [key for key, value in self.named_nodes.items() if value == end_node][0]
+        
+        # use Dijkstra's algorithm to find the shortest path between the source and target node
+        shortest_path_length, shortest_path = nx.single_source_dijkstra(G, start_node_id, target=end_node_id, weight='weight')
+        return shortest_path
+    
+    def find_bellman_ford_path(self, G, start_node, end_node):
+        # find node id of source and target node
+        start_node_id = [key for key, value in self.named_nodes.items() if value == start_node][0]
+        end_node_id = [key for key, value in self.named_nodes.items() if value == end_node][0]
+        
+        # use Bellman-Ford algorithm to find the shortest path between the source and target node
+        shortest_path = nx.bellman_ford_path(G, start_node_id, end_node_id, weight='weight')
+        return shortest_path
 
     # define function that 'translates' the shortest path to MQTT messages
     def translate_path_to_mqtt(self, shortest_path):
@@ -64,6 +82,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
         print(f"Received new order: {order}")
         # find the shortest path
         shortest_path = self.find_astar_path(self.graph, order["source"], order["target"])
+        # shortest_path = self.find_dijkstra_path(self.graph, order["source"], order["target"])
+        # shortest_path = self.find_bellman_ford_path(self.graph, order["source"], order["target"])
+
         # translate the shortest path to MQTT messages
         message = self.translate_path_to_mqtt(shortest_path)
         # send the message to the MQTT broker
