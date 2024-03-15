@@ -139,9 +139,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
         evaluation_metric_bellman_ford = self.evaluate_shortest_path_weight(self.graph, shortest_path_bellman_ford)
 
         shortest_path = None
-        if evaluation_metric_astar >= evaluation_metric_dijkstra and evaluation_metric_astar >= evaluation_metric_bellman_ford:
+        if evaluation_metric_astar <= evaluation_metric_dijkstra and evaluation_metric_astar <= evaluation_metric_bellman_ford:
             shortest_path = shortest_path_astar
-        elif evaluation_metric_dijkstra >= evaluation_metric_astar and evaluation_metric_dijkstra >= evaluation_metric_bellman_ford:
+        elif evaluation_metric_dijkstra <= evaluation_metric_astar and evaluation_metric_dijkstra <= evaluation_metric_bellman_ford:
             shortest_path = shortest_path_dijkstra
         else:
             shortest_path = shortest_path_bellman_ford
