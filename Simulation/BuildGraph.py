@@ -6,8 +6,12 @@ from bs4 import BeautifulSoup
 
 def get_graph_data():
     # reading data inside xml file to a variable under the name data
-    with open('Uniklinikum_Freiburg_map.osm', 'r', encoding='utf-8') as f:
-        data = f.read()
+    try:
+        with open('Uniklinikum_Freiburg_map.osm', 'r', encoding='utf-8') as f:
+            data = f.read()
+    except FileNotFoundError:
+        with open('Simulation/Uniklinikum_Freiburg_map.osm', 'r', encoding='utf-8') as f:
+            data = f.read()
 
     # passing stored data inside beautifulsoup parser, storing the returned object
     bs_data = BeautifulSoup(data, "xml")
