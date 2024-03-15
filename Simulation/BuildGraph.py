@@ -110,7 +110,7 @@ def build_nx_graph(allowed_highway_types, special_nodes):
     # add weights to the edges according to the distance between the nodes
     for u, v in G.edges():
         G[u][v]['weight'] = ((float(nds[u][0]) - float(nds[v][0])) ** 2 + (
-                float(nds[u][1]) - float(nds[v][1])) ** 2) ** 0.5
+                float(nds[u][1]) - float(nds[v][1])) ** 2) ** 0.5 * 10e6 # 10e6 is a scaling factor
 
     # keep only the largest connected component
     G = keep_largest_connected_component(G)
