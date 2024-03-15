@@ -16,8 +16,8 @@ class Vehicle:
     """
 
     vehicle_id = None  # String
-    current_position = [48.0064705, 7.839265]  # tuple of floats (latitude, longitude)
-    current_speed = 10 * 10e-6  # meter per second
+    current_position = [48.00686, 7.8371425]  # tuple of floats (latitude, longitude)
+    current_speed = 2 * 10e-6  # meter per second
     current_task = None
     client = None  # mqtt client
     status = None  # one of "idle", "busy", "moving"
@@ -65,6 +65,7 @@ class Vehicle:
         pass
 
     def receive_route(self, message):
+        print(message)
         payload = json.loads(message)
 
         if self.current_task is not None:
