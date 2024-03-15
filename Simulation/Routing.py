@@ -109,9 +109,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
     def get_distances_from_vehicles_to_order(self, order, use_only_idle_vehicles):
         distances = {}
         for vehicle_id, vehicle in self.vehicles.items():
-            if use_only_idle_vehicles and vehicle["status"] != "idle":
-                continue
-            distances[vehicle_id] = self.get_distance_from_vehicle_to_order(vehicle_id, order)
+            if not use_only_idle_vehicles or vehicle["status"] == "idle":
+                distances[vehicle_id] = self.get_distance_from_vehicle_to_order(vehicle_id, order)
+        print(distances)
         return distances
 
     def get_vehicle_id_for_order(self, order):
@@ -131,25 +131,25 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # find the shortest path
 
         shortest_path_astar = self.find_astar_path(self.graph, order["source"], order["target"])
-        shortest_path_dijkstra = self.find_dijkstra_path(self.graph, order["source"], order["target"])
-        shortest_path_bellman_ford = self.find_bellman_ford_path(self.graph, order["source"], order["target"])
+        # shortest_path_dijkstra = self.find_dijkstra_path(self.graph, order["source"], order["target"])
+        # shortest_path_bellman_ford = self.find_bellman_ford_path(self.graph, order["source"], order["target"])
+        #
+        # evaluation_metric_astar = self.evaluate_shortest_path_weight(self.graph, shortest_path_astar)
+        # evaluation_metric_dijkstra = self.evaluate_shortest_path_weight(self.graph, shortest_path_dijkstra)
+        # evaluation_metric_bellman_ford = self.evaluate_shortest_path_weight(self.graph, shortest_path_bellman_ford)
 
-        evaluation_metric_astar = self.evaluate_shortest_path_weight(self.graph, shortest_path_astar)
-        evaluation_metric_dijkstra = self.evaluate_shortest_path_weight(self.graph, shortest_path_dijkstra)
-        evaluation_metric_bellman_ford = self.evaluate_shortest_path_weight(self.graph, shortest_path_bellman_ford)
-
-        shortest_path = None
-        if evaluation_metric_astar <= evaluation_metric_dijkstra and evaluation_metric_astar <= evaluation_metric_bellman_ford:
-            shortest_path = shortest_path_astar
-        elif evaluation_metric_dijkstra <= evaluation_metric_astar and evaluation_metric_dijkstra <= evaluation_metric_bellman_ford:
-            shortest_path = shortest_path_dijkstra
-        else:
-            shortest_path = shortest_path_bellman_ford
+        # shortest_path = None
+        # if evaluation_metric_astar >= evaluation_metric_dijkstra and evaluation_metric_astar >= evaluation_metric_bellman_ford:
+        #     shortest_path = shortest_path_astar
+        # elif evaluation_metric_dijkstra >= evaluation_metric_astar and evaluation_metric_dijkstra >= evaluation_metric_bellman_ford:
+        #     shortest_path = shortest_path_dijkstra
+        # else:
+        #     shortest_path = shortest_path_bellman_ford
 
         # translate the shortest path to MQTT messages
-        message = self.translate_path_to_mqtt(shortest_path)
+        message = self.translate_path_to_mqtt(shortest_path_astar)
         # send the message to the MQTT broker
-        threading.Thread(target=self.send_route_to_vehicle_async, args=(self.get_vehicle_id_for_order(order), json.dumps(message))).start()
+        threading.Thread(target=self.send_route_to_vehicle_async, args=(self.get_vehicle_id_for_order(order), message)).start()
 
     def send_route_to_vehicle_async(self, vehicle_id, route):  # please call this method async
         while self.vehicles[vehicle_id]["status"] != "idle":
@@ -176,7 +176,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.client.subscribe("vehicles/+/status", qos=2)
         print("start")
         self.client.publish("hello", "simulation online", qos=2)
-        threading.Thread(target=self.folium_plot)
+        threading.Thread(target=self.folium_plot).start()
+        # self.folium_plot()
+        print("start mqtt loop")
         self.client.loop_forever()
 
     # define function to plot the graph
@@ -213,28 +215,29 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # show the plot
         plt.show()
 
-        def folium_plot(self):
-            while True:
-                # Downloading the map as a graph object 
-                G = ox.graph_from_bbox(north = 48.0081000, south = 48.0048000,
-                            east = 7.8391000, west = 7.8357000, network_type = 'all') 
-                # filter on nodes and edges that exist in self.graph
-                G_nodes = [nd for nd in G.nodes() if nd in self.graph.nodes()]
-                G_edges = [ed for ed in G.edges() if ed in self.edges.nodes()]
-                G = G.subgraph(G_nodes)
-                G = G.edge_subgraph(G_edges)
-                # Create a map
-                m = folium.Map(location=[48.006, 7.837], zoom_start=10,
-                        zoom_control=False, scrollWheelZoom=False)
-                # Defining the map boundaries 
-                m.fit_bounds([[48.0048000, 7.8357000], [48.0081000, 7.8391000]])
-                # read car icon
-                car_icon = folium.features.CustomIcon('Car Icon.jpeg', icon_size=(30, 30))
-                # include the car icon in the map
-                for vehicle in self.vehicles:
-                    folium.Marker(self.vehicles[vehicle]['position'], icon=car_icon).add_to(m)
-                # plot the graph on the map
-                ox.plot_graph_folium(G, map = m, graph_map = m, popup_attribute='osmid', color='gray')
-                # save the map
-                m.save('map.html')
-                time.sleep(20)
+    def folium_plot(self):
+        while True:
+            print("plotting map...")
+            # Downloading the map as a graph object
+            G = ox.graph_from_bbox(north = 48.0081000, south = 48.0048000,
+                        east = 7.8391000, west = 7.8357000, network_type = 'all')
+            # filter on nodes and edges that exist in self.graph
+            G = G.subgraph([int(i) for i in self.graph.nodes()])
+            print(G)
+            # Create a map
+            m = folium.Map(location=[48.006, 7.837], zoom_start=10,
+                    zoom_control=False, scrollWheelZoom=False)
+            # Defining the map boundaries
+            m.fit_bounds([[48.0048000, 7.8357000], [48.0081000, 7.8391000]])
+            # include the car icon in the map as a marker
+            for vehicle in self.vehicles.keys():
+                print("vehicle: " + vehicle)
+                # Create marker for vehicle using the car icon at the current vehicle position
+                folium.Marker(location=[float(self.vehicles[vehicle]["position"][0]), float(self.vehicles[vehicle]["position"][1])],
+                              icon=folium.features.CustomIcon('Car Icon.jpeg', icon_size=(30, 30)), popup=f"Vehicle: {vehicle}").add_to(m)
+            # plot the graph on the map
+            map = ox.plot_graph_folium(G, graph_map=m, color="grey")
+            # save the map
+            map.save('map.html')
+            print("map plottet")
+            time.sleep(1)
