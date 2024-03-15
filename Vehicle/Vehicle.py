@@ -97,8 +97,8 @@ class Vehicle:
             time.sleep(1)  # sleep for 1 second before next call
 
     def get_linear_function_for_edge(self, edge):
-        m = (float(edge[1]) - float(edge[1])) / (float(edge[0]) - float(edge[0])) # slope
-        n = float(edge[1]) - m * float(edge[0]) # y-intercept
+        m = (float(edge[1]) - float(edge[1])) / (float(edge[0]) - float(edge[0]))  # slope
+        n = float(edge[1]) - m * float(edge[0])  # y-intercept
         return m, n
 
     def move_along_edge(self, edge):
@@ -107,14 +107,14 @@ class Vehicle:
         # calculated adjusted increase needed for x axis to match the speed
         x_increase = self.current_speed / m
 
-        while negative and self.current_position[0] > edge[1][0] or not negative and self.current_position[0] < edge[1][0]:
+        while negative and self.current_position[0] > edge[1][0] or not negative and self.current_position[0] < edge[1][
+            0]:
             # calculate new position
             new_x = self.current_position[0] + x_increase
             new_y = m * new_x + n
             self.current_position = (new_x, new_y)
             print("newposition: " + json.dumps(self.current_position))
             time.sleep(1)  # sleep for 1 second before next call
-
 
     def dotask(self):
         print(self.current_task)
