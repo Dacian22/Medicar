@@ -1,14 +1,14 @@
 from Vehicle import Vehicle
 import multiprocessing
 
-num_vehicles = 2
+num_vehicles = 1
 
 def start_vehicle(vehicle):
     vehicle.connect_to_mqtt()
 
 if __name__ == '__main__':
     # Create num_vehicles vehicles
-    vehicles = [Vehicle(str(i)) for i in range(num_vehicles)]
+    vehicles = [Vehicle(str(i)) for i in range(1, num_vehicles+1)]
 
     # Start them all using multiple Processes
 

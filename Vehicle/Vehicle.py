@@ -14,7 +14,7 @@ class Vehicle:
     """
 
     vehicle_id = None  # String
-    current_position = (0, 0)  # tuple of floats (latitude, longitude)
+    current_position = [0, 0]  # tuple of floats (latitude, longitude)
     current_speed = 10  # meter per second
     current_task = None
     client = None  # mqtt client
@@ -97,8 +97,8 @@ class Vehicle:
             time.sleep(1)  # sleep for 1 second before next call
 
     def get_linear_function_for_edge(self, edge):
-        m = (float(edge[1]) - float(edge[1])) / (float(edge[0]) - float(edge[0]))  # slope
-        n = float(edge[1]) - m * float(edge[0])  # y-intercept
+        m = (float(edge[1][1]) - float(edge[0][1])) / (float(edge[1][0]) - float(edge[0][0]))  # slope
+        n = float(edge[0][1]) - m * float(edge[0][0])  # y-intercept
         return m, n
 
     def move_along_edge(self, edge):
@@ -107,21 +107,29 @@ class Vehicle:
         # calculated adjusted increase needed for x axis to match the speed
         x_increase = self.current_speed / m
 
-        while negative and self.current_position[0] > edge[1][0] or not negative and self.current_position[0] < edge[1][
-            0]:
+        while True:
+            end=False
             # calculate new position
             new_x = self.current_position[0] + x_increase
             new_y = m * new_x + n
-            self.current_position = (new_x, new_y)
-            print("newposition: " + json.dumps(self.current_position))
+            # check if new position is larger than the target position
+            if negative and new_x < edge[1][0] or not negative and new_x > edge[1][0]:
+                print("reached end of edge")
+                new_x = edge[1][0]
+                new_y = edge[1][1]
+                end = True
+            self.current_position = [new_x, new_y]
+            print("newposition: " + str(self.current_position))
             time.sleep(1)  # sleep for 1 second before next call
+            if end:
+                break
 
     def dotask(self):
         print(self.current_task)
         self.status = "moving"
         if self.current_task["edges"] is None:  # edges are empty => do not move
-            pass
-        else:
+            return
+        else:  # work on the task
             edges = self.current_task["edges"]
             for edge in edges:
                 self.move_along_edge(edge)
