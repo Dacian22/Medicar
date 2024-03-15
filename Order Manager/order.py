@@ -34,23 +34,25 @@ class Order:
         source = components[1]
         target = components[2]
         interval_str = components[3]
+        vehicle_id = components[4]
         match = re.match(r'(\d+)\s+(hours|min)', interval_str)
         if match:
             value = int(match.group(1))
             unit = match.group(2)
             if unit == 'min':
                 value *= 60  # convert minutes to hours
-            return source, target, items, value
+            return source, target, items, value, vehicle_id
         else:
             raise ValueError("Invalid interval format")
-    
+
     # create an order from the extracted information
     def create_order(self):
-        source, target, items, interval = self.extract_order()
+        source, target, items, interval, vehicle_id = self.extract_order()
         self.source = source
         self.target = target
         self.items = items
         self.order_interval = interval
+        self.vehicle_id = vehicle_id
     
     
     # convert the Order instance to a dictionary

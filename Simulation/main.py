@@ -4,8 +4,7 @@ from Simulation import Routing
 parameters = {
     "subgraph_params": {
         'special_nodes': ['Zwischen den Räumen', 'Stimme vom Berg',
-                          'Emmaus Kapelle', 'Klinik für Frauenheilkunde [1]',
-                          'Ernst von Bergmann'],
+                          'Emmaus Kapelle', 'Klinik für Frauenheilkunde [1]'],
         'allowed_highway_types': ['footway', 'service']
     },
 }

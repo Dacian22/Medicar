@@ -1,7 +1,7 @@
 from Vehicle import Vehicle
 import multiprocessing
 
-num_vehicles = 1
+num_vehicles = 3
 
 def start_vehicle(vehicle):
     vehicle.connect_to_mqtt()
