@@ -7,6 +7,8 @@ import paho.mqtt.client as paho
 from dotenv import load_dotenv
 from paho import mqtt
 
+import threading
+
 
 class Vehicle:
     """
@@ -37,7 +39,8 @@ class Vehicle:
         print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
         if msg.topic == "vehicles/" + self.vehicle_id + "/route":
             print("Received new task: " + msg.payload.decode("utf-8"))
-            self.receive_route(msg.payload.decode("utf-8"))
+            # self.receive_route(msg.payload.decode("utf-8"))
+            threading.Thread(target=self.receive_route, args=(msg.payload.decode("utf-8"),)).start()
         else:
             print("ERROR: Received unsupported message: " + msg.topic)
 
@@ -90,11 +93,7 @@ class Vehicle:
         self.client.subscribe("vehicles/" + self.vehicle_id + "/route", qos=2)
         print("start")
         self.status = "idle"
-        self.send_vehicle_status()
-        self.client.loop_start()
-        while True:
-            self.send_vehicle_status()
-            time.sleep(1)  # sleep for 1 second before next call
+        self.client.loop_forever() # loop start (if constantly sending status)
 
     def get_linear_function_for_edge(self, edge):
         m = (float(edge[1][1]) - float(edge[0][1])) / (float(edge[1][0]) - float(edge[0][0]))  # slope
@@ -102,24 +101,30 @@ class Vehicle:
         return m, n
 
     def move_along_edge(self, edge):
-        negative = edge[0][0] > edge[1][0]
+        negative_x = edge[0][0] > edge[1][0]
         m, n = self.get_linear_function_for_edge(edge)
         # calculated adjusted increase needed for x axis to match the speed
-        x_increase = self.current_speed / m
+        x_increase = abs(self.current_speed / m)
 
         while True:
             end=False
-            # calculate new position
-            new_x = self.current_position[0] + x_increase
-            new_y = m * new_x + n
+            # calculate new position for positive slope
+            if not negative_x:
+                new_x = self.current_position[0] + x_increase
+                new_y = m * new_x + n
+            else:  # calculate new position for negative_x slope
+                new_x = self.current_position[0] - x_increase
+                new_y = m * new_x + n
+
             # check if new position is larger than the target position
-            if negative and new_x < edge[1][0] or not negative and new_x > edge[1][0]:
+            if negative_x and new_x < edge[1][0] or not negative_x and new_x > edge[1][0]:
                 print("reached end of edge")
                 new_x = edge[1][0]
                 new_y = edge[1][1]
                 end = True
             self.current_position = [new_x, new_y]
             print("newposition: " + str(self.current_position))
+            self.send_vehicle_status()
             time.sleep(1)  # sleep for 1 second before next call
             if end:
                 break
@@ -135,3 +140,4 @@ class Vehicle:
                 self.move_along_edge(edge)
         self.status = "idle"
         self.current_task = None
+        self.send_vehicle_status()
