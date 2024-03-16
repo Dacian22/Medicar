@@ -4,14 +4,15 @@ from langchain_community.llms import Ollama
 from dotenv import load_dotenv
 from langchain_community.graphs.networkx_graph import NetworkxEntityGraph
 import re
+import os
 
 def llm_edge_removing(Node):
     #Load the edges from the graph, the enviroment and the model
     G=load_edges()
     load_dotenv()
     model = Ollama(model="llama2")
-    print(','.join(G))
-    
+    print(G)
+
     #Create the LLM
     template_new=f"You are a master graph modeler, you have to remove edges from an edge list that contain inaccessible nodes and it is crucial make sure that the other valid edges remain in the list. We have a directed graph. It contains exclusively these edges: {','.join(G)} \n Question: {{question}}"
     
@@ -45,7 +46,7 @@ def parsing_llm_result(answer):
 def load_edges():
     import pandas as pd
 
-    df = pd.read_csv('medicar\Playground_Arved\edges_UH_Graph.csv')
+    df = pd.read_csv(os.path.join('..','Playground_Arved','edges_UH_Graph.csv'))
 
     edges_list = [(f'{row[0]}', f'{row[1]}') for _, row in df.iterrows()]
 
