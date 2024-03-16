@@ -14,14 +14,14 @@ def llm_edge_removing(Node):
     print(G)
 
     #Create the LLM
-    template_new=f"You are a master graph modeler, you have to remove edges from an edge list that contain inaccessible nodes and it is crucial make sure that the other valid edges remain in the list. We have a directed graph. It contains exclusively these edges: {','.join(G)} \n Question: {{question}}"
+    template_new=f"context: {G} \n  requirements: Do not research the internet, only use the provided Graph in the context. Please list the edges that need to be removed in a comma seperated list of tuples. Question: {{question}}"
     
     prompt_template = PromptTemplate(input_variables=["question"], template=template_new)
 
     new_graph=LLMChain(prompt=prompt_template,llm=model)
 
     #Create and run the prompt
-    question="Node "+"'"+ str(Node) +"'"+" is not accessible anymore. Could you provide me with the edges from the given graph that have to be removed, as a comma separated value list of tuples like (Node1,Node2)?"
+    question="Node "+"'"+ str(Node) +"'"+" is not accessible anymore."
     print(question)
     answer=new_graph.invoke(question)
 
