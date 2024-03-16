@@ -236,7 +236,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 folium.Marker(location=[float(self.vehicles[vehicle]["position"][0]), float(self.vehicles[vehicle]["position"][1])],
                               icon=folium.features.CustomIcon('Car Icon.jpeg', icon_size=(30, 30)), popup=f"Vehicle: {vehicle}").add_to(m)
             # plot the graph on the map
-            map = ox.plot_graph_folium(G, graph_map=m, color="grey")
+            map = ox.plot_graph_folium(G, graph_map=m, color="grey", popup_attribute="osmid", edge_width=4)
             # save the map
             map.save('map.html')
             print("map plottet")

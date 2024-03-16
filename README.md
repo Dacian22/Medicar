@@ -4,6 +4,7 @@ A European Team Project from Sergiu-Dacian Balint, Diana Matei, Sara Koni, Arved
 * Main Overview Slidedeck: (Application-Architecture, message flow, etc.): https://1drv.ms/p/s!AmfhbH57g19vh2GM2p8LEDvWmaYj
 * Onboarding Slidedeck + Funevents planning: https://1drv.ms/p/s!AmfhbH57g19vh2pFDChNDunJDYHc
 * Trello Board (for task management): https://trello.com/b/3Z3z3z3z/medicar
+* Presentation Slides Cluj: https://1drv.ms/p/s!AmfhbH57g19viAUh8KrWNmzWnh5a
 ## Quickstart
 * Install the required packages: `pip install -r requirements.txt`
 * Create .env file in the root directory according to the .env.example file (ask paul for credentials)
