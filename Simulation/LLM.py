@@ -10,8 +10,8 @@ import os
 
 import ast
 
-from Simulation.BuildGraph import set_weights_to_inf
-
+# from Simulation.BuildGraph import set_weights_to_inf
+from BuildGraph import set_weights_to_inf
 
 def invoke_llm(prompt):
     #Load the edges from the graph, the enviroment and the model
@@ -57,8 +57,11 @@ def parsing_llm_result(answer):
 
 def load_edges():
     import pandas as pd
+    try:
+        df = pd.read_csv(os.path.join('..','Playground_Arved','edges_UH_Graph.csv'))
+    except:
+        df = pd.read_csv(os.path.join('Playground_Arved','edges_UH_Graph.csv'))
 
-    df = pd.read_csv(os.path.join('..','Playground_Arved','edges_UH_Graph.csv'))
 
     edges_list = [(f'{row[0]}', f'{row[1]}') for _, row in df.iterrows()]
 
@@ -80,6 +83,3 @@ def main(ref_routing):
 
     # Update graph in the routing
     ref_routing.graph = set_weights_to_inf(ref_routing.graph, parsed_res)
-
-if __name__ == "__main__":
-    main()

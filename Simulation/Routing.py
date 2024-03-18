@@ -12,7 +12,8 @@ import osmnx as ox
 import plotly.graph_objects as go
 import folium
 
-from Simulation import LLM
+# from Simulation import LLM
+import LLM
 
 import warnings
 warnings.filterwarnings("ignore")

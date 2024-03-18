@@ -1,5 +1,8 @@
-from Simulation import BuildGraph
-from Simulation import Routing
+# from Simulation import BuildGraph
+# from Simulation import Routing
+
+import BuildGraph
+import Routing
 
 parameters = {
     "subgraph_params": {
