@@ -21,7 +21,7 @@ class Vehicle:
     current_task = None
     client = None  # mqtt client
     status = None  # one of "idle", "busy", "moving"
-    target_node = None  # String
+    target_node = 388528852  # String
 
     def __init__(self, _vehicle_id):
         load_dotenv()

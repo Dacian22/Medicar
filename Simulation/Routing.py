@@ -18,6 +18,9 @@ import LLM
 import warnings
 warnings.filterwarnings("ignore")
 
+import threading
+lock = threading.Lock()
+
 
 class Routing():  # singleton class. Do not create more than one object of this class
     def __init__(self, graph, edge_labels_highways, named_nodes, nds):
@@ -107,7 +110,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             self.handle_order(msg.payload.decode("utf-8"))
 
     def get_distance(self, start_node_id, end_node_id):
-        return nx.astar_path_length(self.graph, start_node_id, end_node_id, weight='weight')
+        return nx.astar_path_length(self.graph, str(start_node_id), str(end_node_id), weight='weight')
 
     def get_distance_from_vehicle_to_order(self, vehicle_id, order):
         vehicle = self.vehicles[vehicle_id]
@@ -157,12 +160,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # translate the shortest path to MQTT messages
         message = self.translate_path_to_mqtt(shortest_path_astar)
         # send the message to the MQTT broker
-        threading.Thread(target=self.send_route_to_vehicle_async, args=(self.get_vehicle_id_for_order(order), message)).start()
+        vehicle_id = self.get_vehicle_id_for_order(order)
+        # Set vehicle status to busy
+        threading.Thread(target=self.send_route_to_vehicle_async, args=(vehicle_id, message)).start()
 
     def send_route_to_vehicle_async(self, vehicle_id, route):  # please call this method async
         while self.vehicles[vehicle_id]["status"] != "idle":
             time.sleep(5)
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/route", json.dumps(route), qos=2)
+        self.vehicles[vehicle_id]["status"] = "busy"
 
     def connect_to_mqtt(self):
         # Connect to MQTT
@@ -239,11 +245,12 @@ class Routing():  # singleton class. Do not create more than one object of this 
             # Defining the map boundaries
             m.fit_bounds([[48.0048000, 7.8357000], [48.0081000, 7.8391000]])
             # include the car icon in the map as a marker
-            for vehicle in self.vehicles.keys():
-                # print("vehicle: " + vehicle)
-                # Create marker for vehicle using the car icon at the current vehicle position
-                folium.Marker(location=[float(self.vehicles[vehicle]["position"][0]), float(self.vehicles[vehicle]["position"][1])],
-                              icon=folium.features.CustomIcon(os.getenv("CAR_ICON_FILE"), icon_size=(30, 30)), popup=f"Vehicle: {vehicle}").add_to(m)
+            with lock:
+                for vehicle in self.vehicles.keys():
+                    # print("vehicle: " + vehicle)
+                    # Create marker for vehicle using the car icon at the current vehicle position
+                    folium.Marker(location=[float(self.vehicles[vehicle]["position"][0]), float(self.vehicles[vehicle]["position"][1])],
+                                  icon=folium.features.CustomIcon(os.getenv("CAR_ICON_FILE"), icon_size=(30, 30)), popup=f"Vehicle: {vehicle}").add_to(m)
             # plot the graph on the map
             map = ox.plot_graph_folium(G, graph_map=m, color="grey", popup_attribute="osmid", edge_width=4)
             # save the map

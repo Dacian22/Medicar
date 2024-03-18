@@ -123,6 +123,3 @@ class OrderManager:
     def closest_vehicle_callback(self, client, userdata, message):
         vehicle_id = json.loads(message.payload.decode())
         return vehicle_id
-
-    
-
