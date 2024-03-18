@@ -12,6 +12,12 @@ import osmnx as ox
 import plotly.graph_objects as go
 import folium
 
+from Simulation import LLM
+
+import warnings
+warnings.filterwarnings("ignore")
+
+
 class Routing():  # singleton class. Do not create more than one object of this class
     def __init__(self, graph, edge_labels_highways, named_nodes, nds):
         load_dotenv()
@@ -73,29 +79,30 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 {'edgeId': "edge_{}_{}".format(edge[0], edge[1]), 'sequenceId': index, 'startNodeId': edge[0],
                  'endNodeId': edge[1], 'startCoordinate': self.nds[edge[0]][:2], 'endCoordinate': self.nds[edge[1]][:2]})
         message = {'edges': edges}
-        print(message)
-        print(json.dumps(message))
+        # print(message)
+        # print(json.dumps(message))
         return message
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
         print("CONNACK received with code %s." % rc)
 
     def on_publish(self, client, userdata, mid, properties=None):
-        print("mid: " + str(mid))
+        # print("mid: " + str(mid))
+        pass
 
     def on_subscribe(self, client, userdata, mid, granted_qos, properties=None):
         print("Subscribed: " + str(mid) + " " + str(granted_qos))
 
     def on_message(self, client, userdata, msg):
-        print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+        # print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
 
         if msg.topic.startswith("vehicles/") and msg.topic.endswith("/status"):
             vehicle_id = msg.topic.split("/")[1]
             vehicle_status = json.loads(msg.payload.decode())
             self.vehicles[vehicle_id] = vehicle_status
-            print(f"Received status of vehicle {vehicle_id}: {vehicle_status}")
+            # print(f"Received status of vehicle {vehicle_id}: {vehicle_status}")
         else: # received order
-            print("Received new task: " + msg.payload.decode("utf-8"))
+            # print("Received new task: " + msg.payload.decode("utf-8"))
             self.handle_order(msg.payload.decode("utf-8"))
 
     def get_distance(self, start_node_id, end_node_id):
@@ -111,7 +118,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         for vehicle_id, vehicle in self.vehicles.items():
             if not use_only_idle_vehicles or vehicle["status"] == "idle":
                 distances[vehicle_id] = self.get_distance_from_vehicle_to_order(vehicle_id, order)
-        print(distances)
+        # print(distances)
         return distances
 
     def get_vehicle_id_for_order(self, order):
@@ -127,7 +134,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     def handle_order(self, order):
         order = json.loads(order)
-        print(f"Received new order: {order}")
+        # print(f"Received new order: {order}")
         # find the shortest path
 
         shortest_path_astar = self.find_astar_path(self.graph, order["source"], order["target"])
@@ -174,11 +181,12 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.client.subscribe("order_manager/transportation/orders/#", qos=2)
         # subscribe to vehicle status
         self.client.subscribe("vehicles/+/status", qos=2)
-        print("start")
+        print("simulation online")
         self.client.publish("hello", "simulation online", qos=2)
         threading.Thread(target=self.folium_plot).start()
         # self.folium_plot()
-        print("start mqtt loop")
+        # print("start mqtt loop")
+        threading.Thread(target=LLM.main, args=[self]).start()
         self.client.loop_forever()
 
     # define function to plot the graph
@@ -217,13 +225,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     def folium_plot(self):
         while True:
-            print("plotting map...")
+            # print("plotting map...")
             # Downloading the map as a graph object
             G = ox.graph_from_bbox(north = 48.0081000, south = 48.0048000,
                         east = 7.8391000, west = 7.8357000, network_type = 'all')
             # filter on nodes and edges that exist in self.graph
             G = G.subgraph([int(i) for i in self.graph.nodes()])
-            print(G)
+            # print(G)
             # Create a map
             m = folium.Map(location=[48.006, 7.837], zoom_start=10,
                     zoom_control=False, scrollWheelZoom=False)
@@ -231,7 +239,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             m.fit_bounds([[48.0048000, 7.8357000], [48.0081000, 7.8391000]])
             # include the car icon in the map as a marker
             for vehicle in self.vehicles.keys():
-                print("vehicle: " + vehicle)
+                # print("vehicle: " + vehicle)
                 # Create marker for vehicle using the car icon at the current vehicle position
                 folium.Marker(location=[float(self.vehicles[vehicle]["position"][0]), float(self.vehicles[vehicle]["position"][1])],
                               icon=folium.features.CustomIcon('Car Icon.jpeg', icon_size=(30, 30)), popup=f"Vehicle: {vehicle}").add_to(m)
@@ -239,5 +247,5 @@ class Routing():  # singleton class. Do not create more than one object of this 
             map = ox.plot_graph_folium(G, graph_map=m, color="grey", popup_attribute="osmid", edge_width=4)
             # save the map
             map.save('map.html')
-            print("map plottet")
+            # print("map plottet")
             time.sleep(1)
