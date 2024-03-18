@@ -5,6 +5,8 @@ import time
 import json
 import csv
 
+import os
+
 
 class OrderManager:
     
@@ -27,7 +29,7 @@ class OrderManager:
         self.client.connect(mqtt_broker_url, 8883)
 
         # subscribe to topic to get the status of the vehicles
-        self.client.subscribe("vehicles/+/status", qos=2)
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/+/status", qos=2)
         # get the closest vehicle from the message sent by simulation
         self.client.message_callback_add("simulation/closest_vehicle", self.closest_vehicle_callback)
         
@@ -82,7 +84,7 @@ class OrderManager:
         
         # publish the order to the MQTT broker
         topic = f"order_manager/transportation/orders/{order.order_id}"
-        self.client.publish(topic, order_json, qos=2)
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + topic, order_json, qos=2)
         print("Order sent:", order_json)
 
     def send_order_periodically(self, order_instance):
@@ -113,7 +115,7 @@ class OrderManager:
             "source": order.source,
             "idle_vehicles": self.idle_vehicles
         }
-        self.client.publish("simulation/get_closest_vehicle", json.dumps(payload), qos=2)
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "simulation/get_closest_vehicle", json.dumps(payload), qos=2)
     
     #assign the vehicle id to current order when a message with the closest vehicle
     # is received from simulation

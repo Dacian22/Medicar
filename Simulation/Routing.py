@@ -97,8 +97,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
     def on_message(self, client, userdata, msg):
         # print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
 
-        if msg.topic.startswith("vehicles/") and msg.topic.endswith("/status"):
-            vehicle_id = msg.topic.split("/")[1]
+        if msg.topic.startswith(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/") and msg.topic.endswith("/status"):
+            vehicle_id = msg.topic.split("/")[2]
             vehicle_status = json.loads(msg.payload.decode())
             self.vehicles[vehicle_id] = vehicle_status
             # print(f"Received status of vehicle {vehicle_id}: {vehicle_status}")
@@ -162,7 +162,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
     def send_route_to_vehicle_async(self, vehicle_id, route):  # please call this method async
         while self.vehicles[vehicle_id]["status"] != "idle":
             time.sleep(5)
-        self.client.publish(f"vehicles/{vehicle_id}/route", json.dumps(route), qos=2)
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/route", json.dumps(route), qos=2)
 
     def connect_to_mqtt(self):
         # Connect to MQTT
@@ -179,11 +179,11 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # connect to HiveMQ Cloud on port 8883 (default for MQTT)
         self.client.connect(os.getenv("HYVE_MQTT_URL"), 8883)
         # subscribe to orders
-        self.client.subscribe("order_manager/transportation/orders/#", qos=2)
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" +"order_manager/transportation/orders/#", qos=2)
         # subscribe to vehicle status
-        self.client.subscribe("vehicles/+/status", qos=2)
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" +"vehicles/+/status", qos=2)
         print("simulation online")
-        self.client.publish("hello", "simulation online", qos=2)
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "hello", "simulation online", qos=2)
         threading.Thread(target=self.folium_plot).start()
         # self.folium_plot()
         # print("start mqtt loop")

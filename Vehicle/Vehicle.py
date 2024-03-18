@@ -38,7 +38,7 @@ class Vehicle:
 
     def on_message(self, client, userdata, msg):
         print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-        if msg.topic == "vehicles/" + self.vehicle_id + "/route":
+        if msg.topic == os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/route":
             print("Received new task: " + msg.payload.decode("utf-8"))
             # self.receive_route(msg.payload.decode("utf-8"))
             threading.Thread(target=self.receive_route, args=(msg.payload.decode("utf-8"),)).start()
@@ -58,7 +58,7 @@ class Vehicle:
         payload["status"] = self.status
         payload["targetNode"] = self.target_node
 
-        self.client.publish("vehicles/" + self.vehicle_id + "/status", json.dumps(payload), qos=2)
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/status", json.dumps(payload), qos=2)
 
     def send_incident(self, incident):
         # TODO not implemented
@@ -93,7 +93,7 @@ class Vehicle:
         # connect to HiveMQ Cloud on port 8883 (default for MQTT)
         self.client.connect(os.getenv("HYVE_MQTT_URL"), 8883)
         # test connection
-        self.client.subscribe("vehicles/" + self.vehicle_id + "/route", qos=2)
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" +"vehicles/" + self.vehicle_id + "/route", qos=2)
         print("start")
         self.status = "idle"
         self.send_vehicle_status()
