@@ -8,6 +8,7 @@ A European Team Project from Sergiu-Dacian Balint, Diana Matei, Sara Koni, Arved
 ## Quickstart
 * Install the required packages: `pip install -r requirements.txt`
 * Create .env file in the root directory according to the .env.example file (ask paul for credentials)
+* First start the simulation, then the vehicle and then the order manager
 ## Development Guide
 ### Environment
 Currently, we only use python and the dependencies in the `requirements.txt` file. For the visualization, we may use 
