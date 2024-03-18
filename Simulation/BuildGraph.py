@@ -1,5 +1,7 @@
 ############################# Setup ########################################
 # import libraries
+import os
+
 import networkx as nx
 from bs4 import BeautifulSoup
 
@@ -10,7 +12,7 @@ def get_graph_data():
         with open('Uniklinikum_Freiburg_map.osm', 'r', encoding='utf-8') as f:
             data = f.read()
     except FileNotFoundError:
-        with open('Simulation/Uniklinikum_Freiburg_map.osm', 'r', encoding='utf-8') as f:
+        with open(os.path.join('Simulation', 'Uniklinikum_Freiburg_map.osm'), 'r', encoding='utf-8') as f:
             data = f.read()
 
     # passing stored data inside beautifulsoup parser, storing the returned object
