@@ -10,7 +10,7 @@ def main():
     mqtt_broker_url = os.getenv("HYVE_MQTT_URL")
     mqtt_username = os.getenv("HYVE_MQTT_USR")
     mqtt_password = os.getenv("HYVE_MQTT_PWD")
-    heuristics_file = "heuristics.csv"
+    heuristics_file = os.getenv("HEURISTICS_FILE")
 
     order_manager = OrderManager(mqtt_broker_url, mqtt_username, mqtt_password, heuristics_file)
     # process heuristics concurrently
