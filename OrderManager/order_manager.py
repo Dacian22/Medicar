@@ -1,4 +1,5 @@
-import paho.mqtt.client as mqtt
+import paho.mqtt.client as paho
+from paho import mqtt
 from order import Order
 import threading
 import time
@@ -13,14 +14,14 @@ class OrderManager:
     
     def __init__(self, mqtt_broker_url, mqtt_username, mqtt_password,heuristics_file):
         # create a MQTT client
-        self.client = mqtt.Client()
+        self.client = paho.Client(protocol=paho.MQTTv5)
         self.client.on_connect = self.on_connect
         self.client.on_publish = self.on_publish
         self.client.on_message = self.on_message  # added on_message callback
         self.client.on_subscribe = self.on_subscribe  # added on_subscribe callback
 
         # enable TLS for secure connection
-        self.client.tls_set(tls_version=mqtt.ssl.PROTOCOL_TLS)
+        self.client.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
 
         # set username and password
         self.client.username_pw_set(mqtt_username, mqtt_password)

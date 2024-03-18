@@ -166,7 +166,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     def connect_to_mqtt(self):
         # Connect to MQTT
-        self.client = paho.Client(client_id="singleton_routing", userdata=None, protocol=paho.MQTTv5)
+        self.client = paho.Client(protocol=paho.MQTTv5)
         self.client.on_connect = self.on_connect
         self.client.on_publish = self.on_publish
         self.client.on_subscribe = self.on_subscribe
