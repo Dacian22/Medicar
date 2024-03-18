@@ -1,3 +1,6 @@
 .env
 /.idea/*
 *.gml
+*/__pycache__/*
+cache
+*.html
