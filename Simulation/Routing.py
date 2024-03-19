@@ -190,6 +190,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # self.folium_plot()
         # print("start mqtt loop")
         threading.Thread(target=LLM_ZeroShot.main, args=[self]).start()
+        threading.Thread(target=Playground_LLM_Dacian.main, args=[self]).start()
         self.client.loop_forever()
 
     def folium_plot(self):
@@ -289,6 +290,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             prevent_initial_call=True
         )
         def update_output(n_clicks, value):
-            return Playground_LLM_Dacian.try_llm(value)
+            #return Playground_LLM_Dacian.try_llm(value)
+            return LLM_ZeroShot.try_llm(value)
 
         app.run(debug=False)
