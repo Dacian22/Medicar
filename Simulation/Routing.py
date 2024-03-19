@@ -17,7 +17,7 @@ import threading
 
 lock = threading.Lock()
 
-from dash import Dash, html, dcc, Output, Input
+from dash import Dash, html, dcc, Output, Input, State
 import plotly.graph_objects as go
 
 
@@ -222,30 +222,50 @@ class Routing():  # singleton class. Do not create more than one object of this 
             fig.update_layout(mapbox_style="open-street-map",
                               mapbox_zoom=17.5,
                               mapbox_center_lat=48.00632,
-                              mapbox_center_lon=7.8382,
+                              mapbox_center_lon=7.838,
                               margin={"r": 0, "t": 0, "l": 0, "b": 0},
-                              width=1200, height=800,
+                              width=900, height=800,
                               showlegend=False)
 
             return fig
 
         app = Dash(__name__)
         app.layout = html.Div([
+            html.H1(children='Intelligent Hospital Logistics',
+                    style={'textAlign': 'left', 'font-family': 'Arial, sans-serif'}),
             html.Div([
-                html.H1(children='Intelligent Hospital Logistics', style={'textAlign': 'center'}),
-                dcc.Graph(id='live-update-graph'),
-                dcc.Interval(
-                    id='interval-component',
-                    interval=0.5 * 1000,  # in milliseconds
-                    n_intervals=0
-                )
+                html.Div([
+                    dcc.Graph(id='live-update-graph'),
+                    dcc.Interval(
+                        id='interval-component',
+                        interval=0.5 * 1000,  # in milliseconds
+                        n_intervals=0
+                    )
+                ], style={'padding': 10, 'flex': 1}),
+                html.Div([
+                    html.H2("LLM", style={'textAlign': 'left', 'font-family': 'Arial, sans-serif'}),
+                    html.Div([
+                        dcc.Textarea(id='input-prompt', value='Prompt...', style={'height': 60, 'padding': 10, 'flex': 10}),
+                        html.Button('Submit', id='press-invoke-llm', n_clicks=0, style={'padding': 10, 'flex': 1}),
+                    ], style={'display': 'flex', 'flexDirection': 'row', 'padding': 10}),
+                    html.Label(id='llm-output', style={'whiteSpace': 'pre-line', 'padding': 10})
+                ], style={'padding': 10, 'flex': 1})
+            ], style={'display': 'flex', 'flexDirection': 'row'})
             ])
-        ])
 
         @app.callback(Output('live-update-graph', 'figure'),
                       Input('interval-component', 'n_intervals'))
         def update_metrics(n):
             print("updating map...")
             return getmap()
+
+        @app.callback(
+            Output('llm-output', 'children'),
+            Input('press-invoke-llm', 'n_clicks'),
+            State('input-prompt', 'value'),
+            prevent_initial_call=True
+        )
+        def update_output(n_clicks, value):
+            return value
 
         app.run(debug=False)
