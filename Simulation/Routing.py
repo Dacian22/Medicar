@@ -1,5 +1,7 @@
+import ast
 import json
 import os
+import re
 import time
 import warnings
 
@@ -9,7 +11,7 @@ import paho.mqtt.client as paho
 from dotenv import load_dotenv
 from paho import mqtt
 
-# from Simulation import LLM
+import BuildGraph
 import Playground_LLM_Dacian
 import LLM_ZeroShot
 
@@ -193,6 +195,37 @@ class Routing():  # singleton class. Do not create more than one object of this 
         #threading.Thread(target=Playground_LLM_Dacian.main, args=[self]).start()
         self.client.loop_forever()
 
+    def parse_llm_output(self, llm_output):
+        pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
+
+        llm_output = llm_output.split("final answer")[1]
+
+        removed_edges = re.findall(pattern, llm_output, re.DOTALL)
+
+        print("List of removed edges:", removed_edges)
+
+        removed_edges_cleaned = []
+
+        for removed_edge in removed_edges:
+            # print(removed_edge)
+            cleaned = removed_edge.strip("'´")
+            # print(cleaned)
+            cleaned = ast.literal_eval(cleaned)
+            # print(cleaned)
+            removed_edges_cleaned.append(cleaned)
+
+        print("List of edges which weights are changed to infinity:", removed_edges_cleaned)
+
+        return removed_edges_cleaned
+
+    def apply_llm_output(self, llm_output):
+        # Parse the output
+        parsed_res = self.parse_llm_output(llm_output)
+
+        # Update graph in the routing
+        self.graph = BuildGraph.set_weights_to_inf(self.graph, parsed_res)
+
+
     def folium_plot(self):
 
         vehicle_colors = ["red", "green", "blue", "goldenrod", "magenta"]
@@ -204,7 +237,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 for _, row in self.edge_df.iterrows():
                     self.edge_df.at[_, "weight"] = self.graph[str(int(row["u"]))][str(int(row["v"]))]["weight"]
 
-
             fig = go.Figure()
             # Add edges to the map
             with lock:
@@ -214,7 +246,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     color_edge = "grey"
                     on_route = False
                     if row["weight"] == np.inf:
-                        color_edge = "lightgrey"
+                        color_edge = "red"
                         print("weight infinity detected!")
                     else:
                         for index_node, vehicle in enumerate(self.vehicles.values()):
@@ -323,6 +355,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
             prevent_initial_call=True
         )
         def update_output(n_clicks, value):
-            return Playground_LLM_Dacian.invoke_llm(value)
+            llm_output = Playground_LLM_Dacian.invoke_llm(value)
+            self.apply_llm_output(llm_output)
+            return llm_output
 
         app.run(debug=False)
