@@ -133,13 +133,13 @@ def build_nx_graph(allowed_highway_types, special_nodes):
     # Filter nodes to only include the onees that are part of the graph
     nodes_df = nodes_df[nodes_df.index.isin(G.nodes())]
     # Switch index to int
-    nodes_df.index = nodes_df.index.astype("int")
+    nodes_df.index = nodes_df.index.astype("int64")
 
     # Create dataframe with all information about the edges: osmid, highway_type, u, v
     edges_df = pd.DataFrame(columns=['u', 'v'])
     edges_df['u'] = [u for u, v in G.edges()]
     edges_df['v'] = [v for u, v in G.edges()]
-    edges_df[['u', 'v']] = edges_df[['u', 'v']].astype("int")
+    edges_df[['u', 'v']] = edges_df[['u', 'v']].astype("int64")
 
     return G, edges_df, nodes_df
 
