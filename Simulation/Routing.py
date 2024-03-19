@@ -4,6 +4,7 @@ import time
 import warnings
 
 import networkx as nx
+import numpy as np
 import paho.mqtt.client as paho
 from dotenv import load_dotenv
 from paho import mqtt
@@ -185,13 +186,16 @@ class Routing():  # singleton class. Do not create more than one object of this 
         print("simulation online")
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "hello", "simulation online", qos=2)
         threading.Thread(target=self.folium_plot).start()
-        threading.Thread(target=LLM.main, args=[self]).start()
+        # threading.Thread(target=LLM.main, args=[self]).start()
         self.client.loop_forever()
 
     def folium_plot(self):
 
+        color_discrete_sequence = ["red", "green", "blue", "goldenrod", "magenta"]
+
         def getmap():
             fig = go.Figure()
+            # Add edges to the map
             with lock:
                 for _, row in self.edge_df.iterrows():
                     fig.add_trace(go.Scattermapbox(mode='lines',
@@ -199,15 +203,31 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                         self.nodes_df.loc[row["v"]]["lon"]],
                                                    lat=[self.nodes_df.loc[row["u"]]["lat"],
                                                         self.nodes_df.loc[row["v"]]["lat"]],
-                                                   marker={'color': "grey", 'size': 15, 'allowoverlap': True}
+                                                   marker={'color': "grey", 'size': 15, 'allowoverlap': True},
+                                                   hoverinfo='none'
                                                    ))
+
+            # Add nodes to the map
+            # Add nodes to the map
+            for index, row in self.nodes_df.iterrows():
+                fig.add_trace(go.Scattermapbox(mode='markers+text' if row["name"] is not np.NaN else 'markers',
+                                               lon=[row["lon"]],
+                                               lat=[row["lat"]],
+                                               marker={'color': "grey", 'size': 15, 'allowoverlap': True},
+                                               text=row["name"] if row["name"] is not np.NaN else index,
+                                               name=row["name"] if row["name"] is not np.NaN else index,
+                                               hoverinfo="text",
+                                               textposition='bottom',
+                                               ))
+
             # Add vehicles to the map
             with lock:
-                for vehicle in self.vehicles.keys():
+                for index, vehicle in enumerate(self.vehicles.keys()):
+                    color = color_discrete_sequence[index % len(color_discrete_sequence)]
                     fig.add_trace(go.Scattermapbox(mode='markers',
                                                    lon=[self.vehicles[vehicle]["position"][1]],
                                                    lat=[self.vehicles[vehicle]["position"][0]],
-                                                   marker={'color': "red", 'size': 15, 'allowoverlap': True},
+                                                   marker={'color': color, 'size': 25, 'allowoverlap': True},
                                                    text=f"Vehicle: {vehicle}",
                                                    name=vehicle
                                                    ))
