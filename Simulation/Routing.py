@@ -195,44 +195,67 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     def folium_plot(self):
 
-        color_discrete_sequence = ["red", "green", "blue", "goldenrod", "magenta"]
+        vehicle_colors = ["red", "green", "blue", "goldenrod", "magenta"]
 
         def getmap():
             fig = go.Figure()
             # Add edges to the map
             with lock:
                 for _, row in self.edge_df.iterrows():
+                    # Determine color (according to vehicle colors if on route, else grey).
+                    # TODO If multiple vehicles on route, use only the color of the first vehicle.
+                    color_edge = "grey"
+                    on_route = False
+                    for index_node, vehicle in enumerate(self.vehicles.values()):
+                        # If row in currentTask of vehicle
+                        if vehicle["currentTask"] is not None:
+                            for edge in vehicle["currentTask"]["edges"]:
+                                if (str(row["u"]) == str(edge["startNodeId"]) and str(row["v"]) == str(edge["endNodeId"])) or (
+                                        str(row["u"]) == str(edge["endNodeId"]) and str(row["v"]) == str(edge["startNodeId"])):
+                                    color_edge = vehicle_colors[index_node % len(vehicle_colors)]
+                                    on_route = True
+                                    break
                     fig.add_trace(go.Scattermapbox(mode='lines',
                                                    lon=[self.nodes_df.loc[row["u"]]["lon"],
                                                         self.nodes_df.loc[row["v"]]["lon"]],
                                                    lat=[self.nodes_df.loc[row["u"]]["lat"],
                                                         self.nodes_df.loc[row["v"]]["lat"]],
-                                                   marker={'color': "grey", 'size': 15, 'allowoverlap': True},
+                                                   marker={'color': color_edge, 'size': 30 if on_route else 15, 'allowoverlap': True},
                                                    hoverinfo='none'
                                                    ))
 
             # Add nodes to the map
-            # Add nodes to the map
-            for index, row in self.nodes_df.iterrows():
+            for index_node, row in self.nodes_df.iterrows():
+                # Determine color (according to vehicle colors if target Node, else grey).
+                # TODO If multiple vehicles on the same target, use only the color of the first vehicle.
+                color_node = "grey"
+                symbol_node = "circle"
+                for index_vehicle, vehicle in enumerate(self.vehicles.values()):
+                    # If row in currentTask of vehicle
+                    if str(index_node) == str(vehicle["targetNode"]):
+                        color_node = vehicle_colors[index_vehicle % len(vehicle_colors)]
+                        # print("color_node: ", color_node)
+                        # symbol_node = "star"
+                        break
                 fig.add_trace(go.Scattermapbox(mode='markers+text' if row["name"] is not np.NaN else 'markers',
                                                lon=[row["lon"]],
                                                lat=[row["lat"]],
-                                               marker={'color': "grey", 'size': 15, 'allowoverlap': True},
-                                               text=row["name"] if row["name"] is not np.NaN else index,
-                                               name=row["name"] if row["name"] is not np.NaN else index,
+                                               marker={'color': color_node, 'size': 15, 'allowoverlap': True, 'symbol': symbol_node},
+                                               text=row["name"] if row["name"] is not np.NaN else index_node,
+                                               name=row["name"] if row["name"] is not np.NaN else index_node,
                                                hoverinfo="text",
                                                textposition='bottom center',
-                                               # textfont=dict(size=24, color='black', family='Arial, sans-serif')
+                                               # textfont=dict(size=24, color_node='black', family='Arial, sans-serif')
                                                ))
 
             # Add vehicles to the map
             with lock:
-                for index, vehicle in enumerate(self.vehicles.keys()):
-                    color = color_discrete_sequence[index % len(color_discrete_sequence)]
+                for index_node, vehicle in enumerate(self.vehicles.keys()):
+                    color_vehicle = vehicle_colors[index_node % len(vehicle_colors)]
                     fig.add_trace(go.Scattermapbox(mode='markers',
                                                    lon=[self.vehicles[vehicle]["position"][1]],
                                                    lat=[self.vehicles[vehicle]["position"][0]],
-                                                   marker={'color': color, 'size': 25, 'allowoverlap': True},
+                                                   marker={'color': color_vehicle, 'size': 25, 'allowoverlap': True},
                                                    text=f"Vehicle: {vehicle}",
                                                    name=vehicle
                                                    ))
@@ -248,6 +271,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             return fig
 
         app = Dash(__name__)
+
         app.layout = html.Div([
             html.H1(children='Intelligent Hospital Logistics',
                     style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554'}),
