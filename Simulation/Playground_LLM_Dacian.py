@@ -16,11 +16,14 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain_openai import OpenAI
 from BuildGraph import set_weights_to_inf
 from langsmith import Client
-client=Client()
+
+load_dotenv()
+
+client=Client(api_key=os.getenv("LANGCHAIN_API_KEY"))
+
 def invoke_llm(prompt):
     #Load the edges from the graph, the enviroment and the model
     G=load_edges()
-    load_dotenv()
     model = Ollama(model="llama2")
     #print(G)
 
