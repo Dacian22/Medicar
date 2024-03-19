@@ -10,13 +10,12 @@ import os
 
 import ast
 
-from langchain_community.llms.huggingface_hub import HuggingFaceHub
 
 from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.prompts.prompt import PromptTemplate
 from langchain_openai import OpenAI
 from BuildGraph import set_weights_to_inf
-
+load_dotenv()
 def invoke_llm(prompt):
     #Load the edges from the graph, the enviroment and the model
     G=load_edges()
@@ -118,7 +117,7 @@ Intermediate answer: Edges ('1','2'), ('2','3') contain node 2
 So the final answer is: List of edges that have to be removed: ('1','2'), ('2','3')
 """,
         "reasoning":"""
-Because the event of someone having a seisure is important enough to block access to the node 2 so we are removing the edges that contain the node 2, those being ('1','2'), ('2','3')
+Because the event of someone having a seizure is important enough to block access to the node 2 so we are removing the edges that contain the node 2, those being ('1','2'), ('2','3')
 """,
     }
 
@@ -134,9 +133,8 @@ Because the event of someone having a seisure is important enough to block acces
     input_variables=["input"],
     example_separator='\n\n\n')
     G=load_edges()
-    load_dotenv()
+    #load_dotenv()
     model = Ollama(model="llama2")
-    model_flan = HuggingFaceHub(repo_id="CohereForAI/c4ai-command-r-v01",model_kwargs={"temperature":"0.2"})
     model_mistral = Ollama(model="mistral")
     model_openai= OpenAI()
     
@@ -189,9 +187,9 @@ def parsing_llm_result(answer):
 def load_edges():
     import pandas as pd
     try:
-        df = pd.read_csv(os.path.join('..','Playground_Arved','edges_UH_Graph.csv'))
+        df = pd.read_csv(os.path.join('..','Playground_Arved','csv','edges_UH_Graph.csv'))
     except:
-        df = pd.read_csv(os.path.join('Playground_Arved','edges_UH_Graph.csv'))
+        df = pd.read_csv(os.path.join('Playground_Arved','csv','edges_UH_Graph.csv'))
 
 
     edges_list = [(f'{row[0]}', f'{row[1]}') for _, row in df.iterrows()]
