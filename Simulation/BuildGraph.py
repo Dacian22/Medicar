@@ -4,7 +4,7 @@ import os
 
 import networkx as nx
 from bs4 import BeautifulSoup
-
+import pandas as pd
 
 def get_graph_data():
     # reading data inside xml file to a variable under the name data
@@ -84,17 +84,18 @@ def keep_largest_connected_component(G):
 
 
 # define function to label edges of the graph
-def label_edges(G, ways):
-    # create a dictionary that maps every created edge to its highway type
-    edge_labels_highways = {}
-    # iterate over all edges that are highways
-    for u, v in G.edges():
-        # iterate over all ways
-        for way_id, (nodes, highway_type) in ways.items():
-            # check if the edge is in a way and add the highway type to the dictionary
-            if u in nodes and v in nodes:
-                edge_labels_highways[(u, v)] = highway_type
-    return edge_labels_highways
+# def label_edges(G, ways):
+#     # create a dictionary that maps every created edge to its highway type
+#     edge_labels = {}
+#     # iterate over all edges that are highways
+#     for u, v in  :
+#         # iterate over all edges
+#         # for way_id, (nodes, highway_type) in ways.items():
+#             # check if the edge is in a way and add the highway type to the dictionary
+#             # if u in nodes and v in nodes:
+#                 # edge_labels_highways[way_id] = {'highway_type': highway_type, 'u': u, 'v': v}
+#         edge_labels[way_id] = {'u': u, 'v': v}
+#     return edge_labels
 
 
 def build_nx_graph(allowed_highway_types, special_nodes):
@@ -121,10 +122,26 @@ def build_nx_graph(allowed_highway_types, special_nodes):
     # keep only the largest connected component
     G = keep_largest_connected_component(G)
 
-    # label the edges of the graph
-    edge_labels_highways = label_edges(G, ways)
+    # Create dataframe with all information about the nodes: osmid, lat, lon, map_name
+    nodes_df = pd.DataFrame.from_dict(nds, orient='index', columns=['lat', 'lon', 'tag'])
+    nodes_df = nodes_df.drop(columns=['tag'])
+    nodes_df = nodes_df.astype("float")
+    # Add name from named_nodes to df
+    df_named_nodes = pd.DataFrame.from_dict(named_nodes, orient='index', columns=['name'])
+    nodes_df = nodes_df.join(df_named_nodes, how='left')
 
-    return G, edge_labels_highways, named_nodes, nds
+    # Filter nodes to only include the onees that are part of the graph
+    nodes_df = nodes_df[nodes_df.index.isin(G.nodes())]
+    # Switch index to int
+    nodes_df.index = nodes_df.index.astype("int")
+
+    # Create dataframe with all information about the edges: osmid, highway_type, u, v
+    edges_df = pd.DataFrame(columns=['u', 'v'])
+    edges_df['u'] = [u for u, v in G.edges()]
+    edges_df['v'] = [v for u, v in G.edges()]
+    edges_df[['u', 'v']] = edges_df[['u', 'v']].astype("int")
+
+    return G, edges_df, nodes_df
 
     # define function that sets all weights from a given list in the graph to infinity
 def set_weights_to_inf(G, edges_to_be_set_to_inf):

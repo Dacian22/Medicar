@@ -21,14 +21,18 @@ warnings.filterwarnings("ignore")
 import threading
 lock = threading.Lock()
 
+from dash import Dash, html, dcc, callback, Output, Input
+import plotly.express as px
+import plotly.graph_objects as go
+import pandas as pd
+
 
 class Routing():  # singleton class. Do not create more than one object of this class
-    def __init__(self, graph, edge_labels_highways, named_nodes, nds):
+    def __init__(self, graph, edge_df, nodes_df):
         load_dotenv()
         self.graph = graph
-        self.edge_labels_highways = edge_labels_highways
-        self.named_nodes = named_nodes
-        self.nds = nds
+        self.edge_df = edge_df
+        self.nodes_df = nodes_df
         self.vehicles = {}
         self.connect_to_mqtt()
 
@@ -36,28 +40,17 @@ class Routing():  # singleton class. Do not create more than one object of this 
         return f"Graph: {self.graph}"
 
     # define function to find the shortest path between two special nodes
-    def find_astar_path(self, G, start_node, end_node):
-        # find node id of source and target node
-        start_node_id = [key for key, value in self.named_nodes.items() if value == start_node][0]
-        end_node_id = [key for key, value in self.named_nodes.items() if value == end_node][0]
+    def find_astar_path(self, G, start_node_id, end_node_id):
         # use the a* algorithm to find the shortest path between the source and target node
-        shortest_path = nx.astar_path(G, start_node_id, end_node_id, weight='weight')
+        shortest_path = nx.astar_path(G, str(start_node_id), str(end_node_id), weight='weight')
         return shortest_path
     
-    def find_dijkstra_path(self, G, start_node, end_node):
-        # find node id of source and target node
-        start_node_id = [key for key, value in self.named_nodes.items() if value == start_node][0]
-        end_node_id = [key for key, value in self.named_nodes.items() if value == end_node][0]
-        
+    def find_dijkstra_path(self, G, start_node_id, end_node_id):
         # use Dijkstra's algorithm to find the shortest path between the source and target node
         shortest_path_length, shortest_path = nx.single_source_dijkstra(G, start_node_id, target=end_node_id, weight='weight')
         return shortest_path
     
-    def find_bellman_ford_path(self, G, start_node, end_node):
-        # find node id of source and target node
-        start_node_id = [key for key, value in self.named_nodes.items() if value == start_node][0]
-        end_node_id = [key for key, value in self.named_nodes.items() if value == end_node][0]
-        
+    def find_bellman_ford_path(self, G, start_node_id, end_node_id):
         # use Bellman-Ford algorithm to find the shortest path between the source and target node
         shortest_path = nx.bellman_ford_path(G, start_node_id, end_node_id, weight='weight')
         return shortest_path
@@ -81,7 +74,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         for index, edge in enumerate(edges_shortest_path):
             edges.append(
                 {'edgeId': "edge_{}_{}".format(edge[0], edge[1]), 'sequenceId': index, 'startNodeId': edge[0],
-                 'endNodeId': edge[1], 'startCoordinate': self.nds[edge[0]][:2], 'endCoordinate': self.nds[edge[1]][:2]})
+                 'endNodeId': edge[1], 'startCoordinate': tuple(self.nodes_df.loc[int(edge[0])].loc[["lat", "lon"]]), 'endCoordinate': tuple(self.nodes_df.loc[int(edge[1])].loc[["lat", "lon"]])})
         message = {'edges': edges}
         # print(message)
         # print(json.dumps(message))
@@ -114,8 +107,11 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     def get_distance_from_vehicle_to_order(self, vehicle_id, order):
         vehicle = self.vehicles[vehicle_id]
-        start_node_id = [key for key, value in self.named_nodes.items() if value == order["source"]][0]
+        start_node_id = self.get_node_id_from_name(order["source"])
         return self.get_distance(vehicle["targetNode"], start_node_id)
+
+    def get_node_id_from_name(self, name):
+        return self.nodes_df[self.nodes_df["name"] == name].index[0]
 
     def get_distances_from_vehicles_to_order(self, order, use_only_idle_vehicles):
         distances = {}
@@ -141,7 +137,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # print(f"Received new order: {order}")
         # find the shortest path
 
-        shortest_path_astar = self.find_astar_path(self.graph, order["source"], order["target"])
+        shortest_path_astar = self.find_astar_path(self.graph, self.get_node_id_from_name(order["source"]), self.get_node_id_from_name(order["target"]))
         # shortest_path_dijkstra = self.find_dijkstra_path(self.graph, order["source"], order["target"])
         # shortest_path_bellman_ford = self.find_bellman_ford_path(self.graph, order["source"], order["target"])
         #
@@ -196,64 +192,93 @@ class Routing():  # singleton class. Do not create more than one object of this 
         threading.Thread(target=LLM.main, args=[self]).start()
         self.client.loop_forever()
 
-    # define function to plot the graph
-    def plot_graph(self, G, edge_labels_highways, shortest_path):
-        # plot the graph where all nodes are placed at their geographical position
-        # TODO this does not work in this setting
-        # pos = {key: (float(value[0]), float(value[1])) for key, value in self.graph.nodes(data=True)}
-        # # correct position for the labels
-        # pos_labels = {key: (float(value[0]), float(value[1]) - 0.00008) for key, value in nds.items()}
-        # create a figure
-        plt.figure(figsize=(25, 15))
-        # draw the graph
-        # nx.draw(G, pos=pos, with_labels=False, node_size=10, node_color='black', edge_color='black')
-        nx.draw(G, with_labels=False, node_size=10, node_color='black', edge_color='black')
-
-        # label all special nodes
-        # TODO this does not work in this setting
-        # nx.draw_networkx_labels(G, pos=pos_labels, labels={key: value for key, value in named_nodes.items() if
-        #                                                    value in self.special_nodes},
-        #                         font_size=10, font_color='green')
-        # change the color of the special nodes
-        # TODO this does not work in this setting
-        # nx.draw_networkx_nodes(G, pos=pos,
-        #                        nodelist=[key for key, value in named_nodes.items() if value in self.special_nodes],
-        #                        node_color='green', node_size=20)
-        # draw the shortest path
-        # nx.draw_networkx_edges(G, pos=pos, edgelist=[(shortest_path[i], shortest_path[i + 1]) for i in
-        #                                              range(len(shortest_path) - 1)],
-        #                        edge_color='red', width=3)
-        nx.draw_networkx_edges(G, edgelist=[(shortest_path[i], shortest_path[i + 1]) for i in
-                                            range(len(shortest_path) - 1)], edge_color='red', width=3)
-        # add title
-        plt.title('University Hospital Freiburg', fontsize=20, fontweight='bold')
-        # show the plot
-        plt.show()
 
     def folium_plot(self):
-        while True:
-            # print("plotting map...")
-            # Downloading the map as a graph object
-            G = ox.graph_from_bbox(north = 48.0081000, south = 48.0048000,
-                        east = 7.8391000, west = 7.8357000, network_type = 'all')
-            # filter on nodes and edges that exist in self.graph
-            G = G.subgraph([int(i) for i in self.graph.nodes()])
-            # print(G)
-            # Create a map
-            m = folium.Map(location=[48.006, 7.837], zoom_start=10,
-                    zoom_control=False, scrollWheelZoom=False)
-            # Defining the map boundaries
-            m.fit_bounds([[48.0048000, 7.8357000], [48.0081000, 7.8391000]])
-            # include the car icon in the map as a marker
+        # while True:
+        #     # print("plotting map...")
+        #     # Downloading the map as a graph object
+        #     G = ox.graph_from_bbox(north = 48.0081000, south = 48.0048000,
+        #                 east = 7.8391000, west = 7.8357000, network_type = 'all')
+        #     # filter on nodes and edges that exist in self.graph
+        #     G = G.subgraph([int(i) for i in self.graph.nodes()])
+        #     # print(G)
+        #     # Create a map
+        #     m = folium.Map(location=[48.006, 7.837], zoom_start=10,
+        #             zoom_control=False, scrollWheelZoom=False)
+        #     # Defining the map boundaries
+        #     m.fit_bounds([[48.0048000, 7.8357000], [48.0081000, 7.8391000]])
+        #     # include the car icon in the map as a marker
+        #     with lock:
+        #         for vehicle in self.vehicles.keys():
+        #             # print("vehicle: " + vehicle)
+        #             # Create marker for vehicle using the car icon at the current vehicle position
+        #             folium.Marker(location=[float(self.vehicles[vehicle]["position"][0]), float(self.vehicles[vehicle]["position"][1])],
+        #                           icon=folium.features.CustomIcon(os.getenv("CAR_ICON_FILE"), icon_size=(30, 30)), popup=f"Vehicle: {vehicle}").add_to(m)
+        #     # plot the graph on the map
+        #     map = ox.plot_graph_folium(G, graph_map=m, color="grey", popup_attribute="osmid", edge_width=4)
+        #     map = ox.graph_to_gdfs(G, nodes=False).explore(
+        #     # save the map
+        #     map.save('map.html')
+        #     # print("map plottet")
+        #     time.sleep(2)
+
+        # Use plotly dash to make a live-updating map with the graph and the vehicles as annotation
+
+        def getmap():
+            fig = go.Figure()
+            with lock:
+                for _, row in self.edge_df.iterrows():
+                     fig.add_trace(go.Scattermapbox(mode='lines',
+                                                   lon=[self.nodes_df.loc[row["u"]]["lon"],
+                                                        self.nodes_df.loc[row["v"]]["lon"]],
+                                                   lat=[self.nodes_df.loc[row["u"]]["lat"],
+                                                        self.nodes_df.loc[row["v"]]["lat"]],
+                                                   marker={'color': "grey", 'size': 15, 'allowoverlap': True}
+                                                   # name=row['source_name']
+                                                   ))
+
+            # fig = px.line_mapbox(self.nodes_df.loc[self.edge_df["u"]], lat="lat", lon="lon", hover_data="name", zoom=3, height=300)
+
+            # Add vehicles to the map
             with lock:
                 for vehicle in self.vehicles.keys():
-                    # print("vehicle: " + vehicle)
-                    # Create marker for vehicle using the car icon at the current vehicle position
-                    folium.Marker(location=[float(self.vehicles[vehicle]["position"][0]), float(self.vehicles[vehicle]["position"][1])],
-                                  icon=folium.features.CustomIcon(os.getenv("CAR_ICON_FILE"), icon_size=(30, 30)), popup=f"Vehicle: {vehicle}").add_to(m)
-            # plot the graph on the map
-            map = ox.plot_graph_folium(G, graph_map=m, color="grey", popup_attribute="osmid", edge_width=4)
-            # save the map
-            map.save('map.html')
-            # print("map plottet")
-            time.sleep(1)
+                     fig.add_trace(go.Scattermapbox(mode='markers',
+                                                   lon=[self.vehicles[vehicle]["position"][1]],
+                                                   lat=[self.vehicles[vehicle]["position"][0]],
+                                                   marker={'color': "red", 'size': 15, 'allowoverlap': True},
+                                                   text=f"Vehicle: {vehicle}",
+                                                   name=vehicle
+                                                   ))
+
+            # fig.update_traces(marker_symbol="car", selector=dict(type='scattermapbox'))
+
+            fig.update_layout(mapbox_style="open-street-map",
+                              mapbox_zoom=17.5,
+                              mapbox_center_lat=48.00632,
+                              mapbox_center_lon=7.8382,
+                              margin={"r": 0, "t": 0, "l": 0, "b": 0},
+                              width=1200, height=800,
+                              showlegend=False)
+
+            return fig
+
+        app = Dash(__name__)
+        app.layout = html.Div([
+            html.Div([
+            html.H1(children='Intelligent Hospital Logistics', style={'textAlign': 'center'}),
+            dcc.Graph(id='live-update-graph'),
+            dcc.Interval(
+                id='interval-component',
+                interval=0.5 * 1000,  # in milliseconds
+                n_intervals=0
+            )
+            ])
+        ])
+
+        @app.callback(Output('live-update-graph', 'figure'),
+                      Input('interval-component', 'n_intervals'))
+        def update_metrics(n):
+            print("updating map...")
+            return getmap()
+
+        app.run(debug=False)
