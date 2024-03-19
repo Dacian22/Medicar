@@ -26,10 +26,15 @@ def invoke_llm(prompt):
     #print(G)
 
     #Create the LLM
-    template_new="""context: {G} \n  requirements: You're a graph expert and want to find if an edge is available or not. 
-    Decide on whether an edge is passable or not based on the fact that an electrical vehicle drives 
-    through the edges. Do not make something up. Only use the provided edges in the context. 
-    Please provide if the edge can be used or not. \n question: {{question}}"""
+    template_new = """context: {G} 
+    requirements: You're a graph expert tasked with determining the availability of edges in 
+    a transportation network for electrical vehicles. 
+    Your goal is to assess whether each provided edge is passable or not for an electrical 
+    vehicle at the moment that the input is given. Only use the provided graph and do not 
+    make assumptions beyond the given context. Give a Yes/No answer with a short explanation
+    in one sentence.
+    \nquestion: {{question}}"""
+
    
     
     prompt_template = PromptTemplate(input_variables=["question"], template=template_new)
@@ -65,7 +70,7 @@ def parsing_llm_result(answer):
         # print(cleaned)
         removed_edges_cleaned.append(cleaned)
 
-    print("List of edges which weights are changed to infinity:", removed_edges)
+    #print("List of edges which weights are changed to infinity:", removed_edges)
 
     return removed_edges
 
