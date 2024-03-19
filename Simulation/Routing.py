@@ -1,5 +1,7 @@
+import ast
 import json
 import os
+import re
 import time
 import warnings
 
@@ -9,7 +11,7 @@ import paho.mqtt.client as paho
 from dotenv import load_dotenv
 from paho import mqtt
 
-# from Simulation import LLM
+import BuildGraph
 import Playground_LLM_Dacian
 import LLM_ZeroShot
 
@@ -193,11 +195,48 @@ class Routing():  # singleton class. Do not create more than one object of this 
         #threading.Thread(target=Playground_LLM_Dacian.main, args=[self]).start()
         self.client.loop_forever()
 
+    def parse_llm_output(self, llm_output):
+        pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
+
+        llm_output = llm_output.split("final answer")[1]
+
+        removed_edges = re.findall(pattern, llm_output, re.DOTALL)
+
+        print("List of removed edges:", removed_edges)
+
+        removed_edges_cleaned = []
+
+        for removed_edge in removed_edges:
+            # print(removed_edge)
+            cleaned = removed_edge.strip("'´")
+            # print(cleaned)
+            cleaned = ast.literal_eval(cleaned)
+            # print(cleaned)
+            removed_edges_cleaned.append(cleaned)
+
+        print("List of edges which weights are changed to infinity:", removed_edges_cleaned)
+
+        return removed_edges_cleaned
+
+    def apply_llm_output(self, llm_output):
+        # Parse the output
+        parsed_res = self.parse_llm_output(llm_output)
+
+        # Update graph in the routing
+        self.graph = BuildGraph.set_weights_to_inf(self.graph, parsed_res)
+
+
     def folium_plot(self):
 
         vehicle_colors = ["red", "green", "blue", "goldenrod", "magenta"]
 
         def getmap():
+
+            # Add weights to the edges_df
+            with lock:
+                for _, row in self.edge_df.iterrows():
+                    self.edge_df.at[_, "weight"] = self.graph[str(int(row["u"]))][str(int(row["v"]))]["weight"]
+
             fig = go.Figure()
             # Add edges to the map
             with lock:
@@ -206,21 +245,25 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     # TODO If multiple vehicles on route, use only the color of the first vehicle.
                     color_edge = "grey"
                     on_route = False
-                    for index_node, vehicle in enumerate(self.vehicles.values()):
-                        # If row in currentTask of vehicle
-                        if vehicle["currentTask"] is not None:
-                            for edge in vehicle["currentTask"]["edges"]:
-                                if (str(row["u"]) == str(edge["startNodeId"]) and str(row["v"]) == str(edge["endNodeId"])) or (
-                                        str(row["u"]) == str(edge["endNodeId"]) and str(row["v"]) == str(edge["startNodeId"])):
-                                    color_edge = vehicle_colors[index_node % len(vehicle_colors)]
-                                    on_route = True
-                                    break
+                    if row["weight"] == np.inf:
+                        color_edge = "red"
+                        print("weight infinity detected!")
+                    else:
+                        for index_node, vehicle in enumerate(self.vehicles.values()):
+                            # If row in currentTask of vehicle
+                            if vehicle["currentTask"] is not None:
+                                for edge in vehicle["currentTask"]["edges"]:
+                                    if (str(int(row["u"])) == str(int(edge["startNodeId"])) and str(int(row["v"])) == str(int(edge["endNodeId"]))) or (
+                                            str(int(row["u"])) == str(int(edge["endNodeId"])) and str(int(row["v"])) == str(int(edge["startNodeId"]))):
+                                        color_edge = vehicle_colors[index_node % len(vehicle_colors)]
+                                        on_route = True
+                                        break
                     fig.add_trace(go.Scattermapbox(mode='lines',
                                                    lon=[self.nodes_df.loc[row["u"]]["lon"],
                                                         self.nodes_df.loc[row["v"]]["lon"]],
                                                    lat=[self.nodes_df.loc[row["u"]]["lat"],
                                                         self.nodes_df.loc[row["v"]]["lat"]],
-                                                   marker={'color': color_edge, 'size': 30 if on_route else 15, 'allowoverlap': True},
+                                                   line={'color': color_edge, 'width': 7 if on_route else 3},
                                                    hoverinfo='none'
                                                    ))
 
@@ -230,13 +273,12 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 # TODO If multiple vehicles on the same target, use only the color of the first vehicle.
                 color_node = "grey"
                 symbol_node = "circle"
-                for index_vehicle, vehicle in enumerate(self.vehicles.values()):
-                    # If row in currentTask of vehicle
-                    if str(index_node) == str(vehicle["targetNode"]):
-                        color_node = vehicle_colors[index_vehicle % len(vehicle_colors)]
-                        # print("color_node: ", color_node)
-                        # symbol_node = "star"
-                        break
+                with lock:
+                    for index_vehicle, vehicle in enumerate(self.vehicles.values()):
+                        # If row in currentTask of vehicle
+                        if str(index_node) == str(vehicle["targetNode"]):
+                            color_node = vehicle_colors[index_vehicle % len(vehicle_colors)]
+                            break
                 fig.add_trace(go.Scattermapbox(mode='markers+text' if row["name"] is not np.NaN else 'markers',
                                                lon=[row["lon"]],
                                                lat=[row["lat"]],
@@ -245,7 +287,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                name=row["name"] if row["name"] is not np.NaN else index_node,
                                                hoverinfo="text",
                                                textposition='bottom center',
-                                               # textfont=dict(size=24, color_node='black', family='Arial, sans-serif')
                                                ))
 
             # Add vehicles to the map
@@ -280,7 +321,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     dcc.Graph(id='live-update-graph'),
                     dcc.Interval(
                         id='interval-component',
-                        interval=1.5 * 1000,  # in milliseconds
+                        interval=2 * 1000,  # in milliseconds
                         n_intervals=0
                     )
                 ], style={'padding': 5, 'flex': 1}),
@@ -314,7 +355,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
             prevent_initial_call=True
         )
         def update_output(n_clicks, value):
-            #return Playground_LLM_Dacian.try_llm(value)
-            return LLM_ZeroShot.invoke_llm(value)
+            llm_output = Playground_LLM_Dacian.invoke_llm(value)
+            self.apply_llm_output(llm_output)
+            return llm_output
 
         app.run(debug=False)
