@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 from paho import mqtt
 
 # from Simulation import LLM
-import LLM
 import Playground_LLM_Dacian
 
 warnings.filterwarnings("ignore")
