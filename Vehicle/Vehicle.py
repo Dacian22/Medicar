@@ -57,6 +57,7 @@ class Vehicle:
         # custom properties
         payload["status"] = self.status
         payload["targetNode"] = self.target_node
+        payload["currentTask"] = self.current_task
 
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/status", json.dumps(payload), qos=2)
 
