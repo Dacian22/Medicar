@@ -56,6 +56,11 @@ def invoke_llm(prompt):
 def parsing_llm_result(answer):
     pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
 
+    #split the answer into words
+    split_answer = answer.split()
+    #get the first word
+    decision = split_answer[0].rstrip('.').lower()
+
     removed_edges = re.findall(pattern, answer, re.DOTALL)
 
     # print("List of removed edges:", removed_edges)
@@ -72,7 +77,7 @@ def parsing_llm_result(answer):
 
     #print("List of edges which weights are changed to infinity:", removed_edges)
 
-    return removed_edges
+    return removed_edges, decision
 
 
 def load_edges():
