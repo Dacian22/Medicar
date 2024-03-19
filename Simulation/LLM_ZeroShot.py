@@ -31,7 +31,7 @@ def invoke_llm(prompt):
     a transportation network for electrical vehicles. 
     Your goal is to assess whether each provided edge is passable or not for an electrical 
     vehicle at the moment that the input is given. Only use the provided graph and do not 
-    make assumptions beyond the given context. Give a Yes/No answer with a short explanation
+    make assumptions beyond the given context. Give a True/False answer with a short explanation
     in one sentence.
     \nquestion: {{question}}"""
 
