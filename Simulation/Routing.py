@@ -221,7 +221,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                text=row["name"] if row["name"] is not np.NaN else index,
                                                name=row["name"] if row["name"] is not np.NaN else index,
                                                hoverinfo="text",
-                                               textposition='bottom',
+                                               textposition='bottom center',
+                                               # textfont=dict(size=24, color='black', family='Arial, sans-serif')
                                                ))
 
             # Add vehicles to the map
@@ -280,7 +281,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         @app.callback(Output('live-update-graph', 'figure'),
                       Input('interval-component', 'n_intervals'))
         def update_metrics(n):
-            #print("updating map...")
             return getmap()
 
         @app.callback(
