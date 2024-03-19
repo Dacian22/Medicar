@@ -1,30 +1,24 @@
 import json
 import os
-import threading
 import time
+import warnings
 
 import networkx as nx
 import paho.mqtt.client as paho
 from dotenv import load_dotenv
-from matplotlib import pyplot as plt
 from paho import mqtt
-import osmnx as ox
-import plotly.graph_objects as go
-import folium
 
 # from Simulation import LLM
 import LLM
 
-import warnings
 warnings.filterwarnings("ignore")
 
 import threading
+
 lock = threading.Lock()
 
-from dash import Dash, html, dcc, callback, Output, Input
-import plotly.express as px
+from dash import Dash, html, dcc, Output, Input
 import plotly.graph_objects as go
-import pandas as pd
 
 
 class Routing():  # singleton class. Do not create more than one object of this class
@@ -44,26 +38,26 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # use the a* algorithm to find the shortest path between the source and target node
         shortest_path = nx.astar_path(G, str(start_node_id), str(end_node_id), weight='weight')
         return shortest_path
-    
+
     def find_dijkstra_path(self, G, start_node_id, end_node_id):
         # use Dijkstra's algorithm to find the shortest path between the source and target node
-        shortest_path_length, shortest_path = nx.single_source_dijkstra(G, start_node_id, target=end_node_id, weight='weight')
+        shortest_path_length, shortest_path = nx.single_source_dijkstra(G, start_node_id, target=end_node_id,
+                                                                        weight='weight')
         return shortest_path
-    
+
     def find_bellman_ford_path(self, G, start_node_id, end_node_id):
         # use Bellman-Ford algorithm to find the shortest path between the source and target node
         shortest_path = nx.bellman_ford_path(G, start_node_id, end_node_id, weight='weight')
         return shortest_path
-    
+
     def evaluate_shortest_path_weight(G, shortest_path):
         total_weight = 0
-        for i in range(len(shortest_path)-1):
+        for i in range(len(shortest_path) - 1):
             source = shortest_path[i]
-            target = shortest_path[i+1]
+            target = shortest_path[i + 1]
             edge_weight = G[source][target]['weight']
             total_weight += edge_weight
         return total_weight
-    
 
     # define function that 'translates' the shortest path to MQTT messages
     def translate_path_to_mqtt(self, shortest_path):
@@ -74,7 +68,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
         for index, edge in enumerate(edges_shortest_path):
             edges.append(
                 {'edgeId': "edge_{}_{}".format(edge[0], edge[1]), 'sequenceId': index, 'startNodeId': edge[0],
-                 'endNodeId': edge[1], 'startCoordinate': tuple(self.nodes_df.loc[int(edge[0])].loc[["lat", "lon"]]), 'endCoordinate': tuple(self.nodes_df.loc[int(edge[1])].loc[["lat", "lon"]])})
+                 'endNodeId': edge[1], 'startCoordinate': tuple(self.nodes_df.loc[int(edge[0])].loc[["lat", "lon"]]),
+                 'endCoordinate': tuple(self.nodes_df.loc[int(edge[1])].loc[["lat", "lon"]])})
         message = {'edges': edges}
         # print(message)
         # print(json.dumps(message))
@@ -98,7 +93,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             vehicle_status = json.loads(msg.payload.decode())
             self.vehicles[vehicle_id] = vehicle_status
             # print(f"Received status of vehicle {vehicle_id}: {vehicle_status}")
-        else: # received order
+        else:  # received order
             # print("Received new task: " + msg.payload.decode("utf-8"))
             self.handle_order(msg.payload.decode("utf-8"))
 
@@ -137,7 +132,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # print(f"Received new order: {order}")
         # find the shortest path
 
-        shortest_path_astar = self.find_astar_path(self.graph, self.get_node_id_from_name(order["source"]), self.get_node_id_from_name(order["target"]))
+        shortest_path_astar = self.find_astar_path(self.graph, self.get_node_id_from_name(order["source"]),
+                                                   self.get_node_id_from_name(order["target"]))
         # shortest_path_dijkstra = self.find_dijkstra_path(self.graph, order["source"], order["target"])
         # shortest_path_bellman_ford = self.find_bellman_ford_path(self.graph, order["source"], order["target"])
         #
@@ -163,7 +159,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
     def send_route_to_vehicle_async(self, vehicle_id, route):  # please call this method async
         while self.vehicles[vehicle_id]["status"] != "idle":
             time.sleep(5)
-        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/route", json.dumps(route), qos=2)
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/route", json.dumps(route),
+                            qos=2)
         self.vehicles[vehicle_id]["status"] = "busy"
 
     def connect_to_mqtt(self):
@@ -181,9 +178,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # connect to HiveMQ Cloud on port 8883 (default for MQTT)
         self.client.connect(os.getenv("HYVE_MQTT_URL"), 8883)
         # subscribe to orders
-        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" +"order_manager/transportation/orders/#", qos=2)
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "order_manager/transportation/orders/#", qos=2)
         # subscribe to vehicle status
-        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" +"vehicles/+/status", qos=2)
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/+/status", qos=2)
         print("simulation online")
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "hello", "simulation online", qos=2)
         threading.Thread(target=self.folium_plot).start()
@@ -192,43 +189,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
         threading.Thread(target=LLM.main, args=[self]).start()
         self.client.loop_forever()
 
-
     def folium_plot(self):
-        # while True:
-        #     # print("plotting map...")
-        #     # Downloading the map as a graph object
-        #     G = ox.graph_from_bbox(north = 48.0081000, south = 48.0048000,
-        #                 east = 7.8391000, west = 7.8357000, network_type = 'all')
-        #     # filter on nodes and edges that exist in self.graph
-        #     G = G.subgraph([int(i) for i in self.graph.nodes()])
-        #     # print(G)
-        #     # Create a map
-        #     m = folium.Map(location=[48.006, 7.837], zoom_start=10,
-        #             zoom_control=False, scrollWheelZoom=False)
-        #     # Defining the map boundaries
-        #     m.fit_bounds([[48.0048000, 7.8357000], [48.0081000, 7.8391000]])
-        #     # include the car icon in the map as a marker
-        #     with lock:
-        #         for vehicle in self.vehicles.keys():
-        #             # print("vehicle: " + vehicle)
-        #             # Create marker for vehicle using the car icon at the current vehicle position
-        #             folium.Marker(location=[float(self.vehicles[vehicle]["position"][0]), float(self.vehicles[vehicle]["position"][1])],
-        #                           icon=folium.features.CustomIcon(os.getenv("CAR_ICON_FILE"), icon_size=(30, 30)), popup=f"Vehicle: {vehicle}").add_to(m)
-        #     # plot the graph on the map
-        #     map = ox.plot_graph_folium(G, graph_map=m, color="grey", popup_attribute="osmid", edge_width=4)
-        #     map = ox.graph_to_gdfs(G, nodes=False).explore(
-        #     # save the map
-        #     map.save('map.html')
-        #     # print("map plottet")
-        #     time.sleep(2)
-
-        # Use plotly dash to make a live-updating map with the graph and the vehicles as annotation
 
         def getmap():
             fig = go.Figure()
             with lock:
                 for _, row in self.edge_df.iterrows():
-                     fig.add_trace(go.Scattermapbox(mode='lines',
+                    fig.add_trace(go.Scattermapbox(mode='lines',
                                                    lon=[self.nodes_df.loc[row["u"]]["lon"],
                                                         self.nodes_df.loc[row["v"]]["lon"]],
                                                    lat=[self.nodes_df.loc[row["u"]]["lat"],
@@ -242,7 +209,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             # Add vehicles to the map
             with lock:
                 for vehicle in self.vehicles.keys():
-                     fig.add_trace(go.Scattermapbox(mode='markers',
+                    fig.add_trace(go.Scattermapbox(mode='markers',
                                                    lon=[self.vehicles[vehicle]["position"][1]],
                                                    lat=[self.vehicles[vehicle]["position"][0]],
                                                    marker={'color': "red", 'size': 15, 'allowoverlap': True},
@@ -265,13 +232,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
         app = Dash(__name__)
         app.layout = html.Div([
             html.Div([
-            html.H1(children='Intelligent Hospital Logistics', style={'textAlign': 'center'}),
-            dcc.Graph(id='live-update-graph'),
-            dcc.Interval(
-                id='interval-component',
-                interval=0.5 * 1000,  # in milliseconds
-                n_intervals=0
-            )
+                html.H1(children='Intelligent Hospital Logistics', style={'textAlign': 'center'}),
+                dcc.Graph(id='live-update-graph'),
+                dcc.Interval(
+                    id='interval-component',
+                    interval=0.5 * 1000,  # in milliseconds
+                    n_intervals=0
+                )
             ])
         ])
 
