@@ -10,6 +10,7 @@ from paho import mqtt
 
 # from Simulation import LLM
 import LLM
+import Playground_LLM_Dacian
 
 warnings.filterwarnings("ignore")
 
@@ -184,8 +185,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         print("simulation online")
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "hello", "simulation online", qos=2)
         threading.Thread(target=self.folium_plot).start()
-        # self.folium_plot()
-        # print("start mqtt loop")
         threading.Thread(target=LLM.main, args=[self]).start()
         self.client.loop_forever()
 
@@ -201,11 +200,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                    lat=[self.nodes_df.loc[row["u"]]["lat"],
                                                         self.nodes_df.loc[row["v"]]["lat"]],
                                                    marker={'color': "grey", 'size': 15, 'allowoverlap': True}
-                                                   # name=row['source_name']
                                                    ))
-
-            # fig = px.line_mapbox(self.nodes_df.loc[self.edge_df["u"]], lat="lat", lon="lon", hover_data="name", zoom=3, height=300)
-
             # Add vehicles to the map
             with lock:
                 for vehicle in self.vehicles.keys():
@@ -216,8 +211,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                    text=f"Vehicle: {vehicle}",
                                                    name=vehicle
                                                    ))
-
-            # fig.update_traces(marker_symbol="car", selector=dict(type='scattermapbox'))
 
             fig.update_layout(mapbox_style="open-street-map",
                               mapbox_zoom=17.5,
@@ -232,26 +225,33 @@ class Routing():  # singleton class. Do not create more than one object of this 
         app = Dash(__name__)
         app.layout = html.Div([
             html.H1(children='Intelligent Hospital Logistics',
-                    style={'textAlign': 'left', 'font-family': 'Arial, sans-serif'}),
+                    style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554'}),
             html.Div([
                 html.Div([
                     dcc.Graph(id='live-update-graph'),
                     dcc.Interval(
                         id='interval-component',
-                        interval=0.5 * 1000,  # in milliseconds
+                        interval=1.5 * 1000,  # in milliseconds
                         n_intervals=0
                     )
-                ], style={'padding': 10, 'flex': 1}),
+                ], style={'padding': 5, 'flex': 1}),
                 html.Div([
-                    html.H2("LLM", style={'textAlign': 'left', 'font-family': 'Arial, sans-serif'}),
+                    html.H2("LLM", style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554'}),
                     html.Div([
-                        dcc.Textarea(id='input-prompt', value='Prompt...', style={'height': 60, 'padding': 10, 'flex': 10}),
-                        html.Button('Submit', id='press-invoke-llm', n_clicks=0, style={'padding': 10, 'flex': 1}),
-                    ], style={'display': 'flex', 'flexDirection': 'row', 'padding': 10}),
-                    html.Label(id='llm-output', style={'whiteSpace': 'pre-line', 'padding': 10})
-                ], style={'padding': 10, 'flex': 1})
+                        dcc.Textarea(id='input-prompt', value='Prompt...',
+                                     style={'height': 60, 'padding': 5, 'flex': 10, 'borderRadius': '15px',
+                                            'marginRight': '5px'}),
+                        html.Button('Submit', id='press-invoke-llm', n_clicks=0,
+                                    style={'padding': 5, 'flex': 1, 'backgroundColor': '#99C554', 'border': 'none',
+                                           'color': 'white', 'borderRadius': '15px'}),
+                    ], style={'display': 'flex', 'flexDirection': 'row'}),
+                    html.Label(id='llm-output',
+                               style={'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
+                                      'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
+                                      'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'})
+                ], style={'padding': 5, 'flex': 1})
             ], style={'display': 'flex', 'flexDirection': 'row'})
-            ])
+        ])
 
         @app.callback(Output('live-update-graph', 'figure'),
                       Input('interval-component', 'n_intervals'))
@@ -266,6 +266,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
             prevent_initial_call=True
         )
         def update_output(n_clicks, value):
-            return value
+            return Playground_LLM_Dacian.try_llm(value)
 
         app.run(debug=False)
