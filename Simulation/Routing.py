@@ -256,7 +256,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         @app.callback(Output('live-update-graph', 'figure'),
                       Input('interval-component', 'n_intervals'))
         def update_metrics(n):
-            print("updating map...")
+            #print("updating map...")
             return getmap()
 
         @app.callback(

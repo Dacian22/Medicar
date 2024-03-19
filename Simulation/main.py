@@ -4,6 +4,11 @@
 import BuildGraph
 import Routing
 
+import logging
+
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR) 
+
 parameters = {
     "subgraph_params": {
         'special_nodes': ['Zwischen den Räumen', 'Stimme vom Berg',
