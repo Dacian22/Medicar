@@ -15,7 +15,8 @@ from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.prompts.prompt import PromptTemplate
 from langchain_openai import OpenAI
 from BuildGraph import set_weights_to_inf
-load_dotenv()
+from langsmith import Client
+client=Client()
 def invoke_llm(prompt):
     #Load the edges from the graph, the enviroment and the model
     G=load_edges()
@@ -193,7 +194,7 @@ def load_edges():
 
 
     edges_list = [(f'{row[0]}', f'{row[1]}') for _, row in df.iterrows()]
-
+    #print("EDGES" ,edges_list)
     return edges_list
 
 
@@ -215,8 +216,41 @@ def main(ref_routing):
     # Update graph in the routing
     ref_routing.graph = set_weights_to_inf(ref_routing.graph, parsed_res)
 
+
+def test():
+    edge_ids,tests=load_tests()
+    print(edge_ids,tests)
+    try:
+        f = open(os.path.join('..','Simulation','LLMFewShot.txt'),'w')
+    except:
+        f = open(os.path.join('Simulation','LLMFewShot.txt'),'w')
+
+    for test,edge in zip(tests,edge_ids):
+       output=try_llm(f'At edge {edge} {test}')
+       print(output)
+       f.write(output+'\n\n\n')
+
+    f.close()
+
+def load_tests():
+    import pandas as pd
+    try:
+        df = pd.read_csv(os.path.join('..','Playground_Arved','csv','edges_UH_Graph_Ids.csv'))
+    except:
+        df = pd.read_csv(os.path.join('Playground_Arved','csv','edges_UH_Graph_Ids.csv'))
+
+    try:
+        df_test = pd.read_csv(os.path.join('..','Playground_LLM','EvaluationDatabase.csv'),delimiter=';')
+    except:
+        df_test = pd.read_csv(os.path.join('Playground_LLM','EvaluationDatabase.csv'),delimiter=';')
+    #print(df)
+    #print(df_test)
+    edge_ids = [f'{row[0]}' for _,row in df.iterrows()]
+    tests = [f'{test[0]}' for _,test in df_test.iterrows()]
+    return (edge_ids,tests)
     
 if __name__ == "__main__":
-    main("")
+    test()
+    #main("")
 
 
