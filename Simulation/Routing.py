@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from paho import mqtt
 
 # from Simulation import LLM
-import LLM
+import LLM_ZeroShot
 
 warnings.filterwarnings("ignore")
 
@@ -186,7 +186,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         threading.Thread(target=self.folium_plot).start()
         # self.folium_plot()
         # print("start mqtt loop")
-        threading.Thread(target=LLM.main, args=[self]).start()
+        threading.Thread(target=LLM_ZeroShot.main, args=[self]).start()
         self.client.loop_forever()
 
     def folium_plot(self):
