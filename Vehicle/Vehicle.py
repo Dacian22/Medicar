@@ -16,16 +16,18 @@ class Vehicle:
     """
 
     vehicle_id = None  # String
-    current_position = [48.00686, 7.8371425]  # tuple of floats (latitude, longitude)
+    current_position = None  # tuple of floats (latitude, longitude)
     current_speed = 5 * 10e-6  # meter per second
     current_task = None
     client = None  # mqtt client
     status = None  # one of "idle", "busy", "moving"
-    target_node = 388528852  # String
+    target_node = None  # String
 
-    def __init__(self, _vehicle_id):
+    def __init__(self, _vehicle_id, _current_position, _current_target_node):
         load_dotenv()
         self.vehicle_id = _vehicle_id
+        self.current_position = _current_position
+        self.target_node = _current_target_node
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
         print("CONNACK received with code %s." % rc)
@@ -101,8 +103,13 @@ class Vehicle:
         self.client.loop_forever() # loop start (if constantly sending status)
 
     def get_linear_function_for_edge(self, edge):
-        m = (float(edge["endCoordinate"][1]) - float(edge["startCoordinate"][1])) / (float(edge["endCoordinate"][0]) - float(edge["startCoordinate"][0]))  # slope
+        divider = (float(edge["endCoordinate"][0]) - float(edge["startCoordinate"][0]))
+        if divider == 0: # edge is vertical
+            divider = 0.0000001
+        m = (float(edge["endCoordinate"][1]) - float(edge["startCoordinate"][1])) / divider  # slope
         n = float(edge["startCoordinate"][1]) - m * float(edge["startCoordinate"][0])  # y-intercept
+        if m == 0:  # edge is vertical
+            m = 0.0000001
         return m, n
 
     def move_along_edge(self, edge):
