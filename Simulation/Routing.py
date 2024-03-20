@@ -1,5 +1,7 @@
+import ast
 import json
 import os
+import re
 import time
 import warnings
 import copy
@@ -203,10 +205,30 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     def apply_llm_output(self, llm_output):
         # Parse the output
+        print(llm_output)
         parsed_res = TestEvaluationCsv.parse_output(llm_output)
+        print(parsed_res)
+        if not parsed_res:  # remove edge
+            try:
+                # Get edge from llm_output
+                re_str = r"edge_([0-9]+)_([0-9]+)"
+                result = re.findall(re_str, llm_output)
+                print(result)
+                edge_id = int(re.findall(re_str, llm_output)[0][0]), int(re.findall(re_str, llm_output)[0][1])
+            except IndexError:
+                pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
+                edge_id = re.findall(pattern, llm_output)
+                edge_id = edge_id[0].strip("'´")
+                print(edge_id)
+            # print(removed_edge)
+            # edge_id = edge_id.strip("'´")
+            # print(cleaned)
+            # edge_id = ast.literal_eval(edge_id)
 
-        # Update graph in the routing
-        self.graph = BuildGraph.set_weights_to_inf(self.graph, parsed_res)
+            print(f"trying to remove edge {edge_id}")
+
+            # Update graph in the routing
+            self.graph = BuildGraph.set_weights_to_inf(self.graph, edge_id)
 
     def folium_plot(self):
 
@@ -373,12 +395,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             prevent_initial_call=True
         )
         def update_output(_, value):
-<<<<<<< HEAD
-            #llm_output = Playground_LLM_Dacian.invoke_llm(value)
-            llm_output = LLM_ZeroShot.invoke_llm(value)
-=======
             llm_output = Playground_LLM_Dacian.invoke_llm(value)
->>>>>>> 522fed17d99614fd9eb421abdd1f7100978fa5d1
             self.apply_llm_output(llm_output)
             return llm_output, {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
                                 'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,

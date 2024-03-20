@@ -1,7 +1,7 @@
 objects,origin,destination,interval,vehicle_id
 Blood,Zwischen den Räumen,Stimme vom Berg,20 min,1
 Breakfast,Emmaus Kapelle,Klinik für Frauenheilkunde,20 min,2
-Laundry,Klinik für Frauenheilkunde,Stimme vom Berg,20 min,2
-Blood,Stimme vom Berg,Klinik für Frauenheilkunde,20 min,None
-Palenka,Klinik für Frauenheilkunde,Emmaus Kapelle,20 min,None
-Vaccines,Emmaus Kapelle,Stimme vom Berg,20 min,None
+Blood,Stimme vom Berg,Emmaus Kapelle,20 min,1
+Palenka,Klinik für Frauenheilkunde,Emmaus Kapelle,20 min,3
+Vaccines,Emmaus Kapelle,Stimme vom Berg,20 min,3
+Dishes,Klinik für Frauenheilkunde,Emmaus Kapelle,20 min,2

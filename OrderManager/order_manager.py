@@ -79,7 +79,7 @@ class OrderManager:
 
             # send the order to the transportation manager
             self.send_order(order_instance)
-            time.sleep(10) # TODO very dirty hack
+            time.sleep(17) # TODO very dirty hack
     
     def send_order(self, order):
         # convert the order instance to a dictionary
@@ -100,7 +100,7 @@ class OrderManager:
                 self.send_order(order_instance)
                 # sleep for the interval before sending the next order
                 # time.sleep(interval)
-                time.sleep(10) # TODO very dirty hack
+                time.sleep(17) # TODO very dirty hack
     
     def update_vehicle_status(self, vehicle_id, status):
        """

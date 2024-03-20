@@ -150,7 +150,8 @@ def set_weights_to_inf(G, edges_to_be_set_to_inf):
     else:
         # print("EDGES ARE SET TO INF:")
         for edge in G.edges():
-            if edge in edges_to_be_set_to_inf:
-                # print(f"{edge} weight was set to inf")
+            # for edge_to_be_set_to_inf in edges_to_be_set_to_inf:
+            if str(edge[0]) == str(edges_to_be_set_to_inf[0]) and str(edge[1]) == str(edges_to_be_set_to_inf[1]):
+                print(f"{edge} weight was set to inf")
                 G[edge[0]][edge[1]]['weight'] = float('inf')
         return G
