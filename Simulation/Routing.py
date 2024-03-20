@@ -1,9 +1,13 @@
-import ast
 import json
 import os
-import re
 import time
 import warnings
+import copy
+import threading
+import TestEvaluationCsv
+import BuildGraph
+import LLM_ZeroShot
+import Playground_LLM_Dacian
 
 import networkx as nx
 import numpy as np
@@ -11,21 +15,12 @@ import paho.mqtt.client as paho
 from dotenv import load_dotenv
 from paho import mqtt
 
-import BuildGraph
-import LLM_ZeroShot
-import Playground_LLM_Dacian
-
-warnings.filterwarnings("ignore")
-
-import threading
-
-lock = threading.Lock()
-
 from dash import html, dcc, Output, Input, State
 import plotly.graph_objects as go
 from dash import Dash, dash_table
 
-import copy
+lock = threading.Lock()
+warnings.filterwarnings("ignore")
 
 
 class Routing():  # singleton class. Do not create more than one object of this class
@@ -206,32 +201,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # threading.Thread(target=Playground_LLM_Dacian.main, args=[self]).start()
         self.client.loop_forever()
 
-    def parse_llm_output(self, llm_output):
-        pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
-
-        llm_output = llm_output.split("final answer")[1]
-
-        removed_edges = re.findall(pattern, llm_output, re.DOTALL)
-
-        print("List of removed edges:", removed_edges)
-
-        removed_edges_cleaned = []
-
-        for removed_edge in removed_edges:
-            # print(removed_edge)
-            cleaned = removed_edge.strip("'´")
-            # print(cleaned)
-            cleaned = ast.literal_eval(cleaned)
-            # print(cleaned)
-            removed_edges_cleaned.append(cleaned)
-
-        print("List of edges which weights are changed to infinity:", removed_edges_cleaned)
-
-        return removed_edges_cleaned
-
     def apply_llm_output(self, llm_output):
         # Parse the output
-        parsed_res = self.parse_llm_output(llm_output)
+        parsed_res = TestEvaluationCsv.parse_output(llm_output)
 
         # Update graph in the routing
         self.graph = BuildGraph.set_weights_to_inf(self.graph, parsed_res)
@@ -265,8 +237,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                 for edge in vehicle["currentTask"]["edges"]:
                                     if (str(int(row["u"])) == str(int(edge["startNodeId"])) and str(
                                             int(row["v"])) == str(int(edge["endNodeId"]))) or (
-                                            str(int(row["u"])) == str(int(edge["endNodeId"])) and str(
-                                        int(row["v"])) == str(int(edge["startNodeId"]))):
+                                            str(int(row["u"])) == str(int(edge["endNodeId"])) and
+                                            str(int(row["v"])) == str(int(edge["startNodeId"]))):
                                         color_edge = vehicle_colors[index_node % len(vehicle_colors)]
                                         on_route = True
                                         break
@@ -278,7 +250,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                    line={'color': color_edge, 'width': 7 if on_route else 3},
                                                    name=f"edge_{int(row['u'])}_{int(row['v'])}",
                                                    hoverinfo='name',
-                                                   hoverlabel={'namelength':-1}
+                                                   hoverlabel={'namelength': -1}
                                                    ))
 
             # Add nodes to the map
@@ -390,7 +362,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
         @app.callback(Output('live-update-graph', 'figure'),
                       Input('interval-component', 'n_intervals'))
-        def update_metrics(n):
+        def update_metrics(_):  # don't care about the input
             return getmap()
 
         @app.callback(
@@ -411,7 +383,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             Output('tbl', 'data'),
             Input('table-update-interval', 'n_intervals')
         )
-        def update_table(n):
+        def update_table(_):  # don't care about the input
             # Convert the orders dictionary to a list of dictionaries, which is the format required by DataTable
             orders_list = [v for v in self.orders.values()]
 
