@@ -50,7 +50,8 @@ def load_tests():
 def parse_output(output):
     pattern = r"[T|t]rue|[F|f]alse"
     result = re.findall(pattern, output)
-
+    if len(result)==0:
+        return None
     if result[0].lower()=='true':
         result_bool=True
     elif result[0].lower()=='false':
