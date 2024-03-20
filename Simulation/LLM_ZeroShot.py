@@ -10,6 +10,9 @@ import os
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain_openai import OpenAI
+import openai
+from langchain.smith import RunEvalConfig, run_on_dataset
+from langsmith.evaluation import EvaluationResult, run_evaluator
 
 import ast
 
@@ -101,6 +104,47 @@ def load_edges():
     edges_list = [(f'{row[0]}', f'{row[1]}') for _, row in df.iterrows()]
 
     return edges_list
+
+def predict_result(input_: dict) -> dict:
+    messages = [{"role": "User", "content": input_["question"]}]
+    response = openai.chat.completions.create(messages=messages, model=OpenAI)
+    return {"output": response}
+
+
+@run_evaluator
+def must_mention(run, example) -> EvaluationResult:
+    prediction = run.outputs.get("output") or ""
+    required = example.outputs.get("must_mention") or []
+    score = all(phrase in prediction for phrase in required)
+    return EvaluationResult(key="must_mention", score=score)
+
+eval_config = RunEvalConfig(
+    custom_evaluators=[must_mention],
+    # You can also use a prebuilt evaluator
+    # by providing a name or RunEvalConfig.<configured evaluator>
+    evaluators=[
+        # You can specify an evaluator by name/enum.
+        # In this case, the default criterion is "helpfulness"
+        "criteria",
+        # Or you can configure the evaluator
+        RunEvalConfig.Criteria("harmfulness"),
+        RunEvalConfig.Criteria(
+            {
+                "cliche": "Are the lyrics cliche?"
+                " Respond Y if they are, N if they're entirely unique."
+            }
+        ),
+    ],
+)
+client.run_on_dataset(
+    dataset_name=dataset_name,
+    llm_or_chain_factory=predict_result,
+    evaluation=eval_config,
+    verbose=True,
+    project_name="custom-function-test-1",
+    # Any experiment metadata can be specified here
+    project_metadata={"version": "1.0.0"},
+)
 
 
 def main(ref_routing):
