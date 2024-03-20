@@ -355,7 +355,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
             prevent_initial_call=True
         )
         def update_output(n_clicks, value):
-            llm_output = Playground_LLM_Dacian.invoke_llm(value)
+            #llm_output = Playground_LLM_Dacian.invoke_llm(value)
+            llm_output = LLM_ZeroShot.invoke_llm(value)
             self.apply_llm_output(llm_output)
             return llm_output
 

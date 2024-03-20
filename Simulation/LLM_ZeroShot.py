@@ -30,9 +30,10 @@ def invoke_llm(prompt):
     requirements: You're a graph expert tasked with determining the availability of edges in 
     a transportation network for electrical vehicles. 
     Your goal is to assess whether each provided edge is passable or not for an electrical 
-    vehicle at the moment that the input is given. Only use the provided graph and do not 
-    make assumptions beyond the given context. Give a True/False answer with a short explanation
-    in one sentence.
+    vehicle based on the importance of the obstacle at the moment that the input is given. 
+    Only use the provided graph and do not make assumptions beyond the given context. 
+    Respond with True if the edge is available and False when the edge is not available.
+    Answer with a short explanation in one sentence.
     \nquestion: {{question}}"""
 
    
@@ -53,29 +54,38 @@ def invoke_llm(prompt):
     return answer["text"]
 
 
-def parsing_llm_result(answer):
+def parsing_llm_result(answer, prompt):
     pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
-
-    #split the answer into words
+    decision=""
+    # split the answer into words
     split_answer = answer.split()
-    #get the first word
-    decision = split_answer[0].rstrip('.').lower()
+    # iterate through the split answer
+    for word in split_answer:
+        # check if the word is "True" or "False"
+        if word.rstrip('.,').lower() == "true" or word.rstrip('.,').lower() == "false":
+            # store the decision and break the loop
+            decision = word.rstrip('.,').lower()
+            break
 
-    removed_edges = re.findall(pattern, answer, re.DOTALL)
+    removed_edges = []
+    if decision == "false":
+        # check if the word "edge" appears in the prompt in any format
+        if "edge" in prompt.lower():  
+            # find all occurrences of two numbers close to the word "edge"
+            removed_edges = re.findall(r'edge_(\d+)_(\d+)', prompt)
 
-    # print("List of removed edges:", removed_edges)
+    else:
+        removed_edges = []
 
-    removed_edges_cleaned = []
 
-    for removed_edge in removed_edges:
-        # print(removed_edge)
-        cleaned = removed_edge.strip("'´")
-        # print(cleaned)
-        cleaned = ast.literal_eval(cleaned)
-        # print(cleaned)
-        removed_edges_cleaned.append(cleaned)
+    # find edges in the answer
+    removed_edges_answer = re.findall(pattern, answer, re.DOTALL)
 
-    #print("List of edges which weights are changed to infinity:", removed_edges)
+    # clean the found edges
+    removed_edges_cleaned = [ast.literal_eval(edge.strip("'´")) for edge in removed_edges_answer]
+
+    # print the list of edges which weights are changed to infinity
+    print("List of edges which weights are changed to infinity:", removed_edges)
 
     return removed_edges, decision
 
@@ -103,7 +113,7 @@ def main(ref_routing):
     print(output)
 
     # Parse the output
-    parsed_res = parsing_llm_result(output)
+    parsed_res,decision = parsing_llm_result(output, prompt)
     # print(parsed_res)
 
     # Update graph in the routing
