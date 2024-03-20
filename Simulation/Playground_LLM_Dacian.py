@@ -18,7 +18,7 @@ from BuildGraph import set_weights_to_inf
 from langsmith import Client
 
 load_dotenv()
-client=Client(api_key=os.getenv("LANGCHAIN_API_KEY"))
+#client=Client(api_key=os.getenv("LANGCHAIN_API_KEY"))
 
 
 def get_examples():
