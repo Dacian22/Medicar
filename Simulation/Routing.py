@@ -276,8 +276,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                    lat=[self.nodes_df.loc[row["u"]]["lat"],
                                                         self.nodes_df.loc[row["v"]]["lat"]],
                                                    line={'color': color_edge, 'width': 7 if on_route else 3},
-                                                   name=f"Edge {irow}",
-                                                   hoverinfo='name'
+                                                   name=f"edge_{int(row['u'])}_{int(row['v'])}",
+                                                   hoverinfo='name',
+                                                   hoverlabel={'namelength':-1}
                                                    ))
 
             # Add nodes to the map
