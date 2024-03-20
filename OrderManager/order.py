@@ -5,17 +5,18 @@ class Order:
     # dictionary to store order IDs for each heuristic
     order_id_dict = {}
     
-    def __init__(self,heuristic):
+    def __init__(self,heuristic, order_id):
         
         # read heuristics from the provided file
         self.heuristic = heuristic
         
         # initialize order ID for the current heuristic
-        if heuristic not in Order.order_id_dict:
-            Order.order_id_dict[heuristic] = len(Order.order_id_dict)+1
+        # if heuristic not in Order.order_id_dict:
+        #     Order.order_id_dict[heuristic] = len(Order.order_id_dict)+1
 
         # set the order ID for the current instance
-        self.order_id = Order.order_id_dict[heuristic]
+        # self.order_id = Order.order_id_dict[heuristic]
+        self.order_id = order_id
         
         #declare class attributes
         self.timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -28,7 +29,8 @@ class Order:
    #extract the objects, origin, destination and interval of the order
     def extract_order(self):
         # split the CSV row into individual components
-        components = self.heuristic.split(",")
+        # components = self.heuristic.split(",")
+        components = self.heuristic
         
         items = components[0]
         source = components[1]
