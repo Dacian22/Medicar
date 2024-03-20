@@ -6,8 +6,8 @@ import Routing
 
 import logging
 
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR) 
+# log = logging.getLogger('werkzeug')
+# log.setLevel(logging.ERROR)
 
 parameters = {
     "subgraph_params": {
@@ -21,6 +21,8 @@ parameters = {
 def main():
     G, edge_df, nodes_df = BuildGraph.build_nx_graph(
         parameters['subgraph_params']['allowed_highway_types'], parameters['subgraph_params']['special_nodes'])
+    # rename Klinik für Frauenheilkunde [1] to Klinik für Frauenheilkunde
+    nodes_df.loc[nodes_df['name'] == 'Klinik für Frauenheilkunde [1]', 'name'] = 'Klinik für Frauenheilkunde'
     _ = Routing.Routing(G, edge_df, nodes_df)
 
 
