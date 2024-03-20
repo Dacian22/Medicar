@@ -1,9 +1,13 @@
-import ast
 import json
 import os
-import re
 import time
 import warnings
+import copy
+import threading
+import TestEvaluationCsv
+import BuildGraph
+import LLM_ZeroShot
+import Playground_LLM_Dacian
 
 import networkx as nx
 import numpy as np
@@ -11,20 +15,12 @@ import paho.mqtt.client as paho
 from dotenv import load_dotenv
 from paho import mqtt
 
-import BuildGraph
-import Playground_LLM_Dacian
-import LLM_ZeroShot
-
-warnings.filterwarnings("ignore")
-
-import threading
-
-lock = threading.Lock()
-
-from dash import Dash, html, dcc, Output, Input, State
+from dash import html, dcc, Output, Input, State
 import plotly.graph_objects as go
 from dash import Dash, dash_table
-import pandas as pd
+
+lock = threading.Lock()
+warnings.filterwarnings("ignore")
 
 
 class Routing():  # singleton class. Do not create more than one object of this class
@@ -138,9 +134,18 @@ class Routing():  # singleton class. Do not create more than one object of this 
             return order["vehicle_id"]
 
     def handle_order(self, order):
-        # find the shortest path
+        vehicle_id = self.get_vehicle_id_for_order(order)
+        # Update vehicle id in self.orders
+        order["vehicle_id"] = vehicle_id
+
         shortest_path_astar = self.find_astar_path(self.graph, self.get_node_id_from_name(order["source"]),
                                                    self.get_node_id_from_name(order["target"]))
+        if self.vehicles[order["vehicle_id"]]["targetNode"] != self.get_node_id_from_name(order["source"]):
+            shortest_path_astar_to_start_node = self.find_astar_path(self.graph,
+                                                                     self.vehicles[order["vehicle_id"]]["targetNode"],
+                                                                     self.get_node_id_from_name(order["source"]))
+            # add the two paths together
+            shortest_path_astar = shortest_path_astar_to_start_node + shortest_path_astar
         # shortest_path_dijkstra = self.find_dijkstra_path(self.graph, order["source"], order["target"])
         # shortest_path_bellman_ford = self.find_bellman_ford_path(self.graph, order["source"], order["target"])
         #
@@ -158,11 +163,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
         # translate the shortest path to MQTT messages
         message = self.translate_path_to_mqtt(shortest_path_astar)
-        # send the message to the MQTT broker
-        vehicle_id = self.get_vehicle_id_for_order(order)
-        # Update vehicle id in self.orders
-        order["vehicle_id"] = vehicle_id
-        # Set vehicle status to busy
+        # send the message to the MQTT broker and set vehicle status to busy
         threading.Thread(target=self.send_route_to_vehicle_async, args=(vehicle_id, message)).start()
 
     def send_route_to_vehicle_async(self, vehicle_id, route):  # please call this method async
@@ -197,39 +198,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # self.folium_plot()
         # print("start mqtt loop")
         threading.Thread(target=LLM_ZeroShot.main, args=[self]).start()
-        #threading.Thread(target=Playground_LLM_Dacian.main, args=[self]).start()
+        # threading.Thread(target=Playground_LLM_Dacian.main, args=[self]).start()
         self.client.loop_forever()
-
-    def parse_llm_output(self, llm_output):
-        pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
-
-        llm_output = llm_output.split("final answer")[1]
-
-        removed_edges = re.findall(pattern, llm_output, re.DOTALL)
-
-        print("List of removed edges:", removed_edges)
-
-        removed_edges_cleaned = []
-
-        for removed_edge in removed_edges:
-            # print(removed_edge)
-            cleaned = removed_edge.strip("'´")
-            # print(cleaned)
-            cleaned = ast.literal_eval(cleaned)
-            # print(cleaned)
-            removed_edges_cleaned.append(cleaned)
-
-        print("List of edges which weights are changed to infinity:", removed_edges_cleaned)
-
-        return removed_edges_cleaned
 
     def apply_llm_output(self, llm_output):
         # Parse the output
-        parsed_res = self.parse_llm_output(llm_output)
+        parsed_res = TestEvaluationCsv.parse_output(llm_output)
 
         # Update graph in the routing
         self.graph = BuildGraph.set_weights_to_inf(self.graph, parsed_res)
-
 
     def folium_plot(self):
 
@@ -245,7 +222,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             fig = go.Figure()
             # Add edges to the map
             with lock:
-                for _, row in self.edge_df.iterrows():
+                for irow, row in self.edge_df.iterrows():
                     # Determine color (according to vehicle colors if on route, else grey).
                     # TODO If multiple vehicles on route, use only the color of the first vehicle.
                     color_edge = "grey"
@@ -258,8 +235,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
                             # If row in currentTask of vehicle
                             if vehicle["currentTask"] is not None:
                                 for edge in vehicle["currentTask"]["edges"]:
-                                    if (str(int(row["u"])) == str(int(edge["startNodeId"])) and str(int(row["v"])) == str(int(edge["endNodeId"]))) or (
-                                            str(int(row["u"])) == str(int(edge["endNodeId"])) and str(int(row["v"])) == str(int(edge["startNodeId"]))):
+                                    if (str(int(row["u"])) == str(int(edge["startNodeId"])) and str(
+                                            int(row["v"])) == str(int(edge["endNodeId"]))) or (
+                                            str(int(row["u"])) == str(int(edge["endNodeId"])) and
+                                            str(int(row["v"])) == str(int(edge["startNodeId"]))):
                                         color_edge = vehicle_colors[index_node % len(vehicle_colors)]
                                         on_route = True
                                         break
@@ -269,7 +248,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                    lat=[self.nodes_df.loc[row["u"]]["lat"],
                                                         self.nodes_df.loc[row["v"]]["lat"]],
                                                    line={'color': color_edge, 'width': 7 if on_route else 3},
-                                                   hoverinfo='none'
+                                                   name=f"edge_{int(row['u'])}_{int(row['v'])}",
+                                                   hoverinfo='name',
+                                                   hoverlabel={'namelength': -1}
                                                    ))
 
             # Add nodes to the map
@@ -277,7 +258,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 # Determine color (according to vehicle colors if target Node, else grey).
                 # TODO If multiple vehicles on the same target, use only the color of the first vehicle.
                 is_special_node = row["name"] is not np.NaN
-                if is_special_node: # currently only display nodes that are special nodes
+                if is_special_node:  # currently only display nodes that are special nodes
                     color_node = "grey"
                     symbol_node = "circle"
                     # with lock:
@@ -287,10 +268,11 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     #             color_node = vehicle_colors[index_vehicle % len(vehicle_colors)]
                     #             break
                     is_special_node = row["name"] is not np.NaN
-                    fig.add_trace(go.Scattermapbox(mode='markers' if is_special_node else 'markers', # markers+text
+                    fig.add_trace(go.Scattermapbox(mode='markers' if is_special_node else 'markers',  # markers+text
                                                    lon=[row["lon"]],
                                                    lat=[row["lat"]],
-                                                   marker={'color': color_node, 'size': 20 if is_special_node else 10, 'allowoverlap': False, 'symbol': symbol_node},
+                                                   marker={'color': color_node, 'size': 20 if is_special_node else 10,
+                                                           'allowoverlap': False, 'symbol': symbol_node},
                                                    text=row["name"] if is_special_node else index_node,
                                                    name=row["name"] if is_special_node else index_node,
                                                    hoverinfo="text",
@@ -315,7 +297,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                               mapbox_center_lat=48.00632,
                               mapbox_center_lon=7.838,
                               margin={"r": 0, "t": 0, "l": 0, "b": 0},
-                              width=900, height=800,
+                              width=800, height=800,
                               showlegend=False)
 
             return fig
@@ -346,9 +328,29 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     ], style={'display': 'flex', 'flexDirection': 'row'}),
                     html.Label(id='llm-output',
                                style={'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
-                                      'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
+                                      'font-family': 'Arial, sans-serif', 'display': 'none', 'flexGrow': 1,
                                       'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}),
-                    dash_table.DataTable(id='tbl'),
+                    html.H2("Orders",
+                            style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
+                                   'marginTop': '60px'}),
+                    html.Div(dash_table.DataTable(id='tbl', cell_selectable=False,
+                                                  style_data_conditional=[
+                                                      {
+                                                          "if": {"state": "selected"},
+                                                          "backgroundColor": "inherit !important",
+                                                          "border": "inherit !important",
+                                                      }
+                                                  ],
+                                                  style_header={
+                                                      'backgroundColor': 'lightgrey',
+                                                      'fontWeight': 'bold'
+                                                  },
+                                                  style_cell={
+                                                      'backgroundColor': 'white',
+                                                      'color': 'black',
+                                                      'border': '1px solid grey'
+                                                  },
+                                                  )),
                     dcc.Interval(
                         id='table-update-interval',
                         interval=2 * 1000,  # in milliseconds
@@ -360,28 +362,51 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
         @app.callback(Output('live-update-graph', 'figure'),
                       Input('interval-component', 'n_intervals'))
-        def update_metrics(n):
+        def update_metrics(_):  # don't care about the input
             return getmap()
 
         @app.callback(
-            Output('llm-output', 'children'),
+            [Output('llm-output', 'children'),
+             Output('llm-output', 'style')],
             Input('press-invoke-llm', 'n_clicks'),
             State('input-prompt', 'value'),
             prevent_initial_call=True
         )
         def update_output(_, value):
+<<<<<<< HEAD
             #llm_output = Playground_LLM_Dacian.invoke_llm(value)
             llm_output = LLM_ZeroShot.invoke_llm(value)
+=======
+            llm_output = Playground_LLM_Dacian.invoke_llm(value)
+>>>>>>> 522fed17d99614fd9eb421abdd1f7100978fa5d1
             self.apply_llm_output(llm_output)
-            return llm_output
+            return llm_output, {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
+                                'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
+                                'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}
 
         @app.callback(
             Output('tbl', 'data'),
             Input('table-update-interval', 'n_intervals')
         )
-        def update_table(n):
+        def update_table(_):  # don't care about the input
             # Convert the orders dictionary to a list of dictionaries, which is the format required by DataTable
             orders_list = [v for v in self.orders.values()]
-            return orders_list
+
+            orders_list_copy = copy.deepcopy(orders_list)
+
+            for order in orders_list_copy:
+                # Set vehicle_id to vehicle color
+                if order["vehicle_id"] is not None:
+                    try:
+                        vehicle_id_int = int(order["vehicle_id"])
+                        order["vehicle_id"] = vehicle_colors[vehicle_id_int - 1 % len(vehicle_colors)]
+                    except ValueError:
+                        pass
+                    order["Vehicle"] = order["vehicle_id"]
+                    del order["vehicle_id"]
+                if 'timestamp' in order:
+                    del order['timestamp']
+
+            return orders_list_copy
 
         app.run(debug=False)

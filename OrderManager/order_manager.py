@@ -61,14 +61,14 @@ class OrderManager:
             next(reader) #skip the first row
             for row in reader:
                 #divide the heuristics
-                heuristics.append(row[0]) 
+                heuristics.append(row)
         return heuristics
     
     def process_heuristics(self):
 
         for idx, heuristic in enumerate(self.heuristics):
             # initialize OrderManager with the current heuristic
-            order_instance = Order(heuristic)
+            order_instance = Order(heuristic, idx)
         
             # create orders from the current heuristic
             order_instance.create_order()

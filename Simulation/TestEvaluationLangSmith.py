@@ -26,7 +26,7 @@ def regex_evaluator(run: Run, example: Example | None = None):
     return EvaluationResult(key="regex_evaluator", score=(example.outputs['edgeUsable']==result_bool and len(result)==1))
 
 
-def evaluate():
+def evaluate_fewshot():
     evaluation_config = RunEvalConfig(
     custom_evaluators = [regex_evaluator],
     )
@@ -39,4 +39,4 @@ def evaluate():
     )
 
 if __name__ == "__main__":
-    evaluate()
+    evaluate_fewshot()
