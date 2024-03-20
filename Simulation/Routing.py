@@ -369,8 +369,14 @@ class Routing():  # singleton class. Do not create more than one object of this 
             State('input-prompt', 'value'),
             prevent_initial_call=True
         )
+<<<<<<< HEAD
+        def update_output(n_clicks, value):
+            #llm_output = Playground_LLM_Dacian.invoke_llm(value)
+            llm_output = LLM_ZeroShot.invoke_llm(value)
+=======
         def update_output(_, value):
             llm_output = Playground_LLM_Dacian.invoke_llm(value)
+>>>>>>> d9c49f06ac70c4f928881a22c51d2a83f5e86d43
             self.apply_llm_output(llm_output)
             return llm_output
 
