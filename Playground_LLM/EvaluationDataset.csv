@@ -13,9 +13,101 @@ A road sign indicates the pathway is closed for maintenance.;False
 A barrier blocks the entrance to a construction site.;False
 A large fallen tree is on the pathway.;False
 A deep trench is dug across the road for utility work.;False
+A chemical spill blocks the path.;False
+A medical emergency requires the path to be cleared for ambulance access.;False
+Fallen debris from nearby construction on the way.;False
+A broken water pipe has flooded the pathway.;False
+Fallen rocks from a nearby hillside obstruct the path.;False
+A swarm of bees has settled on the path.;False
+A suspicious package has been found on the path.;False
+A wild animal has made a den in the path.;False
+Road repair work is in progress.;False
+There is a protest demonstration.;False
+A gas leak has been detected.;False
+A fallen telephone pole at the entrance to the path.;False
+A vehicle accident has occurred.;False
+Fallen snow on the pathway.;False
+An electrical fault has caused a power outage.;False
+A sinkhole has developed in the middle of the path.;False
+A fallen scaffolding structure blocks the path.;False
+A wild fire in close vicinity of the path.;False
+A broken sewer line has flooded the path with sewage.;False
+A broken fence allows livestock to roam onto the path.;False
+A vehicle breakdown is blocking the path.;False
+A fallen streetlight pole obstructs the path.;False
+A fallen billboard blocks the entrance to the path.;False
+A burst water main floods the path.;False
+A swarm of wasps has built a nest on the path.;False
+A chemical spillage from a laboratory has contaminated the path.;False
+A fallen satellite dish blocks the path.;False
+A nearby construction crane has collapsed, blocking the path.;False
+A protest march is crossing the pathway.;False
+A collapsed building has debris strewn across the path.;False
+A burst sewage pipe has flooded the path.;False
+A fallen antenna tower at the entrance to the path.;False
+A burst gas line has caused an evacuation.;False
+A fallen billboard has crushed part of the path.;False
+A burst sprinkler system has flooded the path.;False
+A broken railing leaves a drop-off hazard on the path.;False
+A landslide has covered the path with debris.;False
+A medical quarantine requires the path to be sealed off.;False
+A collapsed retaining wall.;False
+A chemical spill has created a toxic hazard on the path.;False
+A fallen statue blocks the pathway.;False
+A burst water tank floods the path.;False
+A nearby explosion damages the path.;False
+A broken fence allows dangerous animals onto the path.;False
+A burst fire hydrant floods the path.;False
+A collapsed bridge on the path.;False
 Dropped papers on the ground.;True
 Light rain has left small puddles on the sidewalk.;True
 A pedestrian is walking on the sidewalk.;True
 A small animal crosses the pathway.;True
 A group of people is chatting near the edge.;True
 A delivery package is left on the side of the road.;True
+An ice cream fell on the ground.;True
+A cyclist is riding along the path.;True
+Students are walking to class on the sidewalk.;True
+A squirrel is crossing the pathway.;True
+A group of friends is jogging together.;True
+A delivery person is dropping off a package.;True
+A gardener is trimming the bushes along the path.;True
+A maintenance worker is inspecting the path.;True
+A person is walking their dog.;True
+A student is skateboarding down the sidewalk.;True
+A jogger is listening to music while running.;True
+A student is reading a book on a bench.;True
+A gardener is watering the plants along the path.;True
+A maintenance worker is repairing a light post.;True
+A person is walking with a stroller.;True
+A cyclist is using the bike lane.;True
+A student is texting while walking.;True
+A jogger is stretching before running.;True
+A person is walking their pet cat on a leash.;True
+A group of friends is playing frisbee.;True
+A maintenance worker is painting a bench.;True
+A gardener is planting flowers along the path.;True
+A student is taking photographs of the scenery.;True
+A cyclist is ringing their bell to signal others.;True
+A person is rollerblading along the path.;True
+A student is practicing yoga on the grass.;True
+A maintenance worker is cleaning up litter.;True
+A group of friends is having a barbecue.;True
+A gardener is raking leaves off the pathway.;True
+A person is walking with a guide dog.;True
+A cyclist is using hand signals to indicate turns.;True
+A student is playing guitar on a bench.;True
+A jogger is wearing reflective gear for safety.;True
+A person is walking with crutches.;True
+A maintenance worker is installing a new sign.;True
+A gardener is trimming hedges along the path.;True
+A person is walking with a cane.;True
+A cyclist is carrying groceries in a basket.;True
+A student is sketching a landscape.;True
+A jogger is running with a dog on a leash.;True
+A person is walking with a baby in a carrier.;True
+A group of friends is birdwatching.;True
+A maintenance worker is fixing a bench.;True
+A gardener is mulching the flower beds.;True
+A person is walking with a child holding their hand.;True
+A cyclist is adjusting their helmet.;True
