@@ -23,6 +23,8 @@ lock = threading.Lock()
 
 from dash import Dash, html, dcc, Output, Input, State
 import plotly.graph_objects as go
+from dash import Dash, dash_table
+import pandas as pd
 
 
 class Routing():  # singleton class. Do not create more than one object of this class
@@ -32,6 +34,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.edge_df = edge_df
         self.nodes_df = nodes_df
         self.vehicles = {}
+        self.orders = {}
         self.connect_to_mqtt()
 
     def __repr__(self):
@@ -99,7 +102,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
             # print(f"Received status of vehicle {vehicle_id}: {vehicle_status}")
         else:  # received order
             # print("Received new task: " + msg.payload.decode("utf-8"))
-            self.handle_order(msg.payload.decode("utf-8"))
+            # Add order to self.orders
+            order = json.loads(msg.payload.decode("utf-8"))
+            self.orders[order["order_id"]] = order
+            self.handle_order(order)
 
     def get_distance(self, start_node_id, end_node_id):
         return nx.astar_path_length(self.graph, str(start_node_id), str(end_node_id), weight='weight')
@@ -132,10 +138,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             return order["vehicle_id"]
 
     def handle_order(self, order):
-        order = json.loads(order)
-        # print(f"Received new order: {order}")
         # find the shortest path
-
         shortest_path_astar = self.find_astar_path(self.graph, self.get_node_id_from_name(order["source"]),
                                                    self.get_node_id_from_name(order["target"]))
         # shortest_path_dijkstra = self.find_dijkstra_path(self.graph, order["source"], order["target"])
@@ -157,6 +160,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
         message = self.translate_path_to_mqtt(shortest_path_astar)
         # send the message to the MQTT broker
         vehicle_id = self.get_vehicle_id_for_order(order)
+        # Update vehicle id in self.orders
+        order["vehicle_id"] = vehicle_id
         # Set vehicle status to busy
         threading.Thread(target=self.send_route_to_vehicle_async, args=(vehicle_id, message)).start()
 
@@ -271,23 +276,27 @@ class Routing():  # singleton class. Do not create more than one object of this 
             for index_node, row in self.nodes_df.iterrows():
                 # Determine color (according to vehicle colors if target Node, else grey).
                 # TODO If multiple vehicles on the same target, use only the color of the first vehicle.
-                color_node = "grey"
-                symbol_node = "circle"
-                with lock:
-                    for index_vehicle, vehicle in enumerate(self.vehicles.values()):
-                        # If row in currentTask of vehicle
-                        if str(index_node) == str(vehicle["targetNode"]):
-                            color_node = vehicle_colors[index_vehicle % len(vehicle_colors)]
-                            break
-                fig.add_trace(go.Scattermapbox(mode='markers+text' if row["name"] is not np.NaN else 'markers',
-                                               lon=[row["lon"]],
-                                               lat=[row["lat"]],
-                                               marker={'color': color_node, 'size': 15, 'allowoverlap': True, 'symbol': symbol_node},
-                                               text=row["name"] if row["name"] is not np.NaN else index_node,
-                                               name=row["name"] if row["name"] is not np.NaN else index_node,
-                                               hoverinfo="text",
-                                               textposition='bottom center',
-                                               ))
+                is_special_node = row["name"] is not np.NaN
+                if is_special_node: # currently only display nodes that are special nodes
+                    color_node = "grey"
+                    symbol_node = "circle"
+                    # with lock:
+                    #     for index_vehicle, vehicle in enumerate(self.vehicles.values()):
+                    #         # If row in currentTask of vehicle
+                    #         if str(index_node) == str(vehicle["targetNode"]):
+                    #             color_node = vehicle_colors[index_vehicle % len(vehicle_colors)]
+                    #             break
+                    is_special_node = row["name"] is not np.NaN
+                    fig.add_trace(go.Scattermapbox(mode='markers' if is_special_node else 'markers', # markers+text
+                                                   lon=[row["lon"]],
+                                                   lat=[row["lat"]],
+                                                   marker={'color': color_node, 'size': 20 if is_special_node else 10, 'allowoverlap': False, 'symbol': symbol_node},
+                                                   text=row["name"] if is_special_node else index_node,
+                                                   name=row["name"] if is_special_node else index_node,
+                                                   hoverinfo="text",
+                                                   textposition='bottom center',
+                                                   textfont=dict(size=20, color='black')
+                                                   ))
 
             # Add vehicles to the map
             with lock:
@@ -338,7 +347,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     html.Label(id='llm-output',
                                style={'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
                                       'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
-                                      'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'})
+                                      'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}),
+                    dash_table.DataTable(id='tbl'),
+                    dcc.Interval(
+                        id='table-update-interval',
+                        interval=2 * 1000,  # in milliseconds
+                        n_intervals=0
+                    )
                 ], style={'padding': 5, 'flex': 1})
             ], style={'display': 'flex', 'flexDirection': 'row'})
         ])
@@ -354,10 +369,24 @@ class Routing():  # singleton class. Do not create more than one object of this 
             State('input-prompt', 'value'),
             prevent_initial_call=True
         )
+<<<<<<< HEAD
         def update_output(n_clicks, value):
             #llm_output = Playground_LLM_Dacian.invoke_llm(value)
             llm_output = LLM_ZeroShot.invoke_llm(value)
+=======
+        def update_output(_, value):
+            llm_output = Playground_LLM_Dacian.invoke_llm(value)
+>>>>>>> d9c49f06ac70c4f928881a22c51d2a83f5e86d43
             self.apply_llm_output(llm_output)
             return llm_output
+
+        @app.callback(
+            Output('tbl', 'data'),
+            Input('table-update-interval', 'n_intervals')
+        )
+        def update_table(n):
+            # Convert the orders dictionary to a list of dictionaries, which is the format required by DataTable
+            orders_list = [v for v in self.orders.values()]
+            return orders_list
 
         app.run(debug=False)

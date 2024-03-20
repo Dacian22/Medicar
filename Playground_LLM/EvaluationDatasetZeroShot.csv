@@ -7,17 +7,16 @@ The sidewalk is obstructed by a parked car.;False;False
 Heavy rain has flooded the pathway.;False;True
 A large pothole has formed in the middle of the path.;False;False
 Traffic cones block the entrance to the path.;False;False
-A fallen power line is lying across the path.;False; False
-The pathway is covered in thick mud due to recent rain.;False; False
-A road sign indicates the pathway is closed for maintenance.;False; False
-A barrier blocks the entrance to a construction site.;False; False
-A large fallen tree is on the pathway.;False; False
-A deep trench is dug across the road for utility work.;False; False
+A fallen power line is lying across the path.;False;False
+The pathway is covered in thick mud due to recent rain.;False;False
+A road sign indicates the pathway is closed for maintenance.;False;False
+A barrier blocks the entrance to a construction site.;False;False
+A large fallen tree is on the pathway.;False;False
+A deep trench is dug across the road for utility work.;False;False
 Dropped papers on the ground.;True;True
 Light rain has left small puddles on the sidewalk.;True;False
-A pedestrian is walking on the path.;True; False
+A pedestrian is walking on the path.;True;False
 A small animal crosses the pathway.;True;True
 A group of people is chatting near the edge.;True;True
 A delivery package is left on the side of the road.;True;True
 An umbrella fell on the ground.;True;False
-
