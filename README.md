@@ -34,7 +34,7 @@ If you want to monitor the mqtt messages in real time you can use the following 
 
 ### LangServe Server for llama 2
 This is set up on the university server.
-1. Connect to the university VPN
+1. Connect to the university VPN (only necessary if accessed from outside of the university network)
 2. run `ssh -NfL localhost:8489:localhost:8489 inestp05@dws-student-01.informatik.uni-mannheim.de` in terminal and enter the password (see email)
 3. You can now use the llama 2 model on the server. Just try http://127.0.0.1:8489/llama2/playground/ in your browser or use Remote-Dev/Example-llama2.ipynb
 
