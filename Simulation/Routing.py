@@ -8,7 +8,6 @@ import copy
 import threading
 import TestEvaluationCsv
 import BuildGraph
-import LLM_ZeroShot
 import Playground_LLM_Dacian
 
 import networkx as nx
@@ -199,7 +198,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # threading.Thread(target=LLM.main, args=[self]).start()
         # self.folium_plot()
         # print("start mqtt loop")
-        threading.Thread(target=LLM_ZeroShot.main, args=[self]).start()
+        # threading.Thread(target=LLM_ZeroShot.main, args=[self]).start()
         # threading.Thread(target=Playground_LLM_Dacian.main, args=[self]).start()
         self.client.loop_forever()
 
@@ -283,12 +282,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 if is_special_node:  # currently only display nodes that are special nodes
                     color_node = "grey"
                     symbol_node = "circle"
-                    # with lock:
-                    #     for index_vehicle, vehicle in enumerate(self.vehicles.values()):
-                    #         # If row in currentTask of vehicle
-                    #         if str(index_node) == str(vehicle["targetNode"]):
-                    #             color_node = vehicle_colors[index_vehicle % len(vehicle_colors)]
-                    #             break
                     is_special_node = row["name"] is not np.NaN
                     fig.add_trace(go.Scattermapbox(mode='markers' if is_special_node else 'markers',  # markers+text
                                                    lon=[row["lon"]],
