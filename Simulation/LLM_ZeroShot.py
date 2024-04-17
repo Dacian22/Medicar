@@ -116,47 +116,43 @@ def read_questions_from_csv(filename):
 
 # Function to write decisions to a CSV file
 def write_decisions_to_csv(filename, questions, decisions, parsed_res):
-    print(0)
-    i=0
     with open(filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         for question, decision,parsed_res_entry in zip(questions, decisions,parsed_res):
             writer.writerow([question, decision, parsed_res_entry])
-            i+=1
-            print(i)
 
 
 def main(ref_routing):
 
     # Read questions from CSV file
-    questions = read_questions_from_csv(r'Playground_LLM\questions.csv')
+    #questions = read_questions_from_csv(r'Playground_LLM\questions.csv')
 
     # Initialize list to store decisions
-    decisions = []
-    parsed_res=[]
+    #decisions = []
+    #parsed_res=[]
     # Loop over each question
-    for question in questions:
+    #for question in questions:
         # Invoke LLM for each question
-        output = invoke_llm(question)
+        #output = invoke_llm(question)
         # Parse the output
-        parsed_res, decision = parsing_llm_result(output, question)
+        #parsed_res, decision = parsing_llm_result(output, question)
         # Update decisions list
-        decisions.append(decision)
-        parsed_res.append(parsed_res)
+        #decisions.append(decision)
+        #parsed_res.append(parsed_res)
     # Write decisions back to CSV file
-    write_decisions_to_csv('decisions.csv', questions,decisions,parsed_res)
+    #write_decisions_to_csv('decisions.csv', questions,decisions,parsed_res)
     # Get node id as input from the command line
+    
     time.sleep(5)
-    print(1)
-    #prompt = input("Enter your prompt: ")
+    prompt = input("Enter your prompt: ")
 
     # Get output of the LLM
-    #output = invoke_llm(prompt)
-    #print(output)
+    output = invoke_llm(prompt)
+    print(output)
 
     # Parse the output
-    #parsed_res,decision = parsing_llm_result(output, prompt)
-    # print(parsed_res)
+    parsed_res,decision = parsing_llm_result(output, prompt)
+    print(parsed_res)
 
     # Update graph in the routing
-    #ref_routing.graph = set_weights_to_inf(ref_routing.graph, parsed_res)
+    ref_routing.graph = set_weights_to_inf(ref_routing.graph, parsed_res)
