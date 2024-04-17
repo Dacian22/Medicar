@@ -215,7 +215,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 print(result)
                 edge_id = int(re.findall(re_str, llm_output)[0][0]), int(re.findall(re_str, llm_output)[0][1])
             except IndexError:
-                pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
+                pattern = r"\([`']?\d+[`']?,.?[`']?\d+[`']?\)"
                 edge_id = re.findall(pattern, llm_output)
                 edge_id = edge_id[0].strip("'´")
                 print(edge_id)
