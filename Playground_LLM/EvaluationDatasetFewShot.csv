@@ -1,113 +1,113 @@
-action;edgeUsable;LLMAnswer;LLMOutput
-A person fell on the ground.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: Yes, someone falling on the ground would make the edge unusable.    Follow up: Which edge is affected?    Intermediate answer: Edge edge_31404364_313157654 is affected.    So the final answer is: List of edges that have to be removed: edge_31404364_313157654. False the edge is not usable.
-There is an unexpected construction on the usual path.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the construction blocking the usual path?    Intermediate answer: Yes, the construction is blocking the usual path.    Follow up: Which edge is affected by the construction?    Intermediate answer: Edge ('31404364', '7112240026') is affected by the construction.    Follow up: Is the edge still usable?    Intermediate answer: False, the edge is not usable because of the construction.    So the final answer is: List of edges that have to be removed: ('31404364', '7112240026'). False the edge is not usable.
-Fallen branches from nearby trees.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_31404364_7120224692. False the edge is not usable.
-Street cleaning crew sweeping debris.;False;True;    Are follow up questions needed here: No, the given information is sufficient.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-The sidewalk is obstructed by a parked car.;False;True;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
-Heavy rain has flooded the pathway.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_7112240049_7123481411. False the edge is not usable.
-A large pothole has formed in the middle of the path.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_7123481411_313157656. False the edge is not usable.
-Traffic cones block the entrance to the path.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the entrance is not accessible anymore?    Intermediate answer: Yes, the traffic cones would block the entrance and make it inaccessible.    Follow up: Which edges are affected by the blocked entrance?    Intermediate answer: The edge_313157656_313157659 is the only affected edge as it is the only one representing the entrance.    So the final answer is: List of edges that have to be removed: edge_313157656_313157659. False the edge is not usable.
-A fallen power line is lying across the path.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_313157659_31404365. False the edge is not usable.
-The pathway is covered in thick mud due to recent rain.;False;None;    Follow up: Which edges are affected by the mud?    Intermediate answer: All of the edges on the pathway are affected by the mud.    So the final answer is: List of edges that have to be removed: [('edge_31404365_1280377626', 'edge_31404365_1280377626')]. This edge is not usable.
-A road sign indicates the pathway is closed for maintenance.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_1280377626_313157654. False the edge is not usable.
-A barrier blocks the entrance to a construction site.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the barrier permanent or temporary?    Intermediate answer: If the barrier is permanent, the affected edges would not be usable. If the barrier is temporary, the affected edges will be usable again once the barrier is removed.    Follow up: Is the barrier blocking the entire edge or just a portion of it?    Intermediate answer: If the barrier is blocking the entire edge, then the edge is not usable. If the barrier is only blocking a portion of the edge, then the edge is still usable.    So the final answer is: List of edges that have to be removed: [edge_313157654_7112240047]. False if the barrier is permanent, True if the barrier is temporary.
-A large fallen tree is on the pathway.;False;False;    Follow up: Is the event important enough so that the edge is not usable anymore?    Intermediate answer: Yes, a large fallen tree on the pathway would make the edge not usable.    Follow up: Which edge is affected?    Intermediate answer: Edge edge_313157654_1213060725 is affected.    So the final answer is: Edge that has to be removed: edge_313157654_1213060725. False the edge is not usable.
-A deep trench is dug across the road for utility work.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: [('7112240047', '7112240051')]. False the edge is not usable.
-A chemical spill blocks the path.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable anymore?    Intermediate answer: Yes, a chemical spill would make the edge not usable.    Follow up: Which edge is affected?    Intermediate answer: The edge ('7112240051', '1280377624') is affected.    So the final answer is: List of edges that have to be removed: ('7112240051', '1280377624'). False the edge is not usable.
-A medical emergency requires the path to be cleared for ambulance access.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_1280377624_31404366. False the edge is not usable.
-Fallen debris from nearby construction on the way.;False;None;    Are follow up questions needed here: No.
-A broken water pipe has flooded the pathway.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_31404367_31404363. False the edge is not usable.
-Fallen rocks from a nearby hillside obstruct the path.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of affected edges: edge_31404367_7120224688. False the edge is not usable.
-A swarm of bees has settled on the path.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_31451750_313316730. False the edge is not usable.
-A suspicious package has been found on the path.;False;False;    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: Yes, a suspicious package found on the path would make the edge unusable.    Follow up: Which edge is affected?    Intermediate answer: Edge edge_31451750_7273047832 is affected.    So the final answer is: List of edges that have to be removed: edge_31451750_7273047832. False the edge is not usable.
-A wild animal has made a den in the path.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: Yes, a wild animal making a den in the path would make the edge not usable.    Follow up: Which edges are affected by the wild animal's den?    Intermediate answer: Edge edge_31451750_245411481 is affected.    So the final answer is: List of edges that have to be removed: edge_31451750_245411481. False the edge is not usable.
-Road repair work is in progress.;False;True;    Are follow up questions needed here: No.    Final answer: List of edges that have to be removed: []. True, the edge is still usable.
-There is a protest demonstration.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: Yes, a protest demonstration would make the edge unusable.    So the final answer is: List of edges that have to be removed: [('245411483', '245004114')]. False the edge is not usable.
-A gas leak has been detected.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_245411483_245411480. False the edge is not usable.
-A fallen telephone pole at the entrance to the path.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_245411483_245411472. False, the edge is not usable.
-A vehicle accident has occurred.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that edge edge_245004114_245004115 is not usable anymore?    Intermediate answer: Yes, a vehicle accident would make edge edge_245004114_245004115 not usable.    So the final answer is: List of edges that have to be removed: edge_245004114_245004115. False the edge is not usable.
-Fallen snow on the pathway.;False;False;Follow up: Is the event important enough so that edge edge_245004114_245411482 is not usable anymore?Intermediate answer: Yes, fallen snow on the pathway would make the edge unusable.Follow up: Is the edge still usable?Intermediate answer: No, the edge is not usable due to the fallen snow.So the final answer is: List of edges that have to be removed: edge_245004114_245411482. False the edge is not usable.
-An electrical fault has caused a power outage.;False;False;    Are follow up questions needed here: No, the question is clear enough.    Final answer: List of edges that have to be removed: edge_245004114_245411472. False, the edge is not usable.
-A sinkhole has developed in the middle of the path.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: [('245004115', '313158259')]. False the edge is not usable.
-A fallen scaffolding structure blocks the path.;False;False;    Are follow up questions needed here: No.    The final answer is: List of edges that have to be removed: ['edge_245004120_7112240058']. False the edge is not usable.
-A wild fire in close vicinity of the path.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: Yes, a wild fire in close vicinity of the path would make the edge not usable.    Follow up: Which edge is affected?    Intermediate answer: Edge edge_7112240058_7037192308 is affected.    So the final answer is: List of edges that have to be removed: edge_7112240058_7037192308. False the edge is not usable.
-A broken sewer line has flooded the path with sewage.;False;None;    Edge_7037192308_7037192307 is not usable. Affected edges: ('A', 'B'), ('B', 'C'), ('C','A'), ('C', 'D'), ('D', 'E'), ('C','F')
-A broken fence allows livestock to roam onto the path.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_7037192308_7112240052. False the edge is not usable.
-A vehicle breakdown is blocking the path.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable anymore?    Intermediate answer: Yes, a vehicle breakdown would make the edge unusable.    So the final answer is: List of affected edges: edge_7037192307_7112240055. False the edge is not usable.
-A fallen streetlight pole obstructs the path.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_7112240055_245004124. False the edge is not usable.
-A fallen billboard blocks the entrance to the path.;False;None;    Are follow up questions needed here: No.    Final answer: The affected edge is ('7112240055', '245411453') and it is not usable.
-A burst water main floods the path.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_245004124_7037104959. False the edge is not usable.
-A swarm of wasps has built a nest on the path.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not accessible anymore?    Intermediate answer: Yes, a swarm of wasps building a nest on the path would make the edge inaccessible.    Follow up: Which edges contain the affected path?    Intermediate answer: Edges ('7112240052', '7112240056') contain the affected path.    So the final answer is: List of edges that have to be removed: ('7112240052', '7112240056'). False the edge is not usable.
-A chemical spillage from a laboratory has contaminated the path.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: Yes, a chemical spillage contaminating the path would make the edge not usable.    Follow up: Which edge is affected by the chemical spillage?    Intermediate answer: Edge edge_7112240056_245411454 is affected by the chemical spillage.    So the final answer is: List of edges that have to be removed: edge_7112240056_245411454. False the edge is not usable.
-A fallen satellite dish blocks the path.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_245411454_7115662747. False, the edge is not usable.
-A nearby construction crane has collapsed.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: Yes, a collapsed construction crane would make the edge not usable.    Follow up: Which edge is affected?    Intermediate answer: Edge edge_245411454_7115662749 is affected.    So the final answer is: List of edges that have to be removed: edge_245411454_7115662749. False the edge is not usable.
-A protest march is crossing the pathway.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the pathway is not accessible anymore?    Intermediate answer: Yes, a protest march crossing would make the pathway inaccessible.    Follow up: Which edges are affected by the protest march?    Intermediate answer: All edges in the pathway are affected.    So the final answer is: List of edges that have to be removed: [('edge_1215519795_7365617927', 'A'), ('A', 'B'), ('B', 'C'), ('C', 'D'), ('D', 'E'), ('C','F')]. False the edge is not usable.
-A collapsed building has debris strewn across the path.;False;False;    Are follow up questions needed here: No.     Final answer: List of edges that have to be removed: edge_7365617927_7365570458. False the edge is not usable.
-A burst sewage pipe has flooded the path.;False;False;    Follow up: Is the event important enough so that the path is not accessible anymore?    Intermediate answer: Yes, a burst sewage pipe would make the path inaccessible.    Follow up: Which edges contain the burst sewage pipe?    Intermediate answer: The edge ('8214469912', '245411470') contains the burst sewage pipe.    So the final answer is: List of edges that have to be removed: ('8214469912', '245411470'). False the edge is not usable.
-A fallen antenna tower at the entrance to the path.;False;False;    Edge list provided: [('8214469912', '8214388994')]    Are follow up questions needed here: No.    Final answer: List of edges that have to be removed: [('8214469912', '8214388994')]. False, the edge is not usable.
-A burst gas line has caused an evacuation.;False;False;    Are follow up questions needed here: No.        So the final answer is: List of edges that have to be removed: edge_245411470_6820696987. False the edge is not usable.
-A fallen billboard has crushed part of the path.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_6820696987_245411471. False the edge is not usable.
-A burst sprinkler system has flooded the path.;False;False;    Are follow up questions needed here: No.    Final answer: List of edges that have to be removed: [('245411471', '245411482')]. False the edge is not usable.
-A broken railing leaves a drop-off hazard on the path.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: Yes, a broken railing would make the edge unusable.    Follow up: Is the drop-off hazard important enough to make the edge unusable?    Intermediate answer: Yes, a drop-off hazard would make the edge unusable.    So the final answer is: List of edges that have to be removed: edge_245411482_7113033361. False the edge is not usable.
-A landslide has covered the path with debris.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_245411472_7108628060. False, the edge is not usable.
-A medical quarantine requires the path to be sealed off.;False;False;    Are follow up questions needed here: No.    Final answer: List of edges that have to be removed: [('245411472', '245411491')]. False the edge is not usable.
-A collapsed retaining wall.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_7108628060_31451751. False the edge is not usable.
-A chemical spill has created a toxic hazard on the path.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable anymore?    Intermediate answer: Yes, a chemical spill creating a toxic hazard would make the edge unusable.    Follow up: Which edge is affected by the spill?    Intermediate answer: The edge ('31451751', '7108628061') is affected by the spill.    So the final answer is: List of edges that have to be removed: ('31451751', '7108628061'). False the edge is not usable.
-A fallen statue blocks the pathway.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_31451751_7047823175. False the edge is not usable.
-A burst water tank floods the path.;False;False;    No follow up questions are needed here as the provided statement already specifies that the edge is unusable. So the final answer is: List of edges that have to be removed: edge_31451751_245411475. False the edge is not usable.
-A nearby explosion damages the path.;False;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable anymore?    Intermediate answer: Yes, a nearby explosion would damage the edge and make it unusable.    So the final answer is: List of edges that have to be removed: edge_31451751_7405091582. False the edge is not usable.
-A broken fence allows dangerous animals onto the path.;False;False;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: edge_7108628061_245411474. False the edge is not usable.
-A burst fire hydrant floods the path.;False;True;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: [('245411474', '245411475')]. True the edge is not usable.
-A collapsed bridge on the path.;False;False;Follow up: Is the event important enough so that the collapsed bridge makes the edge unpassable?Intermediate answer: Yes, a collapsed bridge would make the edge unpassable.Follow up: Which edge is affected?Intermediate answer: Edge edge_245411475_7273047832 is affected.So the final answer is: List of edges that have to be removed: edge_245411475_7273047832. False, the edge is not usable.
-Dropped papers on the ground.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable anymore?    Intermediate answer: No, dropping papers would not make the edge unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is still usable.
-Light rain has left small puddles on the sidewalk.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: No, light rain leaving small puddles would not affect the edge's usability.    So the final answer is: List of edges that have to be removed: []. True the edge is still usable.
-A pedestrian is walking on the sidewalk.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the pedestrian walking on the sidewalk would affect the usability of the edge?    Intermediate answer: No, a pedestrian walking on a sidewalk would not affect the usability of the edge.    So the final answer is: List of edges that have to be removed: []. True the edge is not affected.
-A small animal crosses the pathway.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: No, a small animal crossing the pathway would not make the edge unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
-A group of people is chatting near the edge.;True;True;    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: No, people chatting near the edge would not make it unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A delivery package is left on the side of the road.;True;True;    Are follow up questions needed here: No.    Final answer: List of edges that have to be removed: []. True the edge is usable.
-An ice cream fell on the ground.;True;True;    Are follow up questions needed here: No.     Intermediate answer: Edges containing the nodes that are connected by edge_245411480_7108628067 are affected.     So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
-A cyclist is riding along the path.;True;None;    Are follow up questions needed here: No.    So the final answer is: List of affected edges: [('245411480', '245411481')], edge is usable.
-Students are walking to class on the sidewalk.;True;True;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A squirrel is crossing the pathway.;True;True;    Follow up: Is the event important enough to affect the usability of the edge?    Intermediate answer: No, a squirrel crossing the pathway would not affect the usability of the edge.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A group of friends is jogging together.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable anymore?    Intermediate answer: No, a group of friends jogging together would not affect the usability of the edge.    So the final answer is: List of edges that have to be removed: []. True the edge is still usable.
-A delivery person is dropping off a package.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable anymore?    Intermediate answer: No, a delivery person dropping off a package would not make the edge unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is still usable.
-A gardener is trimming the bushes along the path.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edges are not passable?    Intermediate answer: No, a gardener trimming bushes would not make the edges impassable.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A maintenance worker is inspecting the path.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: No, a maintenance worker inspecting the path would not make the edge unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A person is walking their dog.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not accessible anymore?    Intermediate answer: No, someone walking their dog would not make the edge inaccessible.    So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
-A student is skateboarding down the sidewalk.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the skateboarder is not able to use the edge?    Intermediate answer: No, a skateboarder would not make the edge unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A jogger is listening to music while running.;True;True;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A student is reading a book on a bench.;True;True;    Edge: edge_1280377647_11544125966    Affected edges: None    Is edge usable: True
-A gardener is watering the plants along the path.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: No, a gardener watering the plants would not make the edge unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is still usable.
-A maintenance worker is repairing a light post.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that edge edge_313158259_245411469 is not usable?    Intermediate answer: Yes, a maintenance worker repairing a light post would make the edge unusable.    So the final answer is: List of edges that have to be removed: [], True the edge is not usable.
-A person is walking with a stroller.;True;True;    Follow up: Is the event important enough so that the edge can no longer be used?    Intermediate answer: No, a person walking with a stroller would not make the edge unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is not affected.
-A cyclist is using the bike lane.;True;True;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A student is texting while walking.;True;False;    Follow up: Is the event important enough so that the student texting while walking would make the edge unusable?    Intermediate answer: Yes, the student texting while walking would make the edge unusable.    Follow up: Which edge is affected?    Intermediate answer: The edge ('245411469','8214388994') is affected.    So the final answer is: List of edges that have to be removed: ('245411469','8214388994'). False the edge is not usable.
-A jogger is stretching before running.;True;True;    Are follow up questions needed here: No.    Intermediate answer: This event would not affect the usability of the edge.    So the final answer is: List of edges that have to be removed: []. True the edge is still usable.
-A person is walking their pet cat on a leash.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that edge edge_245411497_245411468 is not usable anymore?    Intermediate answer: No, someone walking their pet cat on a leash would not make edge edge_245411497_245411468 unusable.    Follow up: Which edge is affected by the event?    Intermediate answer: Edge edge_245411497_245411468 is affected by the event.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A group of friends is playing frisbee.;True;True;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A maintenance worker is painting a bench.;True;False;    Edge list provided is: [('245411464', '245411466')]    So the final answer is: List of edges that have to be removed: [('245411464', '245411466')]. False the edge is not usable.
-A gardener is planting flowers along the path.;True;True;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A student is taking photographs of the scenery.;True;True;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: []. True, the edge is still usable.
-A cyclist is ringing their bell to signal others.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that any edges are affected?    Intermediate answer: No, a cyclist ringing their bell would not affect any edges.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A person is rollerblading along the path.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not accessible anymore?    Intermediate answer: No, someone rollerblading along the edge does not make it inaccessible.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A student is practicing yoga on the grass.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the grass is not accessible anymore?    Intermediate answer: No, someone practicing yoga would not make the grass inaccessible.    So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
-A maintenance worker is cleaning up litter.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: No, a maintenance worker cleaning up litter would not make the edge unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A group of friends is having a barbecue.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not accessible anymore?    Intermediate answer: No, a group of friends having a barbecue does not make the edge inaccessible.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A gardener is raking leaves off the pathway.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable anymore?    Intermediate answer: No, a gardener raking leaves off the pathway would not make the edge inpassable.    So the final answer is: List of edges that have to be removed: []. True the edge is still usable.
-A person is walking with a guide dog.;True;False;    Follow up: Is the event important enough so that the guide dog cannot pass through the edge?    Intermediate answer: Yes, the guide dog would not be able to pass through the edge.    Follow up: Which edges contain the guide dog's current location?    Intermediate answer: Edges ('7112240026','6568643642') contain the guide dog's current location.    So the final answer is: List of edges that have to be removed: ('7112240026','6568643642'). False the edge is not usable.
-A cyclist is using hand signals to indicate turns.;True;True;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: []. True, the edge is still usable.
-A student is playing guitar on a bench.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: No, a student playing guitar on a bench would not make the edge unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is still usable.
-A jogger is wearing reflective gear for safety.;True;True;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A person is walking with crutches.;True;False;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that edge_7120192452_7120192451 is not accessible anymore?    Intermediate answer: Yes, a person walking with crutches would make edge_7120192452_7120192451 inaccessible.    So the final answer is: List of edges that have to be removed: ('7120192452','7120192451'). False the edge is not usable.
-A maintenance worker is installing a new sign.;True;True;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A gardener is trimming hedges along the path.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edges along the path are not accessible anymore?    Intermediate answer: No, the gardener trimming hedges would not make the edges along the path inaccessible.    So the final answer is: List of edges that have to be removed: []. True the edge is not affected and still usable.
-A person is walking with a cane.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the person using the cane important enough to make the edge unusable?    Intermediate answer: It depends on the person's mobility and how much of the edge it affects.    Follow up: Which edges contain the person walking with a cane?    Intermediate answer: It is not specified.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A cyclist is carrying groceries in a basket.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable anymore?    Intermediate answer: It depends on the size and weight of the groceries, and the strength of the cyclist. It could potentially make the edge unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is still usable.    
-A student is sketching a landscape.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: No, a student sketching a landscape would not make the edge unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A jogger is running with a dog on a leash.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable anymore?    Intermediate answer: No, a jogger running with a dog on a leash would not make the edge unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
-A person is walking with a baby in a carrier.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: No, a person walking with a baby in a carrier would not affect the usability of the edge.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A group of friends is birdwatching.;True;True;    Are follow up questions needed here: No.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-A maintenance worker is fixing a bench.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not accessible?    Intermediate answer: It depends on the location of the bench and how it's being fixed. If the worker is blocking the edge, it may not be accessible.    Follow up: Which edges does the worker block?    Intermediate answer: It depends on the location of the bench and the worker, but potentially any edge that the worker is working on.    Follow up: Can the worker block multiple edges at once?    Intermediate answer: Yes, it's possible for the worker to block multiple edges at once if they are close together.    So the final answer is: List of edges that have to be removed: It depends on the location of the bench and the worker. True/False value: It depends on the location of the bench and how it's being fixed.
-A gardener is mulching the flower beds.;True;None;    Edge edge_245411466_245411467 is not included in the given edge list, so it cannot be affected.
-A person is walking with a child holding their hand.;True;False;    The affected edges are edge_245411466_2127917103. False, the edge is no longer usable.
-A cyclist is adjusting their helmet.;True;True;    Are follow up questions needed here: Yes.    Follow up: Is the event important enough so that the edge is not usable?    Intermediate answer: No, a cyclist adjusting their helmet would not make the edge unusable.    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
+action;edgeUsable;LLMAnswer
+A person fell on the ground.;False;False
+There is an unexpected construction on the usual path.;False;False
+Fallen branches from nearby trees.;False;False
+Street cleaning crew sweeping debris.;False;True
+The sidewalk is obstructed by a parked car.;False;True
+Heavy rain has flooded the pathway.;False;False
+A large pothole has formed in the middle of the path.;False;False
+Traffic cones block the entrance to the path.;False;False
+A fallen power line is lying across the path.;False;False
+The pathway is covered in thick mud due to recent rain.;False;None
+A road sign indicates the pathway is closed for maintenance.;False;False
+A barrier blocks the entrance to a construction site.;False;False
+A large fallen tree is on the pathway.;False;False
+A deep trench is dug across the road for utility work.;False;False
+A chemical spill blocks the path.;False;False
+A medical emergency requires the path to be cleared for ambulance access.;False;False
+Fallen debris from nearby construction on the way.;False;None
+A broken water pipe has flooded the pathway.;False;False
+Fallen rocks from a nearby hillside obstruct the path.;False;False
+A swarm of bees has settled on the path.;False;False
+A suspicious package has been found on the path.;False;False
+A wild animal has made a den in the path.;False;False
+Road repair work is in progress.;False;True
+There is a protest demonstration.;False;False
+A gas leak has been detected.;False;False
+A fallen telephone pole at the entrance to the path.;False;False
+A vehicle accident has occurred.;False;False
+Fallen snow on the pathway.;False;False
+An electrical fault has caused a power outage.;False;False
+A sinkhole has developed in the middle of the path.;False;False
+A fallen scaffolding structure blocks the path.;False;False
+A wild fire in close vicinity of the path.;False;False
+A broken sewer line has flooded the path with sewage.;False;None
+A broken fence allows livestock to roam onto the path.;False;False
+A vehicle breakdown is blocking the path.;False;False
+A fallen streetlight pole obstructs the path.;False;False
+A fallen billboard blocks the entrance to the path.;False;None
+A burst water main floods the path.;False;False
+A swarm of wasps has built a nest on the path.;False;False
+A chemical spillage from a laboratory has contaminated the path.;False;False
+A fallen satellite dish blocks the path.;False;False
+A nearby construction crane has collapsed.;False;False
+A protest march is crossing the pathway.;False;False
+A collapsed building has debris strewn across the path.;False;False
+A burst sewage pipe has flooded the path.;False;False
+A fallen antenna tower at the entrance to the path.;False;False
+A burst gas line has caused an evacuation.;False;False
+A fallen billboard has crushed part of the path.;False;False
+A burst sprinkler system has flooded the path.;False;False
+A broken railing leaves a drop-off hazard on the path.;False;False
+A landslide has covered the path with debris.;False;False
+A medical quarantine requires the path to be sealed off.;False;False
+A collapsed retaining wall.;False;False
+A chemical spill has created a toxic hazard on the path.;False;False
+A fallen statue blocks the pathway.;False;False
+A burst water tank floods the path.;False;False
+A nearby explosion damages the path.;False;False
+A broken fence allows dangerous animals onto the path.;False;False
+A burst fire hydrant floods the path.;False;True
+A collapsed bridge on the path.;False;False
+Dropped papers on the ground.;True;True
+Light rain has left small puddles on the sidewalk.;True;True
+A pedestrian is walking on the sidewalk.;True;True
+A small animal crosses the pathway.;True;True
+A group of people is chatting near the edge.;True;True
+A delivery package is left on the side of the road.;True;True
+An ice cream fell on the ground.;True;True
+A cyclist is riding along the path.;True;None
+Students are walking to class on the sidewalk.;True;True
+A squirrel is crossing the pathway.;True;True
+A group of friends is jogging together.;True;True
+A delivery person is dropping off a package.;True;True
+A gardener is trimming the bushes along the path.;True;True
+A maintenance worker is inspecting the path.;True;True
+A person is walking their dog.;True;True
+A student is skateboarding down the sidewalk.;True;True
+A jogger is listening to music while running.;True;True
+A student is reading a book on a bench.;True;True
+A gardener is watering the plants along the path.;True;True
+A maintenance worker is repairing a light post.;True;True
+A person is walking with a stroller.;True;True
+A cyclist is using the bike lane.;True;True
+A student is texting while walking.;True;False
+A jogger is stretching before running.;True;True
+A person is walking their pet cat on a leash.;True;True
+A group of friends is playing frisbee.;True;True
+A maintenance worker is painting a bench.;True;False
+A gardener is planting flowers along the path.;True;True
+A student is taking photographs of the scenery.;True;True
+A cyclist is ringing their bell to signal others.;True;True
+A person is rollerblading along the path.;True;True
+A student is practicing yoga on the grass.;True;True
+A maintenance worker is cleaning up litter.;True;True
+A group of friends is having a barbecue.;True;True
+A gardener is raking leaves off the pathway.;True;True
+A person is walking with a guide dog.;True;False
+A cyclist is using hand signals to indicate turns.;True;True
+A student is playing guitar on a bench.;True;True
+A jogger is wearing reflective gear for safety.;True;True
+A person is walking with crutches.;True;False
+A maintenance worker is installing a new sign.;True;True
+A gardener is trimming hedges along the path.;True;True
+A person is walking with a cane.;True;True
+A cyclist is carrying groceries in a basket.;True;True
+A student is sketching a landscape.;True;True
+A jogger is running with a dog on a leash.;True;True
+A person is walking with a baby in a carrier.;True;True
+A group of friends is birdwatching.;True;True
+A maintenance worker is fixing a bench.;True;True
+A gardener is mulching the flower beds.;True;None
+A person is walking with a child holding their hand.;True;False
+A cyclist is adjusting their helmet.;True;True
