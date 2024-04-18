@@ -155,7 +155,10 @@ def get_model():
     fewshot_template = FewShotPromptTemplate(
     examples=examples,
     example_prompt=example_prompt,
-    prefix ="""As a proffesional graph modeler, you're tasked with removing edges from an edge list when something happens that would make the edge inpassable.""",
+    prefix ="""As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network.
+    You're tasked with removing edges from an edge list when something happens that would make the edge impassable. 
+    You must determine whether each provided edge is usable or not based on how important the obstacle given as input is. Respond
+    with True if the edge is available and False if the edge is not available.""",
     suffix="{input} Please provide the affected edges, and a mandatory True/False value if the edge is usable.",
     input_variables=["input"],
     example_separator='\n\n\n')
