@@ -102,6 +102,44 @@ def get_examples():
         "reasoning":"""
     Because the event of someone having a seisure is important enough to block access to the node 2 so we are removing the edges that contain the node 2, those being ('1','2'), ('2','3')
     """,
+    },
+    {
+            "question": "The edge list provided is: [('A', 'B'), ('B', 'C'), ('C','A'), ('C', 'D'), ('D', 'E'), ('C','F')]\n A group of people are chatting on node F. Please provide the affected edges.",
+            "answer": """
+        Are follow up questions needed here: Yes.
+        Follow up: Is the event important enough so that node F is not accessible anymore?
+        Intermediate answer: No, people chatting would not make node F inaccessible.
+        So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
+        """,
+            "reasoning": """
+        Because the event of people chatting is not important enough to block access to the node F so we are not removing the edges that contain the node F, so NO edges are affected.
+        """,
+    },
+    {
+            "question": "The edge list provided is: [('A', 'B'), ('B', 'C'), ('C','A'), ('C', 'D'), ('D', 'E'), ('C','F')]\n A small animal crosses the pathway on node D. Please provide the affected edges.",
+            "answer": """
+            Are follow up questions needed here: Yes.
+            Follow up: Is the event important enough so that node D is not accessible anymore?
+            Intermediate answer: No, a small animal crossing the pathway would not make node D inaccessible.
+            So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
+            """,
+            "reasoning": """
+            Because the event of a small animal crossing the pathway is not important enough to block access to the node D so we are not removing the edges that contain the node D, so NO edges are affected.
+            """,
+    },
+    {
+            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'),('3','6')]\n A vehicle accident has occured on node 3. Please provide the affected edges.",
+            "answer": """
+        Are follow up questions needed here: Yes.
+        Follow up: Is the event important enough so that node 3 is not accessible anymore?
+        Intermediate answer: Yes, a vehicle accident would make node 3 inaccessible.
+        Follow up: Which edges contain node 3?
+        Intermediate answer: Edges ('2','3'), ('3','4'), ('3','6') contain node 3
+        So the final answer is: List of edges that have to be removed: ('2','3'), ('3','4'), ('3','6'). False the edge is not usable.
+        """,
+            "reasoning": """
+        Because the event of a vehicle accident is important enough to block access to the node 3 so we are removing the edges that contain the node 3, those being ('2','3'), ('3','4'), ('3','6')
+        """,
     }
     ]
     return examples
@@ -138,7 +176,10 @@ def get_model_testing():
     fewshot_template = FewShotPromptTemplate(
     examples=examples,
     example_prompt=example_prompt,
-    prefix ="""As a proffesional graph modeler, you're tasked with removing edges from an edge list when something happens that would make the edge inpassable.""",
+    prefix ="""As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network.
+    You're tasked with removing edges from an edge list when something happens that would make the edge impassable. 
+    You must determine whether each provided edge is usable or not based on how important the obstacle given as input is. Respond
+    with True if the edge is available and False if the edge is not available.""",
     #Using a static edge for the moment
     suffix="At edge edge_7120224687_7112240050 {input} Please provide the affected edges, and a True/False value if the edge is usable.",
     input_variables=["input"],
