@@ -17,7 +17,7 @@ from langchain_openai import OpenAI
 from BuildGraph import set_weights_to_inf
 from langsmith import Client
 
-load_dotenv()
+load_dotenv(override=True)
 #client=Client(api_key=os.getenv("LANGCHAIN_API_KEY"))
 
 
@@ -163,8 +163,7 @@ def get_model():
     input_variables=["input"],
     example_separator='\n\n\n')
 
-    model_openai= OpenAI()
-
+    model_openai= OpenAI(api_key=os.environ["OPENAI_API_KEY"]) 
     return LLMChain(prompt=fewshot_template,llm=model_openai)
 
 

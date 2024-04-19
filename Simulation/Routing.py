@@ -26,7 +26,7 @@ warnings.filterwarnings("ignore")
 
 class Routing():  # singleton class. Do not create more than one object of this class
     def __init__(self, graph, edge_df, nodes_df):
-        load_dotenv()
+        load_dotenv(override=True)
         self.graph = graph
         self.edge_df = edge_df
         self.nodes_df = nodes_df
@@ -75,7 +75,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
                  'endNodeId': edge[1], 'startCoordinate': tuple(self.nodes_df.loc[int(edge[0])].loc[["lat", "lon"]]),
                  'endCoordinate': tuple(self.nodes_df.loc[int(edge[1])].loc[["lat", "lon"]])})
         message = {'edges': edges}
-        # print(message)
         # print(json.dumps(message))
         return message
 
@@ -163,6 +162,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         #     shortest_path = shortest_path_bellman_ford
 
         # translate the shortest path to MQTT messages
+        print("Old shortest path:", shortest_path_astar)
         message = self.translate_path_to_mqtt(shortest_path_astar)
         # send the message to the MQTT broker and set vehicle status to busy
         threading.Thread(target=self.send_route_to_vehicle_async, args=(vehicle_id, message)).start()
@@ -228,6 +228,76 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
             # Update graph in the routing
             self.graph = BuildGraph.set_weights_to_inf(self.graph, edge_id)
+            self.reroute_vehicles(edge_id)
+
+    def reroute_vehicles(self, obstacle_edge_id):
+        #TODO Check if the vehicle has reached the order['source'] before it reaches an obstacle.
+        #TODO Check the direction of the vehicle (start node/end node of the edge)
+        
+        print("Obstacle: ",obstacle_edge_id)
+        for vehicle_id, vehicle in self.vehicles.items():
+            if vehicle["currentTask"] is not None:
+                print(f"Vehicle {vehicle_id} current task edges:")
+                for edge in vehicle["currentTask"]["edges"]:
+                    print(edge)
+            else:
+                print(f"Vehicle {vehicle_id} has no current task.")
+        # Get all vehicles that are currently moving and will pass through the obstacle edge
+        affected_vehicles = []
+        # Detect Obstacle on Edge
+        for vehicle_id, vehicle in self.vehicles.items():
+            if vehicle["status"] == "moving":
+                print("Vehicle moving:", vehicle_id)
+                current_position = vehicle['position']
+                print("Current node", current_position)
+                current_node_index = None
+                obstacle_index = None
+                for task_edge in vehicle["currentTask"]["edges"]:
+                    # Extract start and end nodes of the current task edge
+                    task_start_node = task_edge["startNodeId"]
+                    task_end_node = task_edge["endNodeId"]
+                    task_start_coord = task_edge["startCoordinate"]
+                    task_end_coord = task_edge["endCoordinate"]
+
+                    if task_start_coord == current_position:
+                        current_node = task_start_node
+                        if current_node_index is None:
+                            current_node_index = task_edge["sequenceId"]
+                            print("Current node index" , current_node_index)
+                    elif task_end_coord == current_position:
+                        current_node = task_end_node
+                        if current_node_index is None:
+                            current_node_index = task_edge["sequenceId"]
+                            print("Current node index" , current_node_index)
+                    if (task_start_node == str(obstacle_edge_id[0]) and task_end_node == str(obstacle_edge_id[1])) or\
+                        (task_start_node == str(obstacle_edge_id[1]) and task_end_node == str(obstacle_edge_id[0])):
+                        obstacle_index = task_edge["sequenceId"]
+                        print("obstacle index" , obstacle_index)
+
+                if current_node_index is not None and obstacle_index is not None:
+                    if obstacle_index >= current_node_index:
+                        affected_vehicles.append(vehicle_id)
+                              
+        print("Affected vehicle:", affected_vehicles)
+       
+        # Recalculate routes for affected vehicles
+        for vehicle_id in affected_vehicles:
+            vehicle = self.vehicles[vehicle_id]
+            vehicle["status"] = "idle"
+            target_destination = vehicle["currentTask"]["edges"][-1]["endNodeId"]
+            new_shortest_path = self.find_astar_path(self.graph, current_node, target_destination)
+            print("New shortest path", new_shortest_path)
+            # Update vehicle's current task with the new shortest path
+            vehicle["currentTask"]["edges"] = new_shortest_path
+            # Translate and send updated route to the vehicle
+            updated_route = self.translate_path_to_mqtt(new_shortest_path)
+            #self.send_route_to_vehicle_async(vehicle_id, updated_route)
+            print("updated route: ", updated_route)
+            
+            threading.Thread(target=self.send_route_to_vehicle_async, args=(vehicle_id, updated_route)).start()
+
+          
+        
 
     def folium_plot(self):
 
