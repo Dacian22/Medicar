@@ -15,7 +15,7 @@ import paho.mqtt.client as paho
 from dotenv import load_dotenv
 from paho import mqtt
 
-from dash import html, dcc, Output, Input, State
+from dash import html, dcc, Output, Input, State, no_update
 import plotly.graph_objects as go
 from dash import Dash, dash_table
 
@@ -218,12 +218,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 edge_id = re.findall(pattern, llm_output)
                 edge_id = edge_id[0].strip("'´")
                 print(edge_id)
-            # print(removed_edge)
-            # edge_id = edge_id.strip("'´")
-            # print(cleaned)
-            # edge_id = ast.literal_eval(edge_id)
-
-            print(f"trying to remove edge {edge_id}")
+            print(f"trying to remove edge {edge_id}...")
 
             # Update graph in the routing
             self.graph = BuildGraph.set_weights_to_inf(self.graph, edge_id)
@@ -321,7 +316,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         color_edge = "red"
                         print("weight infinity detected!")
                     else:
-                        for index_node, vehicle in enumerate(self.vehicles.values()):
+                        for vehicle_id, vehicle in self.vehicles.items():
                             # If row in currentTask of vehicle
                             if vehicle["currentTask"] is not None:
                                 for edge in vehicle["currentTask"]["edges"]:
@@ -329,7 +324,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                             int(row["v"])) == str(int(edge["endNodeId"]))) or (
                                             str(int(row["u"])) == str(int(edge["endNodeId"])) and
                                             str(int(row["v"])) == str(int(edge["startNodeId"]))):
-                                        color_edge = vehicle_colors[index_node % len(vehicle_colors)]
+                                        color_edge = vehicle_colors[int(vehicle_id) - 1 % len(vehicle_colors)]
                                         on_route = True
                                         break
                     fig.add_trace(go.Scattermapbox(mode='lines',
@@ -366,14 +361,14 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
             # Add vehicles to the map
             with lock:
-                for index_node, vehicle in enumerate(self.vehicles.keys()):
-                    color_vehicle = vehicle_colors[index_node % len(vehicle_colors)]
+                for vehicle_id in self.vehicles.keys():
+                    color_vehicle = vehicle_colors[int(vehicle_id) - 1 % len(vehicle_colors)]
                     fig.add_trace(go.Scattermapbox(mode='markers',
-                                                   lon=[self.vehicles[vehicle]["position"][1]],
-                                                   lat=[self.vehicles[vehicle]["position"][0]],
+                                                   lon=[self.vehicles[vehicle_id]["position"][1]],
+                                                   lat=[self.vehicles[vehicle_id]["position"][0]],
                                                    marker={'color': color_vehicle, 'size': 25, 'allowoverlap': True},
-                                                   text=f"Vehicle: {vehicle}",
-                                                   name=vehicle
+                                                   text=f"Vehicle: {vehicle_id}",
+                                                   name=vehicle_id
                                                    ))
 
             fig.update_layout(mapbox_style="open-street-map",
@@ -418,7 +413,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         html.Button('Submit', id='press-invoke-llm', n_clicks=0,
                                     style={'padding': 5, 'flex': 1, 'backgroundColor': '#99C554', 'border': 'none',
                                            'color': 'white', 'borderRadius': '15px'}),
-                    ], style={'display': 'flex', 'flexDirection': 'row'}),
+                    ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'center'}),
                     html.Label(id='llm-output',
                                style={'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
                                       'font-family': 'Arial, sans-serif', 'display': 'none', 'flexGrow': 1,
@@ -446,6 +441,32 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                   )),
                     dcc.Interval(
                         id='table-update-interval',
+                        interval=2 * 1000,  # in milliseconds
+                        n_intervals=0
+                    ),
+                    html.H2("Vehicles",
+                            style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
+                                   'marginTop': '60px'}),
+                    html.Div(dash_table.DataTable(id='vehicle-table', cell_selectable=False,
+                                                  style_data_conditional=[
+                                                      {
+                                                          "if": {"state": "selected"},
+                                                          "backgroundColor": "inherit !important",
+                                                          "border": "inherit !important",
+                                                      }
+                                                  ],
+                                                  style_header={
+                                                      'backgroundColor': 'lightgrey',
+                                                      'fontWeight': 'bold'
+                                                  },
+                                                  style_cell={
+                                                      'backgroundColor': 'white',
+                                                      'color': 'black',
+                                                      'border': '1px solid grey'
+                                                  },
+                                                  )),
+                    dcc.Interval(
+                        id='vehicle-table-update-interval',
                         interval=2 * 1000,  # in milliseconds
                         n_intervals=0
                     )
@@ -500,5 +521,46 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     del order['timestamp']
 
             return orders_list_copy
+
+        @app.callback(
+            Output('vehicle-table', 'data'),
+            Input('vehicle-table-update-interval', 'n_intervals')
+        )
+        def update_vehicle_table(_):  # don't care about the input
+            # Convert the vehicles dictionary to a list of dictionaries, which is the format required by DataTable
+            vehicles_list = [v for v in self.vehicles.values()]
+            vehicle_ids = [k for k in self.vehicles.keys()]
+
+            # check if vehicles are empty
+            if len(vehicles_list) == 0:
+                return no_update
+
+            vehicle_ids_copy = copy.deepcopy(vehicle_ids)
+            vehicles_list_copy = copy.deepcopy(vehicles_list)
+
+            # sort both lists by vehicle_id
+            vehicle_ids_copy, vehicles_list_copy = zip(*sorted(zip(vehicle_ids_copy, vehicles_list_copy)))
+
+            for index, vehicle in enumerate(vehicles_list_copy):
+                # Set vehicle_id to vehicle color
+                vehicle["vehicle_id"] = vehicle_ids_copy[index]
+                if vehicle["vehicle_id"] is not None:
+                    try:
+                        vehicle_id_int = int(vehicle["vehicle_id"])
+                        vehicle["vehicle_id"] = vehicle_colors[vehicle_id_int - 1 % len(vehicle_colors)]
+                    except ValueError:
+                        pass
+                    vehicle["Vehicle"] = vehicle["vehicle_id"]
+                    del vehicle["vehicle_id"]
+                if 'timestamp' in vehicle:
+                    del vehicle['timestamp']
+                if 'headerId' in vehicle:
+                    del vehicle['headerId']
+                if 'currentTask' in vehicle:
+                    del vehicle['currentTask']
+                if 'position' in vehicle:
+                    vehicle['position'] = f"({vehicle['position'][0]:.8f}, {vehicle['position'][1]:.8f})"
+
+            return vehicles_list_copy
 
         app.run(debug=False)

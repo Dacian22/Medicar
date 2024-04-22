@@ -145,11 +145,12 @@ def build_nx_graph(allowed_highway_types, special_nodes):
     # define function that sets all weights from a given list in the graph to infinity
 def set_weights_to_inf(G, edges_to_be_set_to_inf):
     if edges_to_be_set_to_inf is None:
+        print("FAIL: edges not removed (are none)")
         return G
     else:
-        # print("EDGES ARE SET TO INF:")
         for edge in G.edges():
-            # for edge_to_be_set_to_inf in edges_to_be_set_to_inf:
+            print(str(edge[0]))
+            print(str(edges_to_be_set_to_inf[0]))
             if str(edge[0]) == str(edges_to_be_set_to_inf[0]) and str(edge[1]) == str(edges_to_be_set_to_inf[1]):
                 print(f"{edge} weight was set to inf")
                 G[edge[0]][edge[1]]['weight'] = float('inf')
