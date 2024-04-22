@@ -22,6 +22,7 @@ class Vehicle:
     client = None  # mqtt client
     status = None  # one of "idle", "busy", "moving"
     target_node = None  # String
+    nextSequenceId = None # integer
 
     def __init__(self, _vehicle_id, _current_position, _current_target_node):
         load_dotenv()
@@ -60,6 +61,7 @@ class Vehicle:
         payload["status"] = self.status
         payload["targetNode"] = self.target_node
         payload["currentTask"] = self.current_task
+        payload["nextSequenceId"] = self.nextSequenceId
 
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/status", json.dumps(payload), qos=2)
 
@@ -154,6 +156,7 @@ class Vehicle:
         else:  # work on the task
             edges = self.current_task["edges"]
             for edge in edges:
+                self.nextSequenceId = edge["sequenceId"] + 1
                 self.move_along_edge(edge)
         self.status = "idle"
         self.current_task = None

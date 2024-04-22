@@ -260,53 +260,63 @@ class Routing():  # singleton class. Do not create more than one object of this 
         #TODO Check the direction of the vehicle (start node/end node of the edge)
         
         print("Obstacle: ",obstacle_edge_id)
+        affected_vehicles = []
         for vehicle_id, vehicle in self.vehicles.items():
             if vehicle["currentTask"] is not None:
-                print('Vehicle position', vehicle['targetNode'])
-                print(f"Vehicle {vehicle_id} current task edges:")
+                # Look up the current edge of the vehicle from the vehicle[sequenceId]
                 for edge in vehicle["currentTask"]["edges"]:
-                    print(edge)
-            else:
-                print(f"Vehicle {vehicle_id} has no current task.")
-        # Get all vehicles that are currently moving and will pass through the obstacle edge
-        affected_vehicles = []
-        # Detect Obstacle on Edge
-        for vehicle_id, vehicle in self.vehicles.items():
-            if vehicle["status"] == "moving":
-                print("Vehicle moving:", vehicle_id)
-                current_position = vehicle['targetNode']
-                current_node_index = None
-                obstacle_index = None
-                for task_edge in vehicle["currentTask"]["edges"]:
-                    # Extract start and end nodes of the current task edge
-                    task_start_node = task_edge["startNodeId"]
-                    task_end_node = task_edge["endNodeId"]
-                    #task_start_coord = task_edge["startCoordinate"]
-                    #task_end_coord = task_edge["endCoordinate"]
-
-                    if task_start_node == current_position:
-                        current_node = task_start_node
-                        if current_node_index is None:
-                            current_node_index = task_edge["sequenceId"]
-                            print("Current node index" , current_node_index)
-                            print('Current node: ', current_node)
+                    if edge["sequenceId"] > vehicle["nextSequenceId"]:
+                        if edge["edgeId"] == obstacle_edge_id:
+                            print("Vehicle", vehicle_id, "has reached the obstacle edge.")
+                            affected_vehicles.append(vehicle_id)
                             break
-                    elif task_end_node == current_position:
-                        current_node = task_end_node
-                        if current_node_index is None:
-                            current_node_index = task_edge["sequenceId"]
-                            print("Current node index" , current_node_index)
-                            print('Current node: ', current_node)
-                            break
-                    
-                    if (task_start_node == str(obstacle_edge_id[0]) and task_end_node == str(obstacle_edge_id[1])) or\
-                        (task_start_node == str(obstacle_edge_id[1]) and task_end_node == str(obstacle_edge_id[0])):
-                        obstacle_index = task_edge["sequenceId"]
-                        print("obstacle index" , obstacle_index)
 
-                if current_node_index is not None and obstacle_index is not None:
-                    if obstacle_index >= current_node_index:
-                        affected_vehicles.append(vehicle_id)
+
+        #         print('Vehicle position', vehicle['targetNode'])
+        #         print(f"Vehicle {vehicle_id} current task edges:")
+        #         for edge in vehicle["currentTask"]["edges"]:
+        #             print(edge)
+        #     else:
+        #         print(f"Vehicle {vehicle_id} has no current task.")
+        # # Get all vehicles that are currently moving and will pass through the obstacle edge
+        #
+        # # Detect Obstacle on Edge
+        # for vehicle_id, vehicle in self.vehicles.items():
+        #     if vehicle["status"] == "moving":
+        #         print("Vehicle moving:", vehicle_id)
+        #         current_position = vehicle['targetNode']
+        #         current_node_index = None
+        #         obstacle_index = None
+        #         for task_edge in vehicle["currentTask"]["edges"]:
+        #             # Extract start and end nodes of the current task edge
+        #             task_start_node = task_edge["startNodeId"]
+        #             task_end_node = task_edge["endNodeId"]
+        #             #task_start_coord = task_edge["startCoordinate"]
+        #             #task_end_coord = task_edge["endCoordinate"]
+        #
+        #             if task_start_node == current_position:
+        #                 current_node = task_start_node
+        #                 if current_node_index is None:
+        #                     current_node_index = task_edge["sequenceId"]
+        #                     print("Current node index" , current_node_index)
+        #                     print('Current node: ', current_node)
+        #                     break
+        #             elif task_end_node == current_position:
+        #                 current_node = task_end_node
+        #                 if current_node_index is None:
+        #                     current_node_index = task_edge["sequenceId"]
+        #                     print("Current node index" , current_node_index)
+        #                     print('Current node: ', current_node)
+        #                     break
+        #
+        #             if (task_start_node == str(obstacle_edge_id[0]) and task_end_node == str(obstacle_edge_id[1])) or\
+        #                 (task_start_node == str(obstacle_edge_id[1]) and task_end_node == str(obstacle_edge_id[0])):
+        #                 obstacle_index = task_edge["sequenceId"]
+        #                 print("obstacle index" , obstacle_index)
+        #
+        #         if current_node_index is not None and obstacle_index is not None:
+        #             if obstacle_index >= current_node_index:
+        #                 affected_vehicles.append(vehicle_id)
                               
         print("Affected vehicle:", affected_vehicles)
        
