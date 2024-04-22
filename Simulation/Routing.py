@@ -40,18 +40,18 @@ class Routing():  # singleton class. Do not create more than one object of this 
     # define function to find the shortest path between two special nodes
     def find_astar_path(self, G, start_node_id, end_node_id):
         # use the a* algorithm to find the shortest path between the source and target node
-        shortest_path = nx.astar_path(G, str(start_node_id), str(end_node_id), weight='weight')
+        shortest_path = nx.astar_path(G, str(start_node_id), str(end_node_id), weight='length')
         return shortest_path
 
     def find_dijkstra_path(self, G, start_node_id, end_node_id):
         # use Dijkstra's algorithm to find the shortest path between the source and target node
         shortest_path_length, shortest_path = nx.single_source_dijkstra(G, start_node_id, target=end_node_id,
-                                                                        weight='weight')
+                                                                        weight='length')
         return shortest_path
 
     def find_bellman_ford_path(self, G, start_node_id, end_node_id):
         # use Bellman-Ford algorithm to find the shortest path between the source and target node
-        shortest_path = nx.bellman_ford_path(G, start_node_id, end_node_id, weight='weight')
+        shortest_path = nx.bellman_ford_path(G, start_node_id, end_node_id, weight='length')
         return shortest_path
 
     def evaluate_shortest_path_weight(G, shortest_path):
@@ -59,7 +59,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         for i in range(len(shortest_path) - 1):
             source = shortest_path[i]
             target = shortest_path[i + 1]
-            edge_weight = G[source][target]['weight']
+            edge_weight = G[source][target]['length']
             total_weight += edge_weight
         return total_weight
 
@@ -308,7 +308,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             # Add weights to the edges_df
             with lock:
                 for _, row in self.edge_df.iterrows():
-                    self.edge_df.at[_, "weight"] = self.graph[str(int(row["u"]))][str(int(row["v"]))]["weight"]
+                    self.edge_df.at[_, "length"] = self.graph[str(int(row["u"]))][str(int(row["v"]))]["length"]
 
             fig = go.Figure()
             # Add edges to the map
@@ -318,7 +318,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     # TODO If multiple vehicles on route, use only the color of the first vehicle.
                     color_edge = "grey"
                     on_route = False
-                    if row["weight"] == np.inf:
+                    if row["length"] == np.inf:
                         color_edge = "red"
                         print("weight infinity detected!")
                     else:
