@@ -17,6 +17,10 @@ from langchain_openai import OpenAI
 from BuildGraph import set_weights_to_inf
 from langsmith import Client
 
+from langserve import RemoteRunnable
+llama2 = RemoteRunnable("http://127.0.0.1:8489/llama2")
+llama3 = RemoteRunnable("http://127.0.0.1:8489/llama3") 
+from LLamaLLMWrapper import LLama
 
 def get_examples():
     examples = [
@@ -40,7 +44,7 @@ def get_examples():
     Are follow up questions needed here: Yes.
     Follow up: Is the event important enough so that node N2 is not accessible anymore?
     Intermediate answer: No, someone dropping their ice cream would not make node N2 inaccessible.
-    So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
+    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
     """,
         "reasoning":"""
     Because the event of someone dropping their ice cream on the floor is not important enough to block access to the node N2 so we are not removing the edges that contain the node N2, so NO edges are affected
@@ -80,7 +84,7 @@ def get_examples():
     Are follow up questions needed here: Yes.
     Follow up: Is the event important enough so that node C is not accessible anymore?
     Intermediate answer: No, someone dropping their papers would notmake node C inaccessible.
-    So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
+    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
     """,
         "reasoning":"""
     Because the event of someone dropping their papers is not important enough to block access to the node C so we are not removing the edges that contain the node C, so NO edges are affected.
@@ -99,6 +103,44 @@ def get_examples():
         "reasoning":"""
     Because the event of someone having a seisure is important enough to block access to the node 2 so we are removing the edges that contain the node 2, those being ('1','2'), ('2','3')
     """,
+    },
+    {
+            "question": "The edge list provided is: [('A', 'B'), ('B', 'C'), ('C','A'), ('C', 'D'), ('D', 'E'), ('C','F')]\n A group of people are chatting on node F. Please provide the affected edges.",
+            "answer": """
+        Are follow up questions needed here: Yes.
+        Follow up: Is the event important enough so that node F is not accessible anymore?
+        Intermediate answer: No, people chatting would not make node F inaccessible.
+        So the final answer is: List of edges that have to be removed: []. True the edge is usable.
+        """,
+            "reasoning": """
+        Because the event of people chatting is not important enough to block access to the node F so we are not removing the edges that contain the node F, so NO edges are affected.
+        """,
+    },
+    {
+            "question": "The edge list provided is: [('A', 'B'), ('B', 'C'), ('C','A'), ('C', 'D'), ('D', 'E'), ('C','F')]\n A small animal crosses the pathway on node D. Please provide the affected edges.",
+            "answer": """
+            Are follow up questions needed here: Yes.
+            Follow up: Is the event important enough so that node D is not accessible anymore?
+            Intermediate answer: No, a small animal crossing the pathway would not make node D inaccessible.
+            So the final answer is: List of edges that have to be removed: []. True the edge is usable.
+            """,
+            "reasoning": """
+            Because the event of a small animal crossing the pathway is not important enough to block access to the node D so we are not removing the edges that contain the node D, so NO edges are affected.
+            """,
+    },
+    {
+            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'),('3','6')]\n A vehicle accident has occured on node 3. Please provide the affected edges.",
+            "answer": """
+        Are follow up questions needed here: Yes.
+        Follow up: Is the event important enough so that node 3 is not accessible anymore?
+        Intermediate answer: Yes, a vehicle accident would make node 3 inaccessible.
+        Follow up: Which edges contain node 3?
+        Intermediate answer: Edges ('2','3'), ('3','4'), ('3','6') contain node 3
+        So the final answer is: List of edges that have to be removed: ('2','3'), ('3','4'), ('3','6'). False the edge is not usable.
+        """,
+            "reasoning": """
+        Because the event of a vehicle accident is important enough to block access to the node 3 so we are removing the edges that contain the node 3, those being ('2','3'), ('3','4'), ('3','6')
+        """,
     }
     ]
     return examples
@@ -114,14 +156,14 @@ def get_model_llama2():
     fewshot_template = FewShotPromptTemplate(
     examples=examples,
     example_prompt=example_prompt,
-    prefix ="""As a proffesional graph modeler, you're tasked with removing edges from an edge list when something happens that would make the edge inpassable.""",
-    suffix="{input} Please provide a mandatory True/False value if the edge is usable, but only for the prompt given, don't mention the examples!",
+    prefix ="""As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network. 
+    You must determine whether each provided edge is usable or not based on how important the obstacle given as input is. Don't provide the examples in you response but base your answer on them.""",
+    suffix="{input} Please provide the affected edges, and a mandatory True/False value if the edge is usable.",
     input_variables=["input"],
     example_separator='\n\n\n')
 
-    model_llama= Ollama(model="llama2")
-
-    return LLMChain(prompt=fewshot_template,llm=model_llama)
+    llama2_llm = LLama(model=llama2)
+    return LLMChain(prompt=fewshot_template,llm=llama2_llm)
 
 
 def get_model_testing_llama2():
@@ -135,15 +177,81 @@ def get_model_testing_llama2():
     fewshot_template = FewShotPromptTemplate(
     examples=examples,
     example_prompt=example_prompt,
-    prefix ="""As a proffesional graph modeler, you're tasked with removing edges from an edge list when something happens that would make the edge inpassable.""",
+    prefix ="""As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network. 
+    You must determine whether each provided edge is usable or not based on how important the obstacle given as input is. 
+    Don't provide the examples in you response but base your answer on them.""",
     #Using a static edge for the moment
     suffix="At edge edge_7120224687_7112240050 {input} Please provide a True/False value if the edge is usable.",
     input_variables=["input"],
     example_separator='\n\n\n')
 
-    model_llama= Ollama("llama2")
+    llama2_llm = LLama(model=llama2)
 
-    return LLMChain(prompt=fewshot_template,llm=model_llama)
+    return LLMChain(prompt=fewshot_template,llm=llama2_llm)
+
+def get_model_llama2_zero_shot():
+    template_zero_shot = """As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network. 
+    You must determine whether each provided edge is usable or not based on how important the obstacle given as input is. 
+    Don't provide the examples in you response but base your answer on them.
+    {input} Please provide a True/False value at the end if the edge is usable, exactly like this like this: True the edge is usable or False the edge is not usable."""
+
+   
+    
+    prompt_template = PromptTemplate(input_variables=["input"], template=template_zero_shot)
+   
+
+    llama2_llm = LLama(model=llama2)
+
+    return LLMChain(prompt=prompt_template,llm=llama2_llm)
+
+
+def get_model_testing_llama2_zero_shot():
+    template_zero_shot = """As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network. 
+    You must determine whether each provided edge is usable or not based on how important the obstacle given as input is. 
+    At edge edge_7120224687_7112240050 {input} Please provide a True/False value at the end if the edge is usable, exactly like this: True the edge is usable or False the edge is not usable."""
+
+   
+    
+    prompt_template = PromptTemplate(input_variables=["input"], template=template_zero_shot)
+   
+
+    llama2_llm = LLama(model=llama2)
+
+    return LLMChain(prompt=prompt_template,llm=llama2_llm)
+
+
+
+
+def get_model_llama3_zero_shot():
+    template_zero_shot = """As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network. 
+    You must determine whether each provided edge is usable or not based on how important the obstacle given as input is. 
+    {input} Please provide a True/False value at the end if the edge is usable, exactly like this: True the edge is usable or False the edge is not usable."""
+
+   
+    
+    prompt_template = PromptTemplate(input_variables=["input"], template=template_zero_shot)
+   
+
+    llama3_llm = LLama(model=llama3)
+
+    return LLMChain(prompt=prompt_template,llm=llama3_llm)
+
+
+def get_model_testing_llama3_zero_shot():
+    template_zero_shot = """As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network. 
+    You must determine whether each provided edge is usable or not based on how important the obstacle given as input is. 
+    At edge edge_7120224687_7112240050 {input} Please provide a True/False value at the end if the edge is usable, exactly like this: True the edge is usable or False the edge is not usable."""
+
+   
+    
+    prompt_template = PromptTemplate(input_variables=["input"], template=template_zero_shot)
+   
+
+    llama3_llm = LLama(model=llama3)
+
+    return LLMChain(prompt=prompt_template,llm=llama3_llm)
+
+
 
 def parsing_llm_result(answer):
     pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
@@ -179,6 +287,32 @@ def invoke_llm_llama2(prompt):
     #Return the output of the LLM
     return answer["text"]
 
+def invoke_llm_llama2_zero_shot(prompt):
+    #Load the edges
+    G=load_edges()
+
+    #Create the LLM
+    new_graph=get_model_llama2_zero_shot()
+
+    #Create and run the prompt
+    answer=new_graph.invoke(prompt)
+
+    #Return the output of the LLM
+    return answer["text"]
+
+
+def invoke_llm_llama3_zero_shot(prompt):
+    #Load the edges
+    G=load_edges()
+
+    #Create the LLM
+    new_graph=get_model_llama3_zero_shot()
+
+    #Create and run the prompt
+    answer=new_graph.invoke(prompt)
+
+    #Return the output of the LLM
+    return answer["text"]
 
 def load_edges():
     import pandas as pd
@@ -199,7 +333,7 @@ def main(ref_routing):
     prompt = input("Enter your prompt: ")
 
     # Get output of the LLM
-    output = invoke_llm_llama2(prompt)
+    output = invoke_llm_llama3_zero_shot(prompt)
     print(output)
 
     # Parse the output
@@ -208,3 +342,6 @@ def main(ref_routing):
 
     # Update graph in the routing
     ref_routing.graph = set_weights_to_inf(ref_routing.graph, parsed_res)
+
+if __name__ == "__main__":
+    main("")

@@ -3,7 +3,11 @@ from dotenv import load_dotenv
 import os
 import re
 from Playground_LLM_Dacian import invoke_llm
-from Llama2 import invoke_llm_llama2
+from Llama import invoke_llm_llama2
+from Llama import invoke_llm_llama2_zero_shot
+from Llama import invoke_llm_llama2_zero_shot
+from Llama import invoke_llm_llama3_zero_shot
+
 
 load_dotenv()
 client=Client(api_key=os.getenv("LANGCHAIN_API_KEY"))
@@ -21,6 +25,21 @@ def get_output_file_llama2():
     except:
         f = open(os.path.join('Playground_LLM','EvaluationDatasetLLama2.csv'),'w')
     return f
+
+def get_output_file_llama2_zero_shot():
+    try:
+        f = open(os.path.join('..','Playground_LLM','EvaluationDatasetLLama2ZeroShot.csv'),'w')
+    except:
+        f = open(os.path.join('Playground_LLM','EvaluationDatasetLLama2ZeroShot.csv'),'w')
+    return f
+
+def get_output_file_llama3_zero_shot():
+    try:
+        f = open(os.path.join('..','Playground_LLM','EvaluationDatasetLLama3ZeroShot.csv'),'w')
+    except:
+        f = open(os.path.join('Playground_LLM','EvaluationDatasetLLama3ZeroShot.csv'),'w')
+    return f
+
 
 def test_fewshot():
     edge_ids,tests=load_tests()
@@ -53,6 +72,48 @@ def test_llama2():
     
     for test,edge in zip(tests,edge_ids):
        output=invoke_llm_llama2(f'At edge {edge} {test[0]}')
+       print(output)
+       parsed_output=parse_output(output)
+       if parsed_output==None:
+           none_answers+=1
+       else:
+           f.write(f'{test[0]};{test[1]};{parsed_output}\n')
+    f.close()
+
+    print(none_answers)
+
+
+def test_llama2_zero_shot():
+    edge_ids,tests=load_tests()
+    
+    f=get_output_file_llama2_zero_shot()
+    f.write('action;edgeUsable;LLMAnswer\n')
+
+    none_answers=0
+    
+    for test,edge in zip(tests,edge_ids):
+       output=invoke_llm_llama2_zero_shot(f'At edge {edge} {test[0]}')
+       print(output)
+       parsed_output=parse_output(output)
+       if parsed_output==None:
+           none_answers+=1
+       else:
+           f.write(f'{test[0]};{test[1]};{parsed_output}\n')
+    f.close()
+
+    print(none_answers)
+
+
+def test_llama3_zero_shot():
+    edge_ids,tests=load_tests()
+    
+    f=get_output_file_llama3_zero_shot()
+    f.write('action;edgeUsable;LLMAnswer\n')
+
+    none_answers=0
+    
+    for test,edge in zip(tests,edge_ids):
+       output=invoke_llm_llama3_zero_shot(f'At edge {edge} {test[0]}')
        print(output)
        parsed_output=parse_output(output)
        if parsed_output==None:
@@ -106,4 +167,4 @@ def parse_output(output):
 
 
 if __name__ == "__main__":
-    test_llama2()
+    test_llama2_zero_shot()
