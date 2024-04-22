@@ -39,7 +39,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     # define function to find the shortest path between two special nodes
     def find_astar_path(self, G, start_node_id, end_node_id):
-        # use the a* algorithm to find the shortest path between the source and target node
+        # use the a* algorithm to find the shortest path between the source and order node
         shortest_path = nx.astar_path(G, str(start_node_id), str(end_node_id), weight='weight')
         return shortest_path
 
@@ -64,7 +64,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         return total_weight
 
     # define function that 'translates' the shortest path to MQTT messages
-    def translate_path_to_mqtt(self, shortest_path):
+    def translate_path_to_mqtt(self, shortest_path, order_id):
         # create a list of messages
         edges = []
         # iterate over all edges in the shortest path
@@ -73,7 +73,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             edges.append(
                 {'edgeId': "edge_{}_{}".format(edge[0], edge[1]), 'sequenceId': index, 'startNodeId': edge[0],
                  'endNodeId': edge[1], 'startCoordinate': tuple(self.nodes_df.loc[int(edge[0])].loc[["lat", "lon"]]),
-                 'endCoordinate': tuple(self.nodes_df.loc[int(edge[1])].loc[["lat", "lon"]])})
+                 'endCoordinate': tuple(self.nodes_df.loc[int(edge[1])].loc[["lat", "lon"]]), 'orderId': order_id})
         message = {'edges': edges}
         # print(json.dumps(message))
         return message
@@ -101,7 +101,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             # Add order to self.orders
             order = json.loads(msg.payload.decode("utf-8"))
             self.orders[order["order_id"]] = order
-            self.handle_order(order)
+            self.handle_order(order,None)
 
     def get_distance(self, start_node_id, end_node_id):
         return nx.astar_path_length(self.graph, str(start_node_id), str(end_node_id), weight='weight')
@@ -133,19 +133,44 @@ class Routing():  # singleton class. Do not create more than one object of this 
         else:
             return order["vehicle_id"]
 
-    def handle_order(self, order):
-        vehicle_id = self.get_vehicle_id_for_order(order)
-        # Update vehicle id in self.orders
-        order["vehicle_id"] = vehicle_id
+    def handle_order(self, order=None, order_id = None, current_node = None):
+        if order and order_id == None:
+            vehicle_id = self.get_vehicle_id_for_order(order)
+            # Update vehicle id in self.orders
+            order["vehicle_id"] = vehicle_id
+            order_id = order['order_id']
 
-        shortest_path_astar = self.find_astar_path(self.graph, self.get_node_id_from_name(order["source"]),
-                                                   self.get_node_id_from_name(order["target"]))
-        if self.vehicles[order["vehicle_id"]]["targetNode"] != self.get_node_id_from_name(order["source"]):
-            shortest_path_astar_to_start_node = self.find_astar_path(self.graph,
-                                                                     self.vehicles[order["vehicle_id"]]["targetNode"],
-                                                                     self.get_node_id_from_name(order["source"]))
-            # add the two paths together
-            shortest_path_astar = shortest_path_astar_to_start_node + shortest_path_astar
+            shortest_path_astar = self.find_astar_path(self.graph, self.get_node_id_from_name(order["source"]),
+                                                    self.get_node_id_from_name(order["target"]))
+            if self.vehicles[order["vehicle_id"]]["targetNode"] != self.get_node_id_from_name(order["source"]):
+                shortest_path_astar_to_start_node = self.find_astar_path(self.graph,
+                                                                        self.vehicles[order["vehicle_id"]]["targetNode"],
+                                                                        self.get_node_id_from_name(order["source"]))
+                # add the two paths together
+                shortest_path_astar = shortest_path_astar_to_start_node + shortest_path_astar
+        
+            print("old shortest path:", shortest_path_astar)
+        if order_id and order == None:
+            order = self.orders.get(order_id)
+            vehicle_id = self.get_vehicle_id_for_order(order)
+            # Update vehicle id in self.orders
+            order["vehicle_id"] = vehicle_id
+            vehicle = self.vehicles.get(vehicle_id)
+            order_source = self.get_node_id_from_name(order["source"])
+
+            for task_edge in vehicle["currentTask"]["edges"]:
+                if task_edge['startNodeId'] == order_source or task_edge['startNodeId'] == order_source:
+                    self.handle_order(order, None)
+                else:
+                    shortest_path_astar = self.find_astar_path(self.graph, current_node,
+                                                    self.get_node_id_from_name(order["target"]))
+            print("new shortest path:", shortest_path_astar)
+
+            
+                                                      
+
+
+
         # shortest_path_dijkstra = self.find_dijkstra_path(self.graph, order["source"], order["target"])
         # shortest_path_bellman_ford = self.find_bellman_ford_path(self.graph, order["source"], order["target"])
         #
@@ -162,8 +187,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
         #     shortest_path = shortest_path_bellman_ford
 
         # translate the shortest path to MQTT messages
-        print("Old shortest path:", shortest_path_astar)
-        message = self.translate_path_to_mqtt(shortest_path_astar)
+        
+        message = self.translate_path_to_mqtt(shortest_path_astar, order_id )
         # send the message to the MQTT broker and set vehicle status to busy
         threading.Thread(target=self.send_route_to_vehicle_async, args=(vehicle_id, message)).start()
 
@@ -237,6 +262,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         print("Obstacle: ",obstacle_edge_id)
         for vehicle_id, vehicle in self.vehicles.items():
             if vehicle["currentTask"] is not None:
+                print('Vehicle position', vehicle['targetNode'])
                 print(f"Vehicle {vehicle_id} current task edges:")
                 for edge in vehicle["currentTask"]["edges"]:
                     print(edge)
@@ -248,27 +274,31 @@ class Routing():  # singleton class. Do not create more than one object of this 
         for vehicle_id, vehicle in self.vehicles.items():
             if vehicle["status"] == "moving":
                 print("Vehicle moving:", vehicle_id)
-                current_position = vehicle['position']
-                print("Current node", current_position)
+                current_position = vehicle['targetNode']
                 current_node_index = None
                 obstacle_index = None
                 for task_edge in vehicle["currentTask"]["edges"]:
                     # Extract start and end nodes of the current task edge
                     task_start_node = task_edge["startNodeId"]
                     task_end_node = task_edge["endNodeId"]
-                    task_start_coord = task_edge["startCoordinate"]
-                    task_end_coord = task_edge["endCoordinate"]
+                    #task_start_coord = task_edge["startCoordinate"]
+                    #task_end_coord = task_edge["endCoordinate"]
 
-                    if task_start_coord == current_position:
+                    if task_start_node == current_position:
                         current_node = task_start_node
                         if current_node_index is None:
                             current_node_index = task_edge["sequenceId"]
                             print("Current node index" , current_node_index)
-                    elif task_end_coord == current_position:
+                            print('Current node: ', current_node)
+                            break
+                    elif task_end_node == current_position:
                         current_node = task_end_node
                         if current_node_index is None:
                             current_node_index = task_edge["sequenceId"]
                             print("Current node index" , current_node_index)
+                            print('Current node: ', current_node)
+                            break
+                    
                     if (task_start_node == str(obstacle_edge_id[0]) and task_end_node == str(obstacle_edge_id[1])) or\
                         (task_start_node == str(obstacle_edge_id[1]) and task_end_node == str(obstacle_edge_id[0])):
                         obstacle_index = task_edge["sequenceId"]
@@ -283,18 +313,20 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # Recalculate routes for affected vehicles
         for vehicle_id in affected_vehicles:
             vehicle = self.vehicles[vehicle_id]
-            vehicle["status"] = "idle"
-            target_destination = vehicle["currentTask"]["edges"][-1]["endNodeId"]
-            new_shortest_path = self.find_astar_path(self.graph, current_node, target_destination)
-            print("New shortest path", new_shortest_path)
+            order_id = vehicle['currentTask']['order_id']
+            current_node = vehicle['targetNode']
+            #vehicle["status"] = "idle"
+            #order_destination = vehicle["currentTask"]["edges"][-1]["endNodeId"]
+            #new_shortest_path = self.find_astar_path(self.graph, current_node, order_destination)
+            #print("New shortest path", new_shortest_path)
             # Update vehicle's current task with the new shortest path
-            vehicle["currentTask"]["edges"] = new_shortest_path
+            #vehicle["currentTask"]["edges"] = new_shortest_path
             # Translate and send updated route to the vehicle
-            updated_route = self.translate_path_to_mqtt(new_shortest_path)
+            #updated_route = self.translate_path_to_mqtt(new_shortest_path)
             #self.send_route_to_vehicle_async(vehicle_id, updated_route)
-            print("updated route: ", updated_route)
+            #print("updated route: ", updated_route)
             
-            threading.Thread(target=self.send_route_to_vehicle_async, args=(vehicle_id, updated_route)).start()
+            threading.Thread(self.handle_order, args=(None, order_id, current_node)).start()
 
           
         
@@ -346,8 +378,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
             # Add nodes to the map
             for index_node, row in self.nodes_df.iterrows():
-                # Determine color (according to vehicle colors if target Node, else grey).
-                # TODO If multiple vehicles on the same target, use only the color of the first vehicle.
+                # Determine color (according to vehicle colors if order Node, else grey).
+                # TODO If multiple vehicles on the same order, use only the color of the first vehicle.
                 is_special_node = row["name"] is not np.NaN
                 if is_special_node:  # currently only display nodes that are special nodes
                     color_node = "grey"
