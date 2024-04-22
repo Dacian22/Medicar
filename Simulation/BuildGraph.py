@@ -6,14 +6,13 @@ import networkx as nx
 from bs4 import BeautifulSoup
 import pandas as pd
 
+from dotenv import load_dotenv
+load_dotenv()
+
 def get_graph_data():
     # reading data inside xml file to a variable under the name data
-    try:
-        with open('Uniklinikum_Freiburg_map.osm', 'r', encoding='utf-8') as f:
-            data = f.read()
-    except FileNotFoundError:
-        with open(os.path.join('Simulation', 'Uniklinikum_Freiburg_map.osm'), 'r', encoding='utf-8') as f:
-            data = f.read()
+    with open(os.path.join(os.getenv("RESOURCES"), "Uniklinikum_Freiburg_map.osm"), 'r', encoding='utf-8') as f:
+        data = f.read()
 
     # passing stored data inside beautifulsoup parser, storing the returned object
     bs_data = BeautifulSoup(data, "xml")
@@ -146,11 +145,12 @@ def build_nx_graph(allowed_highway_types, special_nodes):
     # define function that sets all weights from a given list in the graph to infinity
 def set_weights_to_inf(G, edges_to_be_set_to_inf):
     if edges_to_be_set_to_inf is None:
+        print("FAIL: edges not removed (are none)")
         return G
     else:
-        # print("EDGES ARE SET TO INF:")
         for edge in G.edges():
-            # for edge_to_be_set_to_inf in edges_to_be_set_to_inf:
+            print(str(edge[0]))
+            print(str(edges_to_be_set_to_inf[0]))
             if str(edge[0]) == str(edges_to_be_set_to_inf[0]) and str(edge[1]) == str(edges_to_be_set_to_inf[1]):
                 print(f"{edge} weight was set to inf")
                 G[edge[0]][edge[1]]['weight'] = float('inf')

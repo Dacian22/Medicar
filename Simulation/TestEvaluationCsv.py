@@ -13,17 +13,11 @@ load_dotenv()
 client=Client(api_key=os.getenv("LANGCHAIN_API_KEY"))
 
 def get_output_file_fewshot():
-    try:
-        f = open(os.path.join('..','Playground_LLM','EvaluationDatasetFewShot.csv'),'w')
-    except:
-        f = open(os.path.join('Playground_LLM','EvaluationDatasetFewShot.csv'),'w')
+    f = open(os.path.join(os.getenv("RESOURCES"), "EvaluationDatasetFewShot.csv"))
     return f
 
 def get_output_file_llama2():
-    try:
-        f = open(os.path.join('..','Playground_LLM','EvaluationDatasetLLama2.csv'),'w')
-    except:
-        f = open(os.path.join('Playground_LLM','EvaluationDatasetLLama2.csv'),'w')
+    f = open(os.path.join(os.getenv("RESOURCES"), "EvaluationDatasetLLama2.csv"))
     return f
 
 def get_output_file_llama2_zero_shot():
