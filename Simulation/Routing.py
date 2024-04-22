@@ -546,8 +546,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 vehicle["vehicle_id"] = vehicle_ids_copy[index]
                 if vehicle["vehicle_id"] is not None:
                     try:
-                        vehicle_id_int = int(vehicle["vehicle_id"])
-                        vehicle["vehicle_id"] = vehicle_colors[vehicle_id_int - 1 % len(vehicle_colors)]
+                        vehicle["vehicle_id"] = vehicle_colors[int(vehicle["vehicle_id"]) - 1 % len(vehicle_colors)]
                     except ValueError:
                         pass
                     vehicle["Vehicle"] = vehicle["vehicle_id"]
