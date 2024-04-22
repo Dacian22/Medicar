@@ -404,8 +404,17 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 html.Div([
                     html.H2("LLM", style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554'}),
                     html.Div([
+                        dcc.Dropdown(
+                            id='llm-model-dropdown',
+                            options=[
+                                {'label': 'GPT-3.5', 'value': 'gpt'},
+                                {'label': 'LLAMA-2', 'value': 'llama'},
+                            ],
+                            value='gpt',
+                            style={'flex': 2, 'marginRight': '5px', 'borderRadius': '15px', 'padding': 5}
+                        ),
                         dcc.Textarea(id='input-prompt', value='Prompt...',
-                                     style={'height': 60, 'padding': 5, 'flex': 10, 'borderRadius': '15px',
+                                     style={'height': 60, 'padding': 5, 'flex': 7, 'borderRadius': '15px',
                                             'marginRight': '5px'}),
                         html.Button('Submit', id='press-invoke-llm', n_clicks=0,
                                     style={'padding': 5, 'flex': 1, 'backgroundColor': '#99C554', 'border': 'none',
@@ -455,10 +464,14 @@ class Routing():  # singleton class. Do not create more than one object of this 
              Output('llm-output', 'style')],
             Input('press-invoke-llm', 'n_clicks'),
             State('input-prompt', 'value'),
+            State('llm-model-dropdown', 'value'),
             prevent_initial_call=True
         )
-        def update_output(_, value):
-            llm_output = Playground_LLM_Dacian.invoke_llm(value)
+        def update_output(_, value_prompt, value_model):
+            if value_model == 'gpt':
+                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt)
+            else:
+                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt)
             self.apply_llm_output(llm_output)
             return llm_output, {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
                                 'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
