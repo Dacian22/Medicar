@@ -6,14 +6,13 @@ import networkx as nx
 from bs4 import BeautifulSoup
 import pandas as pd
 
+from dotenv import load_dotenv
+load_dotenv()
+
 def get_graph_data():
     # reading data inside xml file to a variable under the name data
-    try:
-        with open('Uniklinikum_Freiburg_map.osm', 'r', encoding='utf-8') as f:
-            data = f.read()
-    except FileNotFoundError:
-        with open(os.path.join('Simulation', 'Uniklinikum_Freiburg_map.osm'), 'r', encoding='utf-8') as f:
-            data = f.read()
+    with open(os.path.join(os.getenv("RESOURCES"), "Uniklinikum_Freiburg_map.osm"), 'r', encoding='utf-8') as f:
+        data = f.read()
 
     # passing stored data inside beautifulsoup parser, storing the returned object
     bs_data = BeautifulSoup(data, "xml")

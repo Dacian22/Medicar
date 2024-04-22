@@ -1,4 +1,3 @@
-import ast
 import json
 import os
 import re
@@ -450,7 +449,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         interval=2 * 1000,  # in milliseconds
                         n_intervals=0
                     )
-                ], style={'padding': 5, 'flex': 1})
+                ], style={'padding': 5, 'flex': 2})
             ], style={'display': 'flex', 'flexDirection': 'row'})
         ])
 
@@ -463,8 +462,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
             [Output('llm-output', 'children'),
              Output('llm-output', 'style')],
             Input('press-invoke-llm', 'n_clicks'),
-            State('input-prompt', 'value'),
-            State('llm-model-dropdown', 'value'),
+            [State('input-prompt', 'value'),
+            State('llm-model-dropdown', 'value')],
             prevent_initial_call=True
         )
         def update_output(_, value_prompt, value_model):
