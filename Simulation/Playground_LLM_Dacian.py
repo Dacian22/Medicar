@@ -16,6 +16,9 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain_openai import OpenAI
 from BuildGraph import set_weights_to_inf
 from langsmith import Client
+from langserve import RemoteRunnable
+llama2 = RemoteRunnable("http://127.0.0.1:8489/llama2")
+from LLamaLLMWrapper import LLama
 
 load_dotenv(override=True)
 #client=Client(api_key=os.getenv("LANGCHAIN_API_KEY"))
@@ -43,7 +46,7 @@ def get_examples():
     Are follow up questions needed here: Yes.
     Follow up: Is the event important enough so that node N2 is not accessible anymore?
     Intermediate answer: No, someone dropping their ice cream would not make node N2 inaccessible.
-    So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
+    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
     """,
         "reasoning":"""
     Because the event of someone dropping their ice cream on the floor is not important enough to block access to the node N2 so we are not removing the edges that contain the node N2, so NO edges are affected
@@ -83,7 +86,7 @@ def get_examples():
     Are follow up questions needed here: Yes.
     Follow up: Is the event important enough so that node C is not accessible anymore?
     Intermediate answer: No, someone dropping their papers would notmake node C inaccessible.
-    So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
+    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
     """,
         "reasoning":"""
     Because the event of someone dropping their papers is not important enough to block access to the node C so we are not removing the edges that contain the node C, so NO edges are affected.
@@ -109,7 +112,7 @@ def get_examples():
         Are follow up questions needed here: Yes.
         Follow up: Is the event important enough so that node F is not accessible anymore?
         Intermediate answer: No, people chatting would not make node F inaccessible.
-        So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
+        So the final answer is: List of edges that have to be removed: []. True the edge is usable.
         """,
             "reasoning": """
         Because the event of people chatting is not important enough to block access to the node F so we are not removing the edges that contain the node F, so NO edges are affected.
@@ -121,7 +124,7 @@ def get_examples():
             Are follow up questions needed here: Yes.
             Follow up: Is the event important enough so that node D is not accessible anymore?
             Intermediate answer: No, a small animal crossing the pathway would not make node D inaccessible.
-            So the final answer is: List of edges that have to be removed: []. True the edge is not usable.
+            So the final answer is: List of edges that have to be removed: []. True the edge is usable.
             """,
             "reasoning": """
             Because the event of a small animal crossing the pathway is not important enough to block access to the node D so we are not removing the edges that contain the node D, so NO edges are affected.
@@ -140,7 +143,48 @@ def get_examples():
             "reasoning": """
         Because the event of a vehicle accident is important enough to block access to the node 3 so we are removing the edges that contain the node 3, those being ('2','3'), ('3','4'), ('3','6')
         """,
+    },
+    {
+            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'),('3','6')]\n A person is walking with a child holding their hand on node 3. Please provide the affected edges.",
+            "answer": """
+            Are follow up questions needed here: Yes.
+            Follow up: Is the event important enough so that node 3 is not accessible anymore?
+            Intermediate answer: No, a person walking with a child holding their hand would not make node 3 inaccessible.
+            So the final answer is: List of edges that have to be removed: []. True the edge is usable.
+            """,
+            "reasoning": """
+            Because the event of a person walking with a child holding their hand is not important enough to block access to the node 3 so we are not removing the edges that contain the node 3, so no edges are affected
+            """,
+    },
+    {
+            "question": "The edge list provided is: [('N1', 'N2'), ('N2', 'N3'), ('N3', 'N4'), ('N4', 'N5'),('N3','N6')]\n A burst fire hydrant floods the path at node N3. Please provide the affected edges.",
+            "answer": """
+            Are follow up questions needed here: Yes.
+            Follow up: Is the event important enough so that node N3 is not accessible anymore?
+            Intermediate answer: Yes, a burst fire hydrant flooding the path would make node N3 inaccessible.
+            Follow up: Which edges contain node N3?
+            Intermediate answer: Edges ('N2','N3'), ('N3','N4'), ('N3','N6') contain node N3
+            So the final answer is: List of edges that have to be removed: ('N2','N3'), ('N3','N4'), ('N3','N6'). False the edge is not usable.
+            """,
+            "reasoning": """
+            Because the event of a burst fire hydrant flooding the path is important enough to block access to the node N3 so we are removing the edges that contain the node N3, those being ('N2','N3'), ('N3','N4'), ('N3','N6')
+            """,
+    },
+    {
+            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'), ('2','6'), ('3','7')]\n A fallen fence blocks the access near node 6. Please provide the affected edges.",
+            "answer": """
+            Are follow up questions needed here: Yes.
+            Follow up: Is the event important enough so that node 6 is not accessible anymore?
+            Intermediate answer: Yes, a fallen fence blocking the access would make node 6 inaccessible.
+            Follow up: Which edges contain node 6?
+            Intermediate answer: Edges ('2','6') contain node 6
+            So the final answer is: List of edges that have to be removed: ('2','6'). False the edge is not usable.
+            """,
+            "reasoning": """
+            Because the event of a fallen fence blocking the access is important enough to block access to the node 6 so we are removing the edges that contain the node 6, those being ('2','6')
+            """,
     }
+
     ]
     return examples
 
@@ -155,10 +199,9 @@ def get_model():
     fewshot_template = FewShotPromptTemplate(
     examples=examples,
     example_prompt=example_prompt,
-    prefix ="""As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network.
-    You're tasked with removing edges from an edge list when something happens that would make the edge impassable. 
-    You must determine whether each provided edge is usable or not based on how important the obstacle given as input is. Respond
-    with True if the edge is available and False if the edge is not available.""",
+    prefix ="""As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network. 
+    You must determine whether each provided edge is usable or not based on how important the obstacle given as input is. 
+    Don't provide the examples in you response but base your answer on them.""",
     suffix="{input} Please provide the affected edges, and a mandatory True/False value if the edge is usable.",
     input_variables=["input"],
     example_separator='\n\n\n')
@@ -288,7 +331,7 @@ def load_edges():
 
 def main(ref_routing):
     # Get node id as input from the command line
-    time.sleep(5)
+    #time.sleep(5)
     prompt = input("Enter your prompt: ")
 
     # Get output of the LLM
