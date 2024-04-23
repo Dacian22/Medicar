@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import re
+import sys
 import threading
 import time
 import warnings
@@ -20,7 +21,9 @@ import Playground_LLM_Dacian
 import TestEvaluationCsv
 
 lock = threading.Lock()
-warnings.filterwarnings("ignore")
+# warnings.filterwarnings("ignore")
+
+import random
 
 
 class Routing():  # singleton class. Do not create more than one object of this class
@@ -95,6 +98,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
             vehicle_id = msg.topic.split("/")[2]
             vehicle_status = json.loads(msg.payload.decode())
             self.vehicles[vehicle_id] = vehicle_status
+        elif msg.topic.startswith(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/") and msg.topic.endswith("/incident"):
+            # Add incident to self.incidents
+            incident = json.loads(msg.payload.decode("utf-8"))
+            print(f"Received incident: {incident}")
+            llm_output = Playground_LLM_Dacian.invoke_llm(incident["prompt"], "openai")
+            print(llm_output)
+            self.apply_llm_output(llm_output, incident["edgeId"], human=False)
         else:  # received order
             # Add order to self.orders
             order = json.loads(msg.payload.decode("utf-8"))
@@ -206,36 +216,47 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "order_manager/transportation/orders/#", qos=2)
         # subscribe to vehicle status
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/+/status", qos=2)
+        # subscribe to incidents
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/+/incident", qos=2)
         print("simulation online")
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "hello", "simulation online", qos=2)
         threading.Thread(target=self.get_map).start()
         self.client.loop_forever()
 
-    def apply_llm_output(self, llm_output):
+    def apply_llm_output(self, llm_output, edgeId=None, human=True):
         # Parse the output
-        print(llm_output)
         parsed_res = TestEvaluationCsv.parse_output(llm_output)
         print(parsed_res)
         if not parsed_res:  # remove edge
-            try:
-                # Get edge from llm_output
-                re_str = r"edge_([0-9]+)_([0-9]+)"
-                result = re.findall(re_str, llm_output)
-                print(result)
-                edge_id = int(re.findall(re_str, llm_output)[0][0]), int(re.findall(re_str, llm_output)[0][1])
-            except IndexError:
-                pattern = r"\([`']?\d+[`']?,.?[`']?\d+[`']?\)"
-                edge_id = re.findall(pattern, llm_output)
-                edge_id = edge_id[0].strip("'´")
-                print(edge_id)
-
-            # Add incident to incidents
-            self.incidents[edge_id] = float("inf")
-
+            pattern = r"\([`']?(\d+)[`']?,.?[`']?(\d+)[`']?\)"
+            re_str = r"edge_([0-9]+)_([0-9]+)"
+            if edgeId is None:
+                try:
+                    # Get edge from llm_output
+                    result = re.findall(re_str, llm_output)
+                    print(result)
+                    edgeId = int(re.findall(re_str, llm_output)[0][0]), int(re.findall(re_str, llm_output)[0][1])
+                except IndexError:
+                    result = re.findall(pattern, llm_output)
+                    print(result)
+                    edgeId = int(re.findall(pattern, llm_output)[0][0]), int(re.findall(pattern, llm_output)[0][1])
+                    print(edgeId)
+            else:
+                edgeId = int(re.findall(re_str, edgeId)[0][0]), int(re.findall(re_str, edgeId)[0][1])
             # Update graph in the routing
-            print(f"trying to remove edge {edge_id}...")
-            self.graph = BuildGraph.set_weights_to_inf(self.graph, edge_id)
-            self.reroute_vehicles(edge_id)
+            print(f"trying to remove edge {edgeId}...")
+            self.graph, success_message = BuildGraph.set_weights_to_inf(self.graph, edgeId)
+            if success_message == "SUCCESS":
+                # Add incident to incidents
+                self.incidents[edgeId] = {
+                    "value": "inf",
+                    # timestamp in HH:MM:SS
+                    "timestamp": time.strftime('%H:%M:%S', time.localtime()),
+                    "origin": "Human" if human else "Vehicle"
+                }
+
+                # Reroute vehicles
+                self.reroute_vehicles(edgeId)
 
 
     def reroute_vehicles(self, obstacle_edge_id):
@@ -452,6 +473,51 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                style={'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
                                       'font-family': 'Arial, sans-serif', 'display': 'none', 'flexGrow': 1,
                                       'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}),
+                    html.Div([
+                        html.H2("Settings",
+                                style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
+                                       'marginTop': '60px'}),
+                        html.Div([
+                            html.Label('Seed:', style={'font-family': 'Arial, sans-serif', 'color': '#99C554', 'marginRight': '5px'}),
+                            dcc.Input(id='random-seed', type='number', value=42, style={'marginRight': '5px'}),
+                            html.Button('Update Seed', id='update-seed-button', n_clicks=0,
+                                        style={'padding': 5, 'backgroundColor': '#99C554', 'border': 'none',
+                                               'color': 'white', 'borderRadius': '15px', 'marginRight': '10px'}),
+                            html.Button('Choose random Seed', id='choose-random-seed-button', n_clicks=0,
+                                        style={'padding': 5, 'backgroundColor': '#99C554', 'border': 'none',
+                                               'color': 'white', 'borderRadius': '15px', 'marginRight': '10px'}),
+                            html.Label('Generate Incidents (from vehicles):',
+                                       style={'font-family': 'Arial, sans-serif', 'color': '#99C554'}),
+                            dcc.RadioItems(["off", "on"], "off", id='generate-incidents')
+                        ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'center',
+                                  'marginTop': '10px'})
+                    ]),
+                    html.H2("Ongoing Incidents",
+                            style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
+                                   'marginTop': '60px'}),
+                    html.Div(dash_table.DataTable(id='incidents-tbl', cell_selectable=False,
+                                                  style_data_conditional=[
+                                                      {
+                                                          "if": {"state": "selected"},
+                                                          "backgroundColor": "inherit !important",
+                                                          "border": "inherit !important",
+                                                      }
+                                                  ],
+                                                  style_header={
+                                                      'backgroundColor': 'lightgrey',
+                                                      'fontWeight': 'bold'
+                                                  },
+                                                  style_cell={
+                                                      'backgroundColor': 'white',
+                                                      'color': 'black',
+                                                      'border': '1px solid grey'
+                                                  },
+                                                  )),
+                    dcc.Interval(
+                        id='table-update-interval-incidents',
+                        interval=2 * 1000,  # in milliseconds
+                        n_intervals=0
+                    ),
                 ])
             elif tab == 'tab-2':
                 return html.Div([
@@ -524,10 +590,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
         )
         def update_output(_, value_prompt, value_model):
             if value_model == 'gpt':
-                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt)
+                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai")
             else:
                 llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt)
-            self.apply_llm_output(llm_output)
+            self.apply_llm_output(llm_output, human=True)
             return llm_output, {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
                                 'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
                                 'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}
@@ -596,5 +662,59 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     vehicle['position'] = f"({vehicle['position'][0]:.8f}, {vehicle['position'][1]:.8f})"
 
             return vehicles_list_copy
+
+        @app.callback(
+        Output('incidents-tbl', 'data'),
+                Input('table-update-interval-incidents', 'n_intervals')
+        )
+        def update_incidents_table(_):  # don't care about the input
+            incidents_edge_ids = [f"edge_{edge[0]}_{edge[1]}" for edge in self.incidents.keys()]
+            incidents_attributes = [incident for incident in self.incidents.values()]
+
+            incidents_edge_ids_copy = copy.deepcopy(incidents_edge_ids)
+            incidents_attributes_copy = copy.deepcopy(incidents_attributes)
+
+            for index, incident in enumerate(incidents_attributes_copy):
+                # Set vehicle_id to vehicle color
+                incident["Edge_ID"] = incidents_edge_ids_copy[index]
+
+            return incidents_attributes_copy
+
+        @app.callback(
+            Output('random-seed', 'value', allow_duplicate=True),
+            Input('choose-random-seed-button', 'n_clicks'),
+            State('random-seed', 'value'),
+            prevent_initial_call=True
+        )
+        def choose_random_seed(n_clicks, value):
+            value = random.randrange(sys.maxsize)
+            print(value)
+            return value
+
+        @app.callback(
+            Output('random-seed', 'value'),
+            Input('update-seed-button', 'n_clicks'),
+            State('random-seed', 'value'),
+            prevent_initial_call=True
+        )
+        def update_random_seed(n_clicks, value):
+            for vehicle_id in self.vehicles.keys():
+                print(f"sending seed {value} to vehicle", vehicle_id)
+                self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/random_seed",
+                                    value, qos=2)
+            return value
+
+        @app.callback(
+            Output('generate-incidents', 'value'),
+            Input('generate-incidents', 'value'),
+            prevent_initial_call=True
+        )
+        def update_generate_incidents(value):
+            for vehicle_id in self.vehicles.keys():
+                print(f"sending generate incidents {value} to vehicle", vehicle_id)
+                self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/generate_incidents",
+                                    value, qos=2)
+            return value
+
 
         app.run(debug=False)

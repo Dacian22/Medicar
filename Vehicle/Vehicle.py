@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+import random
 import time
 
 import paho.mqtt.client as paho
@@ -9,6 +10,7 @@ from paho import mqtt
 
 import threading
 
+import pandas as pd
 
 class Vehicle:
     """
@@ -23,12 +25,19 @@ class Vehicle:
     status = None  # one of "idle", "busy", "moving"
     target_node = None  # String
     currentSequenceId = None # integer
+    generate_incidents = False
+    generate_incidents_interval = 3  # num_edges
+    generate_incidents_seed = None # integer or none, if none, do not use predefined one. This is for drawing the incidents at random
 
     def __init__(self, _vehicle_id, _current_position, _current_target_node):
         load_dotenv()
         self.vehicle_id = _vehicle_id
         self.current_position = _current_position
         self.target_node = _current_target_node
+
+        df = pd.read_csv(os.path.join(os.getenv("RESOURCES"), 'EvaluationDataset.csv'), delimiter=';')
+
+        self.possible_incident_list = [test[0] for _, test in df.iterrows()]
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
         print("CONNACK received with code %s." % rc)
@@ -45,6 +54,20 @@ class Vehicle:
             print("Received new task: " + msg.payload.decode("utf-8"))
             # self.receive_route(msg.payload.decode("utf-8"))
             threading.Thread(target=self.receive_route, args=(msg.payload.decode("utf-8"),)).start()
+        elif msg.topic == os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/random_seed":
+            print("Received new random seed: " + msg.payload.decode("utf-8"))
+            self.generate_incidents_seed = int(msg.payload.decode("utf-8"))
+        elif msg.topic == os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/generate_incidents":
+            print("Received new generate_incidents: " + msg.payload.decode("utf-8"))
+            received_value = msg.payload.decode("utf-8")
+            if received_value == "off":
+                self.generate_incidents = False
+                print("Incidents generation turned off")
+            elif received_value == "on":
+                self.generate_incidents = True
+                print("Incidents generation turned on")
+            else:
+                print("ERROR in generate incidents message: " + received_value)
         else:
             print("ERROR: Received unsupported message: " + msg.topic)
 
@@ -65,9 +88,12 @@ class Vehicle:
 
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/status", json.dumps(payload), qos=2)
 
-    def send_incident(self, incident):
-        # TODO not implemented
-        pass
+    def send_incident(self, incident_prompt, edgeId):
+        payload = dict()
+        payload["prompt"] = incident_prompt
+        payload["edgeId"] = edgeId
+        print("Sending incident: " + json.dumps(payload))
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/incident", json.dumps(payload), qos=2)
 
     def receive_route(self, message):
         print(message)
@@ -99,6 +125,8 @@ class Vehicle:
         self.client.connect(os.getenv("HYVE_MQTT_URL"), 8883)
         # test connection
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" +"vehicles/" + self.vehicle_id + "/route", qos=2)
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" +"vehicles/" + self.vehicle_id + "/random_seed", qos=2)
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" +"vehicles/" + self.vehicle_id + "/generate_incidents", qos=2)
         print("start")
         self.status = "idle"
         self.send_vehicle_status()
@@ -160,6 +188,8 @@ class Vehicle:
             for edge in edges:
                 self.currentSequenceId = edge["sequenceId"]
                 self.move_along_edge(edge)
+                if self.generate_incidents and self.currentSequenceId % self.generate_incidents_interval == 0:
+                    self.send_incident(random.choice(self.possible_incident_list), edge["edgeId"])
                 if self.status != "moving":
                     return
         self.status = "idle"
