@@ -266,7 +266,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     def get_map(self):
 
-        vehicle_colors = ["red", "green", "blue", "goldenrod", "magenta"]
+        vehicle_colors = ["red", "green", "yellow", "goldenrod", "magenta"]
+        graph_color = '#4b42f5'
 
         def get_map_plot():
 
@@ -290,7 +291,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             fig.add_trace(go.Scattermapbox(mode='lines',
                                            lon=lons,
                                            lat=lats,
-                                           line={'color': 'grey', 'width': 3},  # if on_routes else 3
+                                           line={'color': graph_color, 'width': 3},  # if on_routes else 3
                                            hoverlabel={'namelength': -1}
                                            ))
 
@@ -298,14 +299,12 @@ class Routing():  # singleton class. Do not create more than one object of this 
             for index_node, row in self.nodes_df.iterrows():
                 is_special_node = row["name"] is not np.NaN
                 if is_special_node:  # currently only display nodes that are special nodes
-                    color_node = "grey"
-                    symbol_node = "circle"
                     is_special_node = row["name"] is not np.NaN
                     fig.add_trace(go.Scattermapbox(mode='markers',  # if is_special_node else 'markers' markers+text
                                                    lon=[row["lon"]],
                                                    lat=[row["lat"]],
-                                                   marker={'color': color_node, 'size': 20 if is_special_node else 10,
-                                                           'allowoverlap': False, 'symbol': symbol_node},
+                                                   marker={'color': graph_color, 'size': 20 if is_special_node else 10,
+                                                           'allowoverlap': False, 'symbol': 'circle'},
                                                    text=row["name"] if is_special_node else index_node,
                                                    name=row["name"] if is_special_node else index_node,
                                                    hoverinfo="text",
@@ -353,7 +352,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                               mapbox_center_lat=48.00632,
                               mapbox_center_lon=7.838,
                               margin={"r": 0, "t": 0, "l": 0, "b": 0},
-                              width=1000,
+                              width=1050,
                               height=850,
                               showlegend=False)
 
@@ -528,7 +527,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     try:
                         vehicle["vehicle_id"] = vehicle_colors[int(vehicle["vehicle_id"]) - 1 % len(vehicle_colors)]
                     except ValueError:
-                        pass
+                        print(f"Could not convert vehicle_id to color: {vehicle['vehicle_id']}")
                     vehicle["Vehicle"] = vehicle["vehicle_id"]
                     del vehicle["vehicle_id"]
                 if 'timestamp' in vehicle:
