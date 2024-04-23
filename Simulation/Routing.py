@@ -313,36 +313,27 @@ class Routing():  # singleton class. Do not create more than one object of this 
             fig = go.Figure()
             # Add edges to the map
             with lock:
+                lats = []
+                lons = []
+                # color_edges = []
+                # on_routes = []
+                # names = []
                 for irow, row in self.edge_df.iterrows():
-                    # Determine color (according to vehicle colors if on route, else grey).
-                    # TODO If multiple vehicles on route, use only the color of the first vehicle.
-                    color_edge = "grey"
-                    on_route = False
-                    if row["length"] == np.inf:
-                        color_edge = "red"
-                        print("weight infinity detected!")
-                    else:
-                        for index_node, vehicle in enumerate(self.vehicles.values()):
-                            # If row in currentTask of vehicle
-                            if vehicle["currentTask"] is not None:
-                                for edge in vehicle["currentTask"]["edges"]:
-                                    if (str(int(row["u"])) == str(int(edge["startNodeId"])) and str(
-                                            int(row["v"])) == str(int(edge["endNodeId"]))) or (
-                                            str(int(row["u"])) == str(int(edge["endNodeId"])) and
-                                            str(int(row["v"])) == str(int(edge["startNodeId"]))):
-                                        color_edge = vehicle_colors[index_node % len(vehicle_colors)]
-                                        on_route = True
-                                        break
-                    fig.add_trace(go.Scattermapbox(mode='lines',
-                                                   lon=[self.nodes_df.loc[row["u"]]["lon"],
-                                                        self.nodes_df.loc[row["v"]]["lon"]],
-                                                   lat=[self.nodes_df.loc[row["u"]]["lat"],
-                                                        self.nodes_df.loc[row["v"]]["lat"]],
-                                                   line={'color': color_edge, 'width': 7 if on_route else 3},
-                                                   name=f"edge_{int(row['u'])}_{int(row['v'])}",
-                                                   hoverinfo='name',
-                                                   hoverlabel={'namelength': -1}
-                                                   ))
+                    # names.append(f"edge_{int(row['u'])}_{int(row['v'])}")
+                    lons.append(self.nodes_df.loc[row["u"]]["lon"])
+                    lons.append(self.nodes_df.loc[row["v"]]["lon"])
+                    lons.append(None)
+                    lats.append(self.nodes_df.loc[row["u"]]["lat"])
+                    lats.append(self.nodes_df.loc[row["v"]]["lat"])
+                    lats.append(None)
+                fig.add_trace(go.Scattermapbox(mode='lines',
+                                               lon=lons,
+                                               lat=lats,
+                                               line={'color': 'grey', 'width': 3 }, # if on_routes else 3
+                                               # name=names,
+                                               # hoverinfo='name',
+                                               hoverlabel={'namelength': -1}
+                                               ))
 
             # Add nodes to the map
             for index_node, row in self.nodes_df.iterrows():
@@ -353,7 +344,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     color_node = "grey"
                     symbol_node = "circle"
                     is_special_node = row["name"] is not np.NaN
-                    fig.add_trace(go.Scattermapbox(mode='markers' if is_special_node else 'markers',  # markers+text
+                    fig.add_trace(go.Scattermapbox(mode='markers',  # if is_special_node else 'markers' markers+text
                                                    lon=[row["lon"]],
                                                    lat=[row["lat"]],
                                                    marker={'color': color_node, 'size': 20 if is_special_node else 10,
@@ -367,22 +358,45 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
             # Add vehicles to the map
             with lock:
-                for index_node, vehicle in enumerate(self.vehicles.keys()):
-                    color_vehicle = vehicle_colors[index_node % len(vehicle_colors)]
+                for vehicle_id, vehicle in self.vehicles.items():
+                    color_vehicle = vehicle_colors[int(vehicle_id) - 1 % len(vehicle_colors)]
+                    print(f"added {color_vehicle}")
                     fig.add_trace(go.Scattermapbox(mode='markers',
-                                                   lon=[self.vehicles[vehicle]["position"][1]],
-                                                   lat=[self.vehicles[vehicle]["position"][0]],
+                                                   lon=[vehicle["position"][1]],
+                                                   lat=[vehicle["position"][0]],
                                                    marker={'color': color_vehicle, 'size': 25, 'allowoverlap': True},
-                                                   text=f"Vehicle: {vehicle}",
-                                                   name=vehicle
+                                                   text=f"Vehicle: {vehicle_id}",
+                                                   name=vehicle_id
+                                                   ))
+
+            # Add routes to the map
+            for vehicle_id, vehicle in self.vehicles.items():
+                if vehicle["currentTask"] is not None:
+                    lons = []
+                    lats = []
+                    for edge in vehicle["currentTask"]["edges"]:
+                        lons.append(self.nodes_df.loc[int(edge["startNodeId"])]["lon"])
+                        lons.append(self.nodes_df.loc[int(edge["endNodeId"])]["lon"])
+                        # lons.append(None)
+                        lats.append(self.nodes_df.loc[int(edge["startNodeId"])]["lat"])
+                        lats.append(self.nodes_df.loc[int(edge["endNodeId"])]["lat"])
+                        # lats.append(None)
+                    fig.add_trace(go.Scattermapbox(mode='lines',
+                                                   lon=lons,
+                                                   lat=lats,
+                                                   line={'color': vehicle_colors[int(vehicle_id) - 1 % len(vehicle_colors)], 'width': 5},
+                                                   name=f"Route of vehicle {vehicle}",
+                                                   hoverinfo='name',
+                                                   hoverlabel={'namelength': -1}
                                                    ))
 
             fig.update_layout(mapbox_style="open-street-map",
-                              mapbox_zoom=17.5,
+                              mapbox_zoom=16,
                               mapbox_center_lat=48.00632,
                               mapbox_center_lon=7.838,
                               margin={"r": 0, "t": 0, "l": 0, "b": 0},
-                              width=800, height=800,
+                              width=1000,
+                              height=850,
                               showlegend=False)
 
             fig['layout']['uirevision'] = 'currentZoom'
@@ -491,4 +505,5 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
             return orders_list_copy
 
-        app.run(debug=False)
+        # app.scripts.config.serve_locally = True
+        app.run(debug=False)  # , dev_tools_serve_dev_bundles=False
