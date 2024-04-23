@@ -31,6 +31,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.nodes_df = nodes_df
         self.vehicles = {}
         self.orders = {}
+        self.incidents = {}
         self.connect_to_mqtt()
 
     def __repr__(self):
@@ -227,11 +228,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 edge_id = re.findall(pattern, llm_output)
                 edge_id = edge_id[0].strip("'´")
                 print(edge_id)
-            print(f"trying to remove edge {edge_id}...")
+
+            # Add incident to incidents
+            self.incidents[edge_id] = float("inf")
 
             # Update graph in the routing
+            print(f"trying to remove edge {edge_id}...")
             self.graph = BuildGraph.set_weights_to_inf(self.graph, edge_id)
             self.reroute_vehicles(edge_id)
+
 
     def reroute_vehicles(self, obstacle_edge_id):
         #TODO Check if the vehicle has reached the order['source'] before it reaches an obstacle.
@@ -298,7 +303,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 lats.append(self.nodes_df.loc[row["u"]]["lat"])
                 lats.append(self.nodes_df.loc[row["v"]]["lat"])
                 lats.append(None)
-                names.append(f"edge_{int(row['u'])}_{int(row['v'])}")
+                names.append(f"edge_{int(self.nodes_df.loc[row['u']].name)}_{int(self.nodes_df.loc[row['v']].name)}")
+                names.append(None)
             fig.add_trace(go.Scattermapbox(mode='lines',
                                            lon=lons,
                                            lat=lats,
@@ -359,6 +365,24 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                        hoverinfo='name',
                                                        hoverlabel={'namelength': -1}
                                                        ))
+
+            # Add incidents to the map
+            with lock:
+                for edge_id, incident_value in self.incidents.items():
+                    print(f"incident on edge {edge_id} with value {incident_value}")
+                    lons = [self.nodes_df.loc[edge_id[0]]["lon"], self.nodes_df.loc[edge_id[1]]["lon"]]
+                    lats = [self.nodes_df.loc[edge_id[0]]["lat"], self.nodes_df.loc[edge_id[1]]["lat"]]
+                    print(lons)
+                    print(lats)
+                    fig.add_trace(go.Scattermapbox(mode='lines',
+                                                   lon=lons,
+                                                   lat=lats,
+                                                   line={'color': 'black', 'width': 5},
+                                                   name=f"Incident on edge_{int(edge_id[0])}_{int(edge_id[1])}",
+                                                   hoverinfo='name',
+                                                   hoverlabel={'namelength': -1}
+                                                   ))
+
 
             fig.update_layout(mapbox_style="open-street-map",
                               mapbox_zoom=16,
