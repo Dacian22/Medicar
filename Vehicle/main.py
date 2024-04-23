@@ -34,8 +34,10 @@ startCoordinates = [[48.005975,7.837238],
                     [48.005461,7.835026],
                     [48.005210,7.842642]
 
-                    ]
+                ]
+                
 
+            
 def start_vehicle(vehicle):
     vehicle.connect_to_mqtt()
 

@@ -277,7 +277,12 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     def get_map(self):
 
-        vehicle_colors = ["red", "green", "yellow", "goldenrod", "magenta"]
+        vehicle_colors = [    
+                "black", "darkorange", "mediumslateblue", "green", "royalblue", "darkkhaki", "lightslategray",
+                "purple", "burlywood", "darkslategray", "lemonchiffon", "lightsteelblue", "powderblue", "olivedrab",
+                "peru", "gold", "mediumseagreen", "lavenderblush", "skyblue", "tomato", "orange", "darkslategrey",
+                "lightgoldenrodyellow", "darkred", "slategray"
+            ]
         graph_color = '#4b42f5'
 
         def get_map_plot():
