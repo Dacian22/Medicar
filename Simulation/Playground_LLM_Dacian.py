@@ -332,7 +332,7 @@ def get_model_llama3():
     return LLama(model=llama3)
 
 
-def invoke_llm(prompt, model_type='llama2', approach='zeroshot'):
+def invoke_llm(prompt, model_type='openai', approach='fewshot'):
     #Load the edges
     G=load_edges()
 
