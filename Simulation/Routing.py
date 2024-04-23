@@ -291,6 +291,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             # Add edges to the map
             lats = []
             lons = []
+            names = []
             for irow, row in self.edge_df.iterrows():
                 lons.append(self.nodes_df.loc[row["u"]]["lon"])
                 lons.append(self.nodes_df.loc[row["v"]]["lon"])
@@ -298,11 +299,14 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 lats.append(self.nodes_df.loc[row["u"]]["lat"])
                 lats.append(self.nodes_df.loc[row["v"]]["lat"])
                 lats.append(None)
+                names.append(f"edge_{int(row['u'])}_{int(row['v'])}")
             fig.add_trace(go.Scattermapbox(mode='lines',
                                            lon=lons,
                                            lat=lats,
                                            line={'color': graph_color, 'width': 3},  # if on_routes else 3
-                                           hoverlabel={'namelength': -1}
+                                           hoverlabel={'namelength': -1},
+                                           text=names,
+                                           hoverinfo="text"
                                            ))
 
             # Add nodes to the map
