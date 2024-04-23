@@ -129,7 +129,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         else:
             return order["vehicle_id"]
 
-    def handle_order(self, order=None, order_id = None, current_node = None, current_node_index = None):
+    def handle_order(self, order=None, order_id = None, current_node = None, current_node_index = None, order_update=False):
         if order is not None and order_id is None:
             vehicle_id = self.get_vehicle_id_for_order(order)
             # Update vehicle id in self.orders
@@ -168,22 +168,21 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     print("order source index: ", order_source_index)
                     if current_node_index <= order_source_index:
                         print("Order source not reached yet!")
-                        self.handle_order(order, current_node=current_node)
+                        self.handle_order(order, current_node=current_node, order_update=order_update)
                         return
                     else:
                         shortest_path_astar = self.find_astar_path(self.graph, current_node,
                                                         self.get_node_id_from_name(order["target"]))
                         break
             print("new shortest path:", shortest_path_astar)
-        # translate the shortest path to MQTT messages
 
         message = self.translate_path_to_mqtt(shortest_path_astar, order_id )
         # send the message to the MQTT broker and set vehicle status to busy
-        threading.Thread(target=self.send_route_to_vehicle_async, args=(vehicle_id, message, True)).start()
+        threading.Thread(target=self.send_route_to_vehicle_async, args=(vehicle_id, message, order_update)).start()
 
     def send_route_to_vehicle_async(self, vehicle_id, route, force=False):  # please call this method async
         while not force and self.vehicles[vehicle_id]["status"] != "idle":
-            time.sleep(5)
+            time.sleep(2)
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/route", json.dumps(route),
                             qos=2)
         self.vehicles[vehicle_id]["status"] = "busy"
@@ -269,7 +268,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             print(f"rerouted vehicle {vehicle_id}")
             print("current node:", current_node)
             print("order id:", order_id)
-            threading.Thread(target=self.handle_order, args=(None, order_id, current_node, current_node_index)).start()
+            threading.Thread(target=self.handle_order, args=(None, order_id, current_node, current_node_index, True)).start()
 
     def get_map(self):
 
@@ -291,6 +290,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             # Add edges to the map
             lats = []
             lons = []
+            names = []
             for irow, row in self.edge_df.iterrows():
                 lons.append(self.nodes_df.loc[row["u"]]["lon"])
                 lons.append(self.nodes_df.loc[row["v"]]["lon"])
@@ -298,11 +298,14 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 lats.append(self.nodes_df.loc[row["u"]]["lat"])
                 lats.append(self.nodes_df.loc[row["v"]]["lat"])
                 lats.append(None)
+                names.append(f"edge_{int(row['u'])}_{int(row['v'])}")
             fig.add_trace(go.Scattermapbox(mode='lines',
                                            lon=lons,
                                            lat=lats,
                                            line={'color': graph_color, 'width': 3},  # if on_routes else 3
-                                           hoverlabel={'namelength': -1}
+                                           hoverlabel={'namelength': -1},
+                                           text=names,
+                                           hoverinfo="text"
                                            ))
 
             # Add nodes to the map
