@@ -45,10 +45,9 @@ def test_llm(file,model,approach):
 
     none_answers=0
     
-    invoke = invoke_llm(model,approach)
 
     for test,edge in zip(tests,edge_ids):
-       output=invoke(f'At edge {edge} {test[0]}')
+       output=invoke_llm(f'At edge {edge} {test[0]}' ,model,approach)
        print(output)
        parsed_output=parse_output(output)
        if parsed_output==None:
@@ -103,4 +102,4 @@ def parse_output(output):
 
 
 if __name__ == "__main__":
-    test_llm('llama2_zeroshot','zeroshot','llama2')
+    test_llm('llama2_zeroshot','llama2','zeroshot')

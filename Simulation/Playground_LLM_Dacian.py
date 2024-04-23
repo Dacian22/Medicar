@@ -253,7 +253,7 @@ def get_model(model_type,approach):
 def get_prompt_template(approach):
     template: Dict[str, Any] = {
         'fewshot': get_template_fewshot(),
-        'zero_shot': get_template_zeroshot(),
+        'zeroshot': get_template_zeroshot(),
         'testing_fewshot': get_template_testing_fewshot(),
     }
 
@@ -332,7 +332,7 @@ def get_model_llama3():
     return LLama(model=llama3)
 
 
-def invoke_llm(prompt, model_type='openai', approach='fewshot'):
+def invoke_llm(prompt, model_type='llama2', approach='zeroshot'):
     #Load the edges
     G=load_edges()
 
