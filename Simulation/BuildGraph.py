@@ -181,9 +181,18 @@ def build_nx_graph(allowed_highway_types, allowed_surface_types, special_nodes):
     # delete self loops in the case they coincide
     G.remove_edges_from(nx.selfloop_edges(G))
 
+    # drop all nodes that have no name and only degree 1
+    # repeat until no node is dropped anymore
+    while True:
+        nodes_to_drop = [node for node in G.nodes() if G.degree[node] == 1 and node not in named_nodes.keys()]
+        if len(nodes_to_drop) == 0:
+            break
+        for node in nodes_to_drop:
+            G.remove_node(node)
+
     # Create dataframe with all information about the nodes: osmid, lat, lon, map_name
     nodes_df = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient='index')
-    nodes_df = nodes_df.drop(columns=['street_count', 'highway', 'ref'])
+    nodes_df = nodes_df.drop(columns=['street_count', 'highway'])
     nodes_df = nodes_df.rename(columns={'x': 'lon', 'y': 'lat'})
     nodes_df = nodes_df.astype("float")
     # Add name from named_nodes to df
