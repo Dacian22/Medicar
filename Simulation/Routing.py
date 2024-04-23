@@ -1,23 +1,23 @@
+import copy
 import json
 import os
 import re
+import threading
 import time
 import warnings
-import copy
-import threading
-import TestEvaluationCsv
-import BuildGraph
-import Playground_LLM_Dacian
 
 import networkx as nx
 import numpy as np
 import paho.mqtt.client as paho
+import plotly.graph_objects as go
+from dash import Dash, dash_table
+from dash import html, dcc, Output, Input, State, no_update
 from dotenv import load_dotenv
 from paho import mqtt
 
-from dash import html, dcc, Output, Input, State, no_update
-import plotly.graph_objects as go
-from dash import Dash, dash_table
+import BuildGraph
+import Playground_LLM_Dacian
+import TestEvaluationCsv
 
 lock = threading.Lock()
 warnings.filterwarnings("ignore")
@@ -94,9 +94,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             vehicle_id = msg.topic.split("/")[2]
             vehicle_status = json.loads(msg.payload.decode())
             self.vehicles[vehicle_id] = vehicle_status
-            # print(f"Received status of vehicle {vehicle_id}: {vehicle_status}")
         else:  # received order
-            # print("Received new task: " + msg.payload.decode("utf-8"))
             # Add order to self.orders
             order = json.loads(msg.payload.decode("utf-8"))
             self.orders[order["order_id"]] = order
@@ -118,7 +116,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         for vehicle_id, vehicle in self.vehicles.items():
             if not use_only_idle_vehicles or vehicle["status"] == "idle":
                 distances[vehicle_id] = self.get_distance_from_vehicle_to_order(vehicle_id, order)
-        # print(distances)
         return distances
 
     def get_vehicle_id_for_order(self, order):
@@ -145,21 +142,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                                      self.get_node_id_from_name(order["source"]))
             # add the two paths together
             shortest_path_astar = shortest_path_astar_to_start_node + shortest_path_astar
-        # shortest_path_dijkstra = self.find_dijkstra_path(self.graph, order["source"], order["target"])
-        # shortest_path_bellman_ford = self.find_bellman_ford_path(self.graph, order["source"], order["target"])
-        #
-        # evaluation_metric_astar = self.evaluate_shortest_path_weight(self.graph, shortest_path_astar)
-        # evaluation_metric_dijkstra = self.evaluate_shortest_path_weight(self.graph, shortest_path_dijkstra)
-        # evaluation_metric_bellman_ford = self.evaluate_shortest_path_weight(self.graph, shortest_path_bellman_ford)
-
-        # shortest_path = None
-        # if evaluation_metric_astar >= evaluation_metric_dijkstra and evaluation_metric_astar >= evaluation_metric_bellman_ford:
-        #     shortest_path = shortest_path_astar
-        # elif evaluation_metric_dijkstra >= evaluation_metric_astar and evaluation_metric_dijkstra >= evaluation_metric_bellman_ford:
-        #     shortest_path = shortest_path_dijkstra
-        # else:
-        #     shortest_path = shortest_path_bellman_ford
-
         # translate the shortest path to MQTT messages
         print("Old shortest path:", shortest_path_astar)
         message = self.translate_path_to_mqtt(shortest_path_astar)
@@ -193,12 +175,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/+/status", qos=2)
         print("simulation online")
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "hello", "simulation online", qos=2)
-        threading.Thread(target=self.folium_plot).start()
-        # threading.Thread(target=LLM.main, args=[self]).start()
-        # self.folium_plot()
-        # print("start mqtt loop")
-        # threading.Thread(target=LLM_ZeroShot.main, args=[self]).start()
-        # threading.Thread(target=Playground_LLM_Dacian.main, args=[self]).start()
+        threading.Thread(target=self.get_map).start()
         self.client.loop_forever()
 
     def apply_llm_output(self, llm_output):
@@ -225,10 +202,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             self.reroute_vehicles(edge_id)
 
     def reroute_vehicles(self, obstacle_edge_id):
-        #TODO Check if the vehicle has reached the order['source'] before it reaches an obstacle.
-        #TODO Check the direction of the vehicle (start node/end node of the edge)
-        
-        print("Obstacle: ",obstacle_edge_id)
+        print("Obstacle: ", obstacle_edge_id)
         for vehicle_id, vehicle in self.vehicles.items():
             if vehicle["currentTask"] is not None:
                 print(f"Vehicle {vehicle_id} current task edges:")
@@ -257,23 +231,23 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         current_node = task_start_node
                         if current_node_index is None:
                             current_node_index = task_edge["sequenceId"]
-                            print("Current node index" , current_node_index)
+                            print("Current node index", current_node_index)
                     elif task_end_coord == current_position:
                         current_node = task_end_node
                         if current_node_index is None:
                             current_node_index = task_edge["sequenceId"]
-                            print("Current node index" , current_node_index)
-                    if (task_start_node == str(obstacle_edge_id[0]) and task_end_node == str(obstacle_edge_id[1])) or\
-                        (task_start_node == str(obstacle_edge_id[1]) and task_end_node == str(obstacle_edge_id[0])):
+                            print("Current node index", current_node_index)
+                    if (task_start_node == str(obstacle_edge_id[0]) and task_end_node == str(obstacle_edge_id[1])) or \
+                            (task_start_node == str(obstacle_edge_id[1]) and task_end_node == str(obstacle_edge_id[0])):
                         obstacle_index = task_edge["sequenceId"]
-                        print("obstacle index" , obstacle_index)
+                        print("obstacle index", obstacle_index)
 
                 if current_node_index is not None and obstacle_index is not None:
                     if obstacle_index >= current_node_index:
                         affected_vehicles.append(vehicle_id)
-                              
+
         print("Affected vehicle:", affected_vehicles)
-       
+
         # Recalculate routes for affected vehicles
         for vehicle_id in affected_vehicles:
             vehicle = self.vehicles[vehicle_id]
@@ -285,19 +259,16 @@ class Routing():  # singleton class. Do not create more than one object of this 
             vehicle["currentTask"]["edges"] = new_shortest_path
             # Translate and send updated route to the vehicle
             updated_route = self.translate_path_to_mqtt(new_shortest_path)
-            #self.send_route_to_vehicle_async(vehicle_id, updated_route)
+            # self.send_route_to_vehicle_async(vehicle_id, updated_route)
             print("updated route: ", updated_route)
-            
+
             threading.Thread(target=self.send_route_to_vehicle_async, args=(vehicle_id, updated_route)).start()
 
-          
-        
-
-    def folium_plot(self):
+    def get_map(self):
 
         vehicle_colors = ["red", "green", "blue", "goldenrod", "magenta"]
 
-        def getmap():
+        def get_map_plot():
 
             # Add weights to the edges_df
             with lock:
@@ -305,34 +276,26 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     self.edge_df.at[_, "length"] = self.graph[str(int(row["u"]))][str(int(row["v"]))]["length"]
 
             fig = go.Figure()
+
             # Add edges to the map
-            with lock:
-                lats = []
-                lons = []
-                # color_edges = []
-                # on_routes = []
-                # names = []
-                for irow, row in self.edge_df.iterrows():
-                    # names.append(f"edge_{int(row['u'])}_{int(row['v'])}")
-                    lons.append(self.nodes_df.loc[row["u"]]["lon"])
-                    lons.append(self.nodes_df.loc[row["v"]]["lon"])
-                    lons.append(None)
-                    lats.append(self.nodes_df.loc[row["u"]]["lat"])
-                    lats.append(self.nodes_df.loc[row["v"]]["lat"])
-                    lats.append(None)
-                fig.add_trace(go.Scattermapbox(mode='lines',
-                                               lon=lons,
-                                               lat=lats,
-                                               line={'color': 'grey', 'width': 3 }, # if on_routes else 3
-                                               # name=names,
-                                               # hoverinfo='name',
-                                               hoverlabel={'namelength': -1}
-                                               ))
+            lats = []
+            lons = []
+            for irow, row in self.edge_df.iterrows():
+                lons.append(self.nodes_df.loc[row["u"]]["lon"])
+                lons.append(self.nodes_df.loc[row["v"]]["lon"])
+                lons.append(None)
+                lats.append(self.nodes_df.loc[row["u"]]["lat"])
+                lats.append(self.nodes_df.loc[row["v"]]["lat"])
+                lats.append(None)
+            fig.add_trace(go.Scattermapbox(mode='lines',
+                                           lon=lons,
+                                           lat=lats,
+                                           line={'color': 'grey', 'width': 3},  # if on_routes else 3
+                                           hoverlabel={'namelength': -1}
+                                           ))
 
             # Add nodes to the map
             for index_node, row in self.nodes_df.iterrows():
-                # Determine color (according to vehicle colors if target Node, else grey).
-                # TODO If multiple vehicles on the same target, use only the color of the first vehicle.
                 is_special_node = row["name"] is not np.NaN
                 if is_special_node:  # currently only display nodes that are special nodes
                     color_node = "grey"
@@ -363,25 +326,27 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                    ))
 
             # Add routes to the map
-            for vehicle_id, vehicle in self.vehicles.items():
-                if vehicle["currentTask"] is not None:
-                    lons = []
-                    lats = []
-                    for edge in vehicle["currentTask"]["edges"]:
-                        lons.append(self.nodes_df.loc[int(edge["startNodeId"])]["lon"])
-                        lons.append(self.nodes_df.loc[int(edge["endNodeId"])]["lon"])
-                        # lons.append(None)
-                        lats.append(self.nodes_df.loc[int(edge["startNodeId"])]["lat"])
-                        lats.append(self.nodes_df.loc[int(edge["endNodeId"])]["lat"])
-                        # lats.append(None)
-                    fig.add_trace(go.Scattermapbox(mode='lines',
-                                                   lon=lons,
-                                                   lat=lats,
-                                                   line={'color': vehicle_colors[int(vehicle_id) - 1 % len(vehicle_colors)], 'width': 5},
-                                                   name=f"Route of vehicle {vehicle}",
-                                                   hoverinfo='name',
-                                                   hoverlabel={'namelength': -1}
-                                                   ))
+            with lock:
+                for vehicle_id, vehicle in self.vehicles.items():
+                    if vehicle["currentTask"] is not None:
+                        lons = []
+                        lats = []
+                        for edge in vehicle["currentTask"]["edges"]:
+                            lons.append(self.nodes_df.loc[int(edge["startNodeId"])]["lon"])
+                            lons.append(self.nodes_df.loc[int(edge["endNodeId"])]["lon"])
+                            # lons.append(None)
+                            lats.append(self.nodes_df.loc[int(edge["startNodeId"])]["lat"])
+                            lats.append(self.nodes_df.loc[int(edge["endNodeId"])]["lat"])
+                            # lats.append(None)
+                        fig.add_trace(go.Scattermapbox(mode='lines',
+                                                       lon=lons,
+                                                       lat=lats,
+                                                       line={'color': vehicle_colors[
+                                                           int(vehicle_id) - 1 % len(vehicle_colors)], 'width': 5},
+                                                       name=f"Route of vehicle {vehicle}",
+                                                       hoverinfo='name',
+                                                       hoverlabel={'namelength': -1}
+                                                       ))
 
             fig.update_layout(mapbox_style="open-street-map",
                               mapbox_zoom=16,
@@ -492,14 +457,14 @@ class Routing():  # singleton class. Do not create more than one object of this 
         @app.callback(Output('live-update-graph', 'figure'),
                       Input('interval-component', 'n_intervals'))
         def update_metrics(_):  # don't care about the input
-            return getmap()
+            return get_map_plot()
 
         @app.callback(
             [Output('llm-output', 'children'),
              Output('llm-output', 'style')],
             Input('press-invoke-llm', 'n_clicks'),
             [State('input-prompt', 'value'),
-            State('llm-model-dropdown', 'value')],
+             State('llm-model-dropdown', 'value')],
             prevent_initial_call=True
         )
         def update_output(_, value_prompt, value_model):
