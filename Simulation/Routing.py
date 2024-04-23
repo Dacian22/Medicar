@@ -385,6 +385,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
                               width=800, height=800,
                               showlegend=False)
 
+            fig['layout']['uirevision'] = 'currentZoom'
+
             return fig
 
         app = Dash(__name__)
