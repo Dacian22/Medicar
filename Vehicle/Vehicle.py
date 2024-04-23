@@ -22,6 +22,7 @@ class Vehicle:
     client = None  # mqtt client
     status = None  # one of "idle", "busy", "moving"
     target_node = None  # String
+    currentSequenceId = None # integer
 
     def __init__(self, _vehicle_id, _current_position, _current_target_node):
         load_dotenv()
@@ -60,6 +61,7 @@ class Vehicle:
         payload["status"] = self.status
         payload["targetNode"] = self.target_node
         payload["currentTask"] = self.current_task
+        payload["currentSequenceId"] = self.currentSequenceId
 
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/status", json.dumps(payload), qos=2)
 
@@ -71,10 +73,10 @@ class Vehicle:
         print(message)
         payload = json.loads(message)
 
-        if self.current_task is not None:
-            print("Vehicle is busy")
-            self.send_vehicle_status()
-            return
+        if self.status != 'idle': # cancle current task
+            print("RECEIVED UPDATE TO ROUTE!")
+            self.status = "busy"
+            time.sleep(2)
 
         self.current_task = payload
         self.status = "busy"
@@ -144,6 +146,8 @@ class Vehicle:
             time.sleep(1)  # sleep for 1 second before next call
             if end:
                 break
+            if self.status != "moving":
+                return
 
     def dotask(self):
         print(self.current_task)
@@ -154,7 +158,10 @@ class Vehicle:
         else:  # work on the task
             edges = self.current_task["edges"]
             for edge in edges:
+                self.currentSequenceId = edge["sequenceId"]
                 self.move_along_edge(edge)
+                if self.status != "moving":
+                    return
         self.status = "idle"
         self.current_task = None
         self.send_vehicle_status()
