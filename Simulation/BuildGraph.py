@@ -141,6 +141,23 @@ def build_nx_graph(allowed_highway_types, allowed_surface_types, special_nodes):
     # manually delete the upper part of the graph
     G.remove_node('31452921')
 
+    # manually delete the parallel edges at the lower part of the graph
+    G.remove_node('3344424273')
+    G.remove_node('3344424416')
+    G.remove_node('11292850730')
+    G.remove_node('585142663')
+    G.remove_node('523915329')
+    G.remove_node('798211818')
+    G.remove_node('560014161')
+    G.remove_node('3344424409')
+    G.remove_node('302874634')
+    G.remove_node('2926060005')
+    G.remove_node('3344424403')
+    G.remove_node('432654264')
+
+    G.remove_edge('3137144878', '53422897')
+    G.remove_edge('3137144885', '2926060006')
+
     # only keep largest connected component
     G = keep_largest_connected_component(G)
 
