@@ -8,16 +8,16 @@ import pandas as pd
 import osmnx as ox
 import warnings
 
+from dotenv import load_dotenv
+load_dotenv()
+
+def get_graph_data():
 ############################# 1. XML - Graph ########################################
 
 def get_xml_graph_data():
     # reading data inside xml file to a variable under the name data
-    try:
-        with open('Uniklinikum_Freiburg_map.osm', 'r', encoding='utf-8') as f:
-            data = f.read()
-    except FileNotFoundError:
-        with open(os.path.join('Simulation', 'Uniklinikum_Freiburg_map.osm'), 'r', encoding='utf-8') as f:
-            data = f.read()
+    with open(os.path.join(os.getenv("RESOURCES"), "Uniklinikum_Freiburg_map.osm"), 'r', encoding='utf-8') as f:
+        data = f.read()
 
     # passing stored data inside beautifulsoup parser, storing the returned object
     bs_data = BeautifulSoup(data, "xml")
@@ -197,7 +197,7 @@ def build_nx_graph(allowed_highway_types, allowed_surface_types, special_nodes):
     edges_df['u'] = [u for u, v in G.edges()]
     edges_df['v'] = [v for u, v in G.edges()]
     edges_df[['u', 'v']] = edges_df[['u', 'v']].astype("int64")
-    
+
     return G, edges_df, nodes_df
 
 ############################# Rerouting ########################################
@@ -205,9 +205,9 @@ def build_nx_graph(allowed_highway_types, allowed_surface_types, special_nodes):
     # define function that sets all weights from a given list in the graph to infinity
 def set_weights_to_inf(G, edges_to_be_set_to_inf):
     if edges_to_be_set_to_inf is None:
+        print("FAIL: edges not removed (are none)")
         return G
     else:
-        # print("EDGES ARE SET TO INF:")
         for edge in G.edges():
             # for edge_to_be_set_to_inf in edges_to_be_set_to_inf:
             if str(edge[0]) == str(edges_to_be_set_to_inf[0]) and str(edge[1]) == str(edges_to_be_set_to_inf[1]):

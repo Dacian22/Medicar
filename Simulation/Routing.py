@@ -1,4 +1,3 @@
-import ast
 import json
 import os
 import re
@@ -16,7 +15,7 @@ import paho.mqtt.client as paho
 from dotenv import load_dotenv
 from paho import mqtt
 
-from dash import html, dcc, Output, Input, State
+from dash import html, dcc, Output, Input, State, no_update
 import plotly.graph_objects as go
 from dash import Dash, dash_table
 
@@ -219,12 +218,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 edge_id = re.findall(pattern, llm_output)
                 edge_id = edge_id[0].strip("'´")
                 print(edge_id)
-            # print(removed_edge)
-            # edge_id = edge_id.strip("'´")
-            # print(cleaned)
-            # edge_id = ast.literal_eval(edge_id)
-
-            print(f"trying to remove edge {edge_id}")
+            print(f"trying to remove edge {edge_id}...")
 
             # Update graph in the routing
             self.graph = BuildGraph.set_weights_to_inf(self.graph, edge_id)
@@ -420,13 +414,22 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 html.Div([
                     html.H2("LLM", style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554'}),
                     html.Div([
+                        dcc.Dropdown(
+                            id='llm-model-dropdown',
+                            options=[
+                                {'label': 'GPT-3.5', 'value': 'gpt'},
+                                {'label': 'LLAMA-2', 'value': 'llama'},
+                            ],
+                            value='gpt',
+                            style={'flex': 2, 'marginRight': '5px', 'borderRadius': '15px', 'padding': 5}
+                        ),
                         dcc.Textarea(id='input-prompt', value='Prompt...',
-                                     style={'height': 60, 'padding': 5, 'flex': 10, 'borderRadius': '15px',
+                                     style={'height': 60, 'padding': 5, 'flex': 7, 'borderRadius': '15px',
                                             'marginRight': '5px'}),
                         html.Button('Submit', id='press-invoke-llm', n_clicks=0,
                                     style={'padding': 5, 'flex': 1, 'backgroundColor': '#99C554', 'border': 'none',
                                            'color': 'white', 'borderRadius': '15px'}),
-                    ], style={'display': 'flex', 'flexDirection': 'row'}),
+                    ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'center'}),
                     html.Label(id='llm-output',
                                style={'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
                                       'font-family': 'Arial, sans-serif', 'display': 'none', 'flexGrow': 1,
@@ -456,8 +459,34 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         id='table-update-interval',
                         interval=2 * 1000,  # in milliseconds
                         n_intervals=0
+                    ),
+                    html.H2("Vehicles",
+                            style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
+                                   'marginTop': '60px'}),
+                    html.Div(dash_table.DataTable(id='vehicle-table', cell_selectable=False,
+                                                  style_data_conditional=[
+                                                      {
+                                                          "if": {"state": "selected"},
+                                                          "backgroundColor": "inherit !important",
+                                                          "border": "inherit !important",
+                                                      }
+                                                  ],
+                                                  style_header={
+                                                      'backgroundColor': 'lightgrey',
+                                                      'fontWeight': 'bold'
+                                                  },
+                                                  style_cell={
+                                                      'backgroundColor': 'white',
+                                                      'color': 'black',
+                                                      'border': '1px solid grey'
+                                                  },
+                                                  )),
+                    dcc.Interval(
+                        id='vehicle-table-update-interval',
+                        interval=2 * 1000,  # in milliseconds
+                        n_intervals=0
                     )
-                ], style={'padding': 5, 'flex': 1})
+                ], style={'padding': 5, 'flex': 2})
             ], style={'display': 'flex', 'flexDirection': 'row'})
         ])
 
@@ -470,11 +499,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
             [Output('llm-output', 'children'),
              Output('llm-output', 'style')],
             Input('press-invoke-llm', 'n_clicks'),
-            State('input-prompt', 'value'),
+            [State('input-prompt', 'value'),
+            State('llm-model-dropdown', 'value')],
             prevent_initial_call=True
         )
-        def update_output(_, value):
-            llm_output = Playground_LLM_Dacian.invoke_llm(value)
+        def update_output(_, value_prompt, value_model):
+            if value_model == 'gpt':
+                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt)
+            else:
+                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt)
             self.apply_llm_output(llm_output)
             return llm_output, {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
                                 'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
@@ -505,5 +538,44 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
             return orders_list_copy
 
-        # app.scripts.config.serve_locally = True
-        app.run(debug=False)  # , dev_tools_serve_dev_bundles=False
+        @app.callback(
+            Output('vehicle-table', 'data'),
+            Input('vehicle-table-update-interval', 'n_intervals')
+        )
+        def update_vehicle_table(_):  # don't care about the input
+            # Convert the vehicles dictionary to a list of dictionaries, which is the format required by DataTable
+            vehicles_list = [v for v in self.vehicles.values()]
+            vehicle_ids = [k for k in self.vehicles.keys()]
+
+            # check if vehicles are empty
+            if len(vehicles_list) == 0:
+                return no_update
+
+            vehicle_ids_copy = copy.deepcopy(vehicle_ids)
+            vehicles_list_copy = copy.deepcopy(vehicles_list)
+
+            # sort both lists by vehicle_id
+            vehicle_ids_copy, vehicles_list_copy = zip(*sorted(zip(vehicle_ids_copy, vehicles_list_copy)))
+
+            for index, vehicle in enumerate(vehicles_list_copy):
+                # Set vehicle_id to vehicle color
+                vehicle["vehicle_id"] = vehicle_ids_copy[index]
+                if vehicle["vehicle_id"] is not None:
+                    try:
+                        vehicle["vehicle_id"] = vehicle_colors[int(vehicle["vehicle_id"]) - 1 % len(vehicle_colors)]
+                    except ValueError:
+                        pass
+                    vehicle["Vehicle"] = vehicle["vehicle_id"]
+                    del vehicle["vehicle_id"]
+                if 'timestamp' in vehicle:
+                    del vehicle['timestamp']
+                if 'headerId' in vehicle:
+                    del vehicle['headerId']
+                if 'currentTask' in vehicle:
+                    del vehicle['currentTask']
+                if 'position' in vehicle:
+                    vehicle['position'] = f"({vehicle['position'][0]:.8f}, {vehicle['position'][1]:.8f})"
+
+            return vehicles_list_copy
+
+        app.run(debug=False)
