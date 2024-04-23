@@ -378,6 +378,19 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     )
                 ], style={'padding': 5, 'flex': 1}),
                 html.Div([
+                    dcc.Tabs(id="tabs", value='tab-1', children=[
+                        dcc.Tab(label='Incidents', value='tab-1'),
+                        dcc.Tab(label='Status', value='tab-2'),
+                    ]),
+                    html.Div(id='tabs-content')
+                ], style={'padding': 5, 'flex': 1})
+            ], style={'display': 'flex', 'flexDirection': 'row'})
+        ])
+        @app.callback(Output('tabs-content', 'children'),
+                             Input('tabs', 'value'))
+        def render_content(tab):
+            if tab == 'tab-1':
+                return html.Div([
                     html.H2("LLM", style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554'}),
                     html.Div([
                         dcc.Dropdown(
@@ -400,6 +413,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                style={'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
                                       'font-family': 'Arial, sans-serif', 'display': 'none', 'flexGrow': 1,
                                       'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}),
+                ])
+            elif tab == 'tab-2':
+                return html.Div([
                     html.H2("Orders",
                             style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
                                    'marginTop': '60px'}),
@@ -452,9 +468,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         interval=2 * 1000,  # in milliseconds
                         n_intervals=0
                     )
-                ], style={'padding': 5, 'flex': 2})
-            ], style={'display': 'flex', 'flexDirection': 'row'})
-        ])
+                ])
 
         @app.callback(Output('live-update-graph', 'figure'),
                       Input('interval-component', 'n_intervals'))
