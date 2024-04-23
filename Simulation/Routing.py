@@ -354,7 +354,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
             with lock:
                 for vehicle_id, vehicle in self.vehicles.items():
                     color_vehicle = vehicle_colors[int(vehicle_id) - 1 % len(vehicle_colors)]
-                    print(f"added {color_vehicle}")
                     fig.add_trace(go.Scattermapbox(mode='markers',
                                                    lon=[vehicle["position"][1]],
                                                    lat=[vehicle["position"][0]],

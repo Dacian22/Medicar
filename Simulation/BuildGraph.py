@@ -11,8 +11,6 @@ import warnings
 from dotenv import load_dotenv
 load_dotenv()
 
-def get_graph_data():
-############################# 1. XML - Graph ########################################
 
 def get_xml_graph_data():
     # reading data inside xml file to a variable under the name data
