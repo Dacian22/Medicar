@@ -1,4 +1,5 @@
 import time
+from typing import Any, Dict
 
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
@@ -13,11 +14,12 @@ import ast
 
 from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.prompts.prompt import PromptTemplate
-from langchain_openai import OpenAI
+from langchain_openai import OpenAI,ChatOpenAI
 from BuildGraph import set_weights_to_inf
 from langsmith import Client
 from langserve import RemoteRunnable
 llama2 = RemoteRunnable("http://127.0.0.1:8489/llama2")
+llama3 = RemoteRunnable("http://127.0.0.1:8489/llama3")
 from LLamaLLMWrapper import LLama
 
 load_dotenv(override=True)
@@ -239,7 +241,25 @@ def get_examples():
     ]
     return examples
 
-def get_model():
+
+def get_model(model_type,approach):
+    template = get_prompt_template(approach)
+
+    llm = get_llm(model_type)
+
+    return LLMChain(prompt=template, llm=llm)
+
+
+def get_prompt_template(approach):
+    template: Dict[str, Any] = {
+        'fewshot': get_template_fewshot(),
+        'zero_shot': get_template_zeroshot(),
+        'testing_fewshot': get_template_testing_fewshot(),
+    }
+
+    return template[approach]
+
+def get_template_fewshot():
     #Getting the examples for FewShot approach
     examples = get_examples()
 
@@ -257,11 +277,21 @@ def get_model():
     input_variables=["input"],
     example_separator='\n\n\n')
 
-    model_openai= OpenAI(api_key=os.environ["OPENAI_API_KEY"]) 
-    return LLMChain(prompt=fewshot_template,llm=model_openai)
+    return fewshot_template
 
 
-def get_model_testing():
+def get_template_zeroshot():
+    context_zero_shot = """As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network.
+    You must determine whether each provided edge is usable or not based on how important the obstacle given as input is.
+    Don't provide the examples in you response but base your answer on them.
+    {input} Please provide a True/False value at the end if the edge is usable, exactly like this like this: True the edge is usable or False the edge is not usable."""
+
+    zeroshot_template = PromptTemplate(input_variables=["input"], template=context_zero_shot)
+
+    return zeroshot_template
+
+
+def get_template_testing_fewshot():
     #Getting the examples for FewShot approach
     examples = get_examples()
     
@@ -269,28 +299,45 @@ def get_model_testing():
     example_prompt = PromptTemplate(
     input_variables=["question", "answer"], template="Question: {question}\n{answer}")
 
-    fewshot_template = FewShotPromptTemplate(
+    fewshot_testing_template = FewShotPromptTemplate(
     examples=examples,
     example_prompt=example_prompt,
     prefix ="""As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network.
     You're tasked with removing edges from an edge list when something happens that would make the edge impassable. 
     You must determine whether each provided edge is usable or not based on how important the obstacle given as input is. Respond
     with True if the edge is available and False if the edge is not available.""",
-    #Using a static edge for the moment
+    #Using a static edge
     suffix="At edge edge_7120224687_7112240050 {input} Please provide the affected edges, and a True/False value if the edge is usable.",
     input_variables=["input"],
     example_separator='\n\n\n')
 
-    model_openai= OpenAI()
+    return fewshot_testing_template
 
-    return LLMChain(prompt=fewshot_template,llm=model_openai)
+def get_llm(model_type):
+    model: Dict[str, Any] = {
+        'openai': get_model_openai(),
+        'llama2': get_model_llama2(),
+        'llama3': get_model_llama3(),
+    }
 
-def invoke_llm(prompt):
+    return model[model_type]
+
+def get_model_openai():
+    return OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
+def get_model_llama2():
+    return LLama(model=llama2)
+
+def get_model_llama3():
+    return LLama(model=llama3)
+
+
+def invoke_llm(prompt, model_type='openai', approach='fewshot'):
     #Load the edges
     G=load_edges()
 
     #Create the LLM
-    new_graph=get_model()
+    new_graph=get_model(model_type,approach)
 
     #Create and run the prompt
     answer=new_graph.invoke(prompt)
@@ -298,52 +345,7 @@ def invoke_llm(prompt):
     #Return the output of the LLM
     return answer["text"]
 
-def try_llm(prompt):
-    #Create the examples for FewShot
-    examples = get_examples()
-        
 
-    example_prompt = PromptTemplate(
-    input_variables=["question", "answer"], template="Context: As a proffesional graph modeler, you're tasked with removing edges from an edge list when something happens that would make the edge inpassable. Please provide the resoning also Question: {question}\n{answer}")
-
-    G=load_edges()
-
-    fewshot_template = FewShotPromptTemplate(
-    examples=examples,
-    example_prompt=example_prompt,
-    prefix ="""As a proffesional graph modeler, you're tasked with removing edges from an edge list when something happens that would make the edge inpassable. Please provide the resoning also""",
-    suffix="{input} Please provide the affected edges, and a True/False value if the edge is usable.",
-    input_variables=["input"],
-    example_separator='\n\n\n')
-
-    #load_dotenv()
-    #model = Ollama(model="llama2")
-    #model_mistral = Ollama(model="mistral")
-    #model_openai= OpenAI()
-    
-    #print(G)
-
-    #Create the LLM
-    #template_new=f"context: {G} \n  requirements: Do not make something up. DO NOT PROVIDE CODE! Please Provide the result!. Only use the provided edges in the context. Please provide the edges as tuples. \n question: {{question}}"
-    #template_new_example=f"As a proffesional graph modeler, you're tasked with removing edges from an edge list when something happens. Requirements: Only use the Graph provided in the question. Please list the edges that need to be removed in a comma seperated list of tuples. Respect the structure of the example for your response. THIS IS JUST AN EXAMPLE DO NOT USE THIS Example of Input: The edge list provided is: [('N1', 'N2'), ('N2', 'N3'), ('N3', 'N4'), ('N4', 'N5'),('N3','N6')]\n Someone fell on the floor on node N2 blocking it. Please provide the affected edges.\n\nExample of Output:List of edges that have to be removed: ('N1','N2'), ('N2','N3')\n Reasoning: We remove only the edges that contain node N2 because it can't be accessed anymore.END OF EXAMPLE\n\n Answer this Question: The edge list provided is: {G} \n{{question}} Please provide the affected edges."   #prompt_template = PromptTemplate(input_variables=["question"], template=template_new)
-    #template_new_example2=f"As a proffesional graph modeler, you're tasked with removing edges from an edge list when something happens. Requirements: Only use the Graph provided in the question. Please list the edges that need to be removed in a comma seperated list of tuples. Answer this Question: \n{{question}} "   #prompt_template = PromptTemplate(input_variables=["question"], template=template_new)
-
-    #prompt_template = PromptTemplate(input_variables=["question"], template=template_new)
-    # prompt_template = PromptTemplate(input_variables=["question"], template=template_new_example2)
-    # prompt_template = PromptTemplate(input_variables=["question"], template=template_new)
-
-    # new_graph=LLMChain(prompt=prompt_template,llm=model)
-    # new_graph=LLMChain(prompt=fewshot_template,llm=model)
-    # new_graph=LLMChain(prompt=fewshot_template,llm=model_flan)
-    #new_graph=LLMChain(prompt=fewshot_template,llm=model_mistral)
-    new_graph=get_model(examples)
-
-
-    #Create and run the prompt
-    #print(f"The edge list provided is: {G[:50]} \n" + prompt)
-    answer=new_graph.invoke(prompt + ". Please provide the affected edges.")
-    print(answer)
-    return answer["text"]
 
 def parsing_llm_result(answer):
     pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
@@ -382,7 +384,7 @@ def load_edges():
 
 def main(ref_routing):
     # Get node id as input from the command line
-    #time.sleep(5)
+    time.sleep(5)
     prompt = input("Enter your prompt: ")
 
     # Get output of the LLM
@@ -398,39 +400,7 @@ def main(ref_routing):
     ref_routing.graph = set_weights_to_inf(ref_routing.graph, parsed_res)
 
 
-# def test():
-#     edge_ids,tests=load_tests()
-#     try:
-#         f = open(os.path.join('..','Simulation','LLMFewShot.txt'),'w')
-#     except:
-#         f = open(os.path.join('Simulation','LLMFewShot.txt'),'w')
-
-#     for test,edge in zip(tests,edge_ids):
-#        output=try_llm(f'At edge {edge} {test}')
-#        print(output)
-#        f.write(output+'\n\n\n')
-
-#     f.close()
-
-# def load_tests():
-#     import pandas as pd
-#     try:
-#         df = pd.read_csv(os.path.join('..','Playground_Arved','csv','edges_UH_Graph_Ids.csv'))
-#     except:
-#         df = pd.read_csv(os.path.join('Playground_Arved','csv','edges_UH_Graph_Ids.csv'))
-
-#     try:
-#         df_test = pd.read_csv(os.path.join('..','Playground_LLM','EvaluationDatabase.csv'),delimiter=';')
-#     except:
-#         df_test = pd.read_csv(os.path.join('Playground_LLM','EvaluationDatabase.csv'),delimiter=';')
-#     #print(df)
-#     #print(df_test)
-#     edge_ids = [f'{row[0]}' for _,row in df.iterrows()]
-#     tests = [f'{test[0]}' for _,test in df_test.iterrows()]
-#     return (edge_ids,tests)
-    
 if __name__ == "__main__":
-    #test()
     main("")
 
 

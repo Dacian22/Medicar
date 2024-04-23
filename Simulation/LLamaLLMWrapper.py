@@ -30,7 +30,7 @@ class LLama(LLM):
     @property
     def _identifying_params(self) -> Dict[str, Any]:
         return {
-            "model_name": "LLama2 Uni Server",
+            "model_name": "LLama Uni Server",
         }
 
     @property
