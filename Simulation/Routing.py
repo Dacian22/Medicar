@@ -132,7 +132,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         else:
             return order["vehicle_id"]
 
-    def handle_order(self, order=None, order_id = None, current_node = None):
+    def handle_order(self, order=None, order_id = None, current_node = None, current_node_index = None):
         if order is not None and order_id is None:
             vehicle_id = self.get_vehicle_id_for_order(order)
             # Update vehicle id in self.orders
@@ -163,13 +163,20 @@ class Routing():  # singleton class. Do not create more than one object of this 
             order_source = self.get_node_id_from_name(order["source"])
             print(vehicle["currentTask"])
             for task_edge in vehicle["currentTask"]["edges"]:
-                if str(task_edge['startNodeId']) == str(order_source) or str(task_edge['startNodeId']) == str(order_source):
-                    self.handle_order(order, current_node=current_node)
-                    return
-                else:
-                    shortest_path_astar = self.find_astar_path(self.graph, current_node,
-                                                    self.get_node_id_from_name(order["target"]))
-                    break
+                print("calculating order source!")
+                print(str(task_edge['startNodeId']))
+                print(str(order_source))
+                if str(task_edge['startNodeId']) == str(order_source) or str(task_edge['endNodeId']) == str(order_source):
+                    order_source_index = task_edge['sequenceId']
+                    print("order source index: ", order_source_index)
+                    if current_node_index <= order_source_index:
+                        print("Order source not reached yet!")
+                        self.handle_order(order, current_node=current_node)
+                        return
+                    else:
+                        shortest_path_astar = self.find_astar_path(self.graph, current_node,
+                                                        self.get_node_id_from_name(order["target"]))
+                        break
             print("new shortest path:", shortest_path_astar)
 
         # shortest_path_dijkstra = self.find_dijkstra_path(self.graph, order["source"], order["target"])
@@ -263,6 +270,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 for edge in vehicle["currentTask"]["edges"]:
                     if edge["sequenceId"] == vehicle["currentSequenceId"]:
                         current_node = edge["endNodeId"]
+                        current_node_index = edge['sequenceId']
                     if edge["sequenceId"] > vehicle["currentSequenceId"]:
                         print(f"check for vehicle {vehicle_id} edge {edge}, obstacle edge {obstacle_edge_id}")
                         if (str(edge["startNodeId"]) == str(obstacle_edge_id[0]) and str(edge["endNodeId"]) == str(
@@ -277,10 +285,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
         for vehicle_id in affected_vehicles:
             vehicle = self.vehicles[vehicle_id]
             order_id = vehicle['currentTask']['orderId']
+            for edge in vehicle["currentTask"]["edges"]:
+                    if edge["sequenceId"] == vehicle["currentSequenceId"]:
+                        current_node = edge["endNodeId"]
+                        current_node_index = edge['sequenceId']
+                        break
             print(f"rerouted vehicle {vehicle_id}")
             print("current node:", current_node)
             print("order id:", order_id)
-            threading.Thread(target=self.handle_order, args=(None, order_id, current_node)).start()
+            threading.Thread(target=self.handle_order, args=(None, order_id, current_node, current_node_index)).start()
 
           
         
