@@ -183,8 +183,59 @@ def get_examples():
             "reasoning": """
             Because the event of a fallen fence blocking the access is important enough to block access to the node 6 so we are removing the edges that contain the node 6, those being ('2','6')
             """,
+    },
+    {
+            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'), ('2','6'), ('3','7')]\n Road repair work is in progress near node 2. Please provide the affected edges.",
+            "answer": """
+            Are follow up questions needed here: Yes.
+            Follow up: Is the event important enough so that node 2 is not accessible anymore?
+            Intermediate answer: Yes, road repair work would make node 2 inaccessible.
+            Follow up: Which edges contain node 2?
+            Intermediate answer: Edges ('1','2'), ('2', '3'), ('2','6') contain node 2
+            So the final answer is: List of edges that have to be removed: ('1','2'), ('2', '3'), ('2','6'). False the edge is not usable.
+            """,
+            "reasoning": """
+            Because the event of road repair work is important enough to block access to the node 2 so we are removing the edges that contain the node 2, those being ('1','2'), ('2', '3'), ('2','6')
+            """,
+    },
+    {
+            "question": "The edge list provided is: [('node1', 'node2'), ('node2', 'node3'), ('node3', 'node4'), ('node4', 'node5'), ('node2','node6'), ('node3','node7')]\n A cyclist is riding along the path near node node3. Please provide the affected edges.",
+            "answer": """
+            Are follow up questions needed here: Yes.
+            Follow up: Is the event important enough so that node node3 is not accessible anymore?
+            Intermediate answer: No, a cyclist riding along the path would not make node node3 inaccessible.
+            So the final answer is: List of edges that have to be removed: []. True the edge is usable.
+            """,
+            "reasoning": """
+            Because the event of a cyclist riding along the path is not important enough to block access to the node node3 so we are not removing any edges. No edges are affected.
+            """,
+    },
+    {
+            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'), ('2','6'), ('3','7')]\n  A delivery person is dropping off a package near node 1. Please provide the affected edges.",
+            "answer": """
+            Are follow up questions needed here: Yes.
+            Follow up: Is the event important enough so that node 1 is not accessible anymore?
+            Intermediate answer: No, a delivery person dropping off a package would not make node 1 inaccessible.
+            So the final answer is: List of edges that have to be removed: []. True the edge is usable.
+            """,
+            "reasoning": """
+            Because the event of a delievery person dropping off a package is not important enough to block access to the node 1 so we are not removing the edges that contain the node 1. No edges are affected.
+            """,
+    },
+    {
+            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'), ('2','6'), ('3','7')]\n A large fallen tree blocks the pathway near node 6. Please provide the affected edges.",
+            "answer": """
+            Are follow up questions needed here: Yes.
+            Follow up: Is the event important enough so that node 6 is not accessible anymore?
+            Intermediate answer: Yes, a large fallen tree blocking the pathway would make node 6 inaccessible.
+            Follow up: Which edges contain node 6?
+            Intermediate answer: Edges ('2','6') contain node 6
+            So the final answer is: List of edges that have to be removed: ('2','6'). False the edge is not usable.
+            """,
+            "reasoning": """
+            Because the event of a fallen large tree blocking the access is important enough to block access to the node 6 so we are removing the edges that contain the node 6, those being ('2','6')
+            """,
     }
-
     ]
     return examples
 
