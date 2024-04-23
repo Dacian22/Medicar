@@ -30,9 +30,9 @@ def get_xml_graph_data():
         # first case: store has a name
         if node.find('tag', k='name'):
             # map node id to a tuple of (lat, lon, name)
-            nds_xml[node['id']] = (node['lat'], node['lon'], node.find('tag', k='name').get('v'))
+            nds_xml[str(node['id'])] = (node['lat'], node['lon'], node.find('tag', k='name').get('v'))
         else:
-            nds_xml[node['id']] = (node['lat'], node['lon'], None)
+            nds_xml[str(node['id'])] = (node['lat'], node['lon'], None)
 
     # create dictionary of all nodes that have a name and map id to name
     named_nodes = {k: v[2] for k, v in nds_xml.items() if v[2]}
@@ -116,14 +116,14 @@ def keep_largest_connected_component(G):
 
 def closest_node_to_special_nodes(special_nodes, nds, named_nodes):
     closest_node = {}
+    nodes_to_check = dict(filter(lambda x: x[0] not in named_nodes.keys(), nds.items()))
     # iterate over all special nodes
     for node_id, name in [item for item in named_nodes.items() if item[1] in special_nodes]:
         # initialize minimum distance to infinity
         min_dist = float('inf')
-        # iterate over all nodes
-        for nd_id in nds.keys():
-            # check type of nd_id
-            # calculate distance
+        # iterate over all nodes that are already in the graph
+        for nd_id in nodes_to_check.keys():
+            # calculate euclidean distance between special node and node in graph
             dist = (float(nds[nd_id]['x']) - float(nds[node_id]['x']))**2 + (float(nds[nd_id]['y']) - float(nds[node_id]['y']))**2
             # if distance is smaller than minimum distance, update minimum distance and closest node
             if dist < min_dist:
@@ -152,7 +152,7 @@ def build_nx_graph(allowed_highway_types, allowed_surface_types, special_nodes):
         G.add_node(node_id, y=nds_xml[str(node_id)][0], x=nds_xml[str(node_id)][1], street_count=None)
 
     # add names of special nodes to final graph
-    nx.set_node_attributes(G, nds_final, name = 'name')
+    #nx.set_node_attributes(G, nds_final, name = 'name')
 
     # add surface type to edges from information about ways
     edge_surface = {}
@@ -171,19 +171,21 @@ def build_nx_graph(allowed_highway_types, allowed_surface_types, special_nodes):
             G.remove_edge(edge[0], edge[1])
 
     # drop all edges that have not an allowed highway type
-    for edge, data in nx.get_edge_attributes(G, 'surface').items():
-        if data not in allowed_surface_types:
+    for edge, data in nx.get_edge_attributes(G, 'highway').items():
+        if data not in allowed_highway_types:
             G.remove_edge(edge[0], edge[1])
 
-    # add edges from named nodes to the closest node on a way if the nodes are not the same
-    for node_id, name in [item for item in named_nodes.items() if item[1] in special_nodes]:
-        closest_node = closest_node_to_special_nodes(special_nodes, dict(G.nodes(data=True)), named_nodes)
-        if node_id != closest_node[node_id]:
-            G.add_edge(node_id, closest_node[node_id])
+    # add edges from named nodes to the closest node on an edge
+    closest_node = closest_node_to_special_nodes(special_nodes, dict(G.nodes(data=True)), named_nodes)
+    for node_id, nd_id in closest_node.items():
+        G.add_edge(node_id, nd_id)
+
+    # delete self loops in the case they coincide
+    G.remove_edges_from(nx.selfloop_edges(G))
 
     # Create dataframe with all information about the nodes: osmid, lat, lon, map_name
     nodes_df = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient='index')
-    nodes_df = nodes_df.drop(columns=['street_count', 'highway', 'name', 'ref'])
+    nodes_df = nodes_df.drop(columns=['street_count', 'highway', 'ref'])
     nodes_df = nodes_df.rename(columns={'x': 'lon', 'y': 'lat'})
     nodes_df = nodes_df.astype("float")
     # Add name from named_nodes to df

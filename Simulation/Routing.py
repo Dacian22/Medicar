@@ -308,7 +308,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
             # Add weights to the edges_df
             with lock:
                 for _, row in self.edge_df.iterrows():
-                    self.edge_df.at[_, "length"] = self.graph[str(int(row["u"]))][str(int(row["v"]))]["length"]
+                    try:
+                        self.edge_df.at[_, "length"] = self.graph[str(int(row["u"]))][str(int(row["v"]))]["length"]
+                    except KeyError:
+                        self.edge_df.at[_, "length"] = np.NaN
 
             fig = go.Figure()
             # Add edges to the map
