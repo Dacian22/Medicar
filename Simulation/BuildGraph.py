@@ -232,10 +232,10 @@ def build_nx_graph(allowed_highway_types, allowed_surface_types, special_nodes):
 def set_weights_to_inf(G, edges_to_be_set_to_inf):
     if edges_to_be_set_to_inf is None:
         print("FAIL: edges not removed (are none)")
-        return G
+        return G, "FAIL"
     else:
         for edge in G.edges():
             if (str(edge[0]) == str(edges_to_be_set_to_inf[0]) and str(edge[1]) == str(edges_to_be_set_to_inf[1])) or (str(edge[0]) == str(edges_to_be_set_to_inf[1]) and str(edge[1]) == str(edges_to_be_set_to_inf[0])) :
                 print(f"{edge} weight was set to inf")
                 G[edge[0]][edge[1]]['length'] = float('inf')
-        return G
+            return G, "SUCCESS"

@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import os
 import re
 from Playground_LLM_Dacian import invoke_llm
+from LLM_Dynamic_Weights import invoke_llm as invoke_llm_weights
 
 
 load_dotenv(override=True)
@@ -24,6 +25,10 @@ def get_output_file_llama3_zero_shot():
     f = open(os.path.join(os.getenv("RESOURCES"),'EvaluationDatasetLLama3ZeroShot.csv'),'w')
     return f
 
+def get_output_file_llama2_zeroshot_weights():
+    f = open(os.path.join(os.getenv("RESOURCES"),'EvaluationDatasetLLama2Weights.csv'),'w')
+    return f
+
 
 from typing import Any, Dict
 
@@ -32,12 +37,13 @@ def get_output_file(file):
         'openai_fewshot': get_output_file_openai_fewshot(),
         'llama2_fewshot': get_output_file_llama2_fewshot(),
         'llama2_zeroshot': get_output_file_llama2_zero_shot(),
-        'llama3_zeroshot': get_output_file_llama3_zero_shot()
+        'llama3_zeroshot': get_output_file_llama3_zero_shot(),
+        'llama2_zeroshot_weights': get_output_file_llama2_zeroshot_weights(),
     }
 
     return function[file]
 
-def test_llm(file,model,approach):
+def test_llm(file,model,approach,parser):
     edge_ids,tests=load_tests()
     
     f=get_output_file(file)
@@ -45,11 +51,13 @@ def test_llm(file,model,approach):
 
     none_answers=0
     
+    parse = get_output_parser(parser)
 
     for test,edge in zip(tests,edge_ids):
-       output=invoke_llm(f'At edge {edge} {test[0]}' ,model,approach)
+    #    output=invoke_llm(f'At edge {edge} {test[0]}' ,model,approach)
+       output= invoke_llm_weights(f'At edge {edge} {test[0]}' ,model,approach)
        print(output)
-       parsed_output=parse_output(output)
+       parsed_output=parse(output)
        if parsed_output==None:
            none_answers+=1
        else:
@@ -78,6 +86,14 @@ def load_tests():
     return (edge_ids,tests)
 
 
+def get_output_parser(parser):
+    function: Dict[str, Any] = {
+        'bool': parse_output,
+        'weight': parse_output_weights,
+    }
+
+    return function[parser]
+
 def parse_output(output):
     pattern = r"[T|t]rue|[F|f]alse"
     result = re.findall(pattern, output)
@@ -101,5 +117,26 @@ def parse_output(output):
     return result_bool
 
 
+def parse_output_weights(output):
+    #try a pettern for The value is X
+    pattern = r"[T|t]he value is[^\d]{0,20} \d{1,3}"
+
+    result = re.findall(pattern, output)
+    if len(result)==0:
+        pattern = r"[^\d]\d{1,3}[^\d]"
+        result = re.findall(pattern, output)
+
+    if len(result)==0:
+        return None
+    
+    final_pattern = r"\d{1,3}"
+    result[0] = re.findall(final_pattern, result[0])[0]
+    result_number = int(result[0])
+
+
+
+    return result_number
+
+
 if __name__ == "__main__":
-    test_llm('llama2_zeroshot','llama2','zeroshot')
+    test_llm('llama2_zeroshot_weights','llama2','zeroshot','weight')

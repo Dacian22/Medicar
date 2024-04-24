@@ -34,7 +34,7 @@ def get_examples():
     Are follow up questions needed here: Yes.
     Follow up: How affected is the accessibility of edge edge_N2_N3?
     Intermediate answer: Extremely, someone falling down would seriously affect the accessibility of edge edge_N2_N3 because transportation vehicles would not be able to easily go past.
-    So the final answer is: The value for how affected the accessibility of edge_N2_N3 is by the event is 95.
+    So the final answer is: The value is 95.
     """,
         "reasoning":"""
     Because the event of someone falling down on the floor affects the edge accessibility of edge_N2_N3 very much then we are giving a high value of 95.
@@ -46,7 +46,7 @@ def get_examples():
     Are follow up questions needed here: Yes.
     Follow up: How affected is the accessibility of edge edge_N1_N3?
     Intermediate answer: Very little, someone dropping their ice cream would barely affect the accessibility of edge edge_N1_N3 because transportation vehicles would not be affected by that.
-    So the final answer is: The value for how affected the accessibility of edge_N1_N3 is by the event is 5.
+    So the final answer is: The value is 5.
     """,
         "reasoning":"""
     Because the event of someone dropping their ice cream on the floor is not important enough to affect the accessibility of edge edge_N1_N3 a lot so we are we are giving a very low value of 5.
@@ -58,7 +58,7 @@ def get_examples():
     Are follow up questions needed here: Yes.
     Follow up: How affected is the accessibility of edge edge_1_2?
     Intermediate answer: Critticaly, someone dying would make the edge edge_1_2 nearly inaccessible for the transportation vehicles.
-    So the final answer is: The value for how affected the accessibility of edge_1_2 is by the event is 100.
+    So the final answer is: The value is 100.
     """,
         "reasoning":"""
     Because the event of someone dying is important enough to block access to the edge edge_1_2 we are giving an extremely high value of 100.
@@ -84,7 +84,7 @@ def get_examples():
     Are follow up questions needed here: Yes.
     Follow up: How affected is the accessibility of edge edge_A_B?
     Intermediate answer: Very little, someone dropping their papers would barely affect the accessibility of edge edge_A_B because the transportation vehicles would not be affected by that.
-    So the final answer is: The value for how affected the accessibility of edge_A_B is by the event is 5.
+    So the final answer is: The value is 5.
     """,
         "reasoning":"""
     Because the event of someone dropping their papers is not important enough to disrupt the accessibility of edge_A_B so we are giving a very low value of 5.
@@ -96,7 +96,7 @@ def get_examples():
     Are follow up questions needed here: Yes.
     Follow up: How affected is the accessibility of edge edge_A_B?
     Intermediate answer: Seriously, the pathway being covered in thick mud due to recent rain would seriously affect the accessibility of edge edge_A_B because the transportation vehicles would be affected by the event.
-    So the final answer is: The value for how affected the accessibility of edge_A_B is by the event is 70.
+    So the final answer is: The value is 70.
     """,
         "reasoning":"""
     Because the event of the pathway being covered in thick mud is important enough to disrupt the accessibility of edge_A_B so we are giving a high value of 70.
@@ -133,8 +133,8 @@ def get_examples():
         "answer": """
     Are follow up questions needed here: Yes.
     Follow up: How affected is the accessibility of edge edge_N1_N4?
-    Intermediate answer: Moderately, a medium-sized animal being on the path would moderately affect the accessibility of edge edge_N1_N4 because the transportation vehicles would have to change their speed or position to be sure that they avoid it.
-    So the final answer is: The value for how affected the accessibility of edge_N1_N4 is by the event is 50.
+    Intermediate answer: Moderately, a medium-sized animal being on the path would moderately affect the accessibility of edge edge_N1_N4 because the transportation vehicles would have to change their speed or position a lot to be sure that they avoid it.
+    So the final answer is: The value is 50.
     """,
         "reasoning": """
     Because the event of a medium-sized animal being on the path is important enough to moderately affect the accessibility of edge_N1_N4 so we are giving a moderate value of 50.
@@ -172,7 +172,7 @@ def get_examples():
     Are follow up questions needed here: Yes.
     Follow up: How affected is the accessibility of edge edge_N5_N6?
     Intermediate answer: Seriously, a burst fire hydrant flooding the path would seriously affect the accessibility of edge edge_N5_N6 because the transportation vehicles would be very affected by the event.
-    So the final answer is: The value for how affected the accessibility of edge_A_B is by the event is 68.
+    So the final answer is: The value is 68.
     """,
         "reasoning": """
     Because the event of a burst fire hydrant flooding the path is important enough to seriously affect the accessibility of edge_N5_N6 so we are giving a high value of 68.
@@ -183,8 +183,8 @@ def get_examples():
         "answer": """
     Are follow up questions needed here: Yes.
     Follow up: How affected is the accessibility of edge edge_3_4?
-    Intermediate answer: Moderately, a fallen tree blocking part of the path would moderately affect the accessibility of edge edge_3_4 because the transportation vehicles would have to change their speed or position to be sure that they avoid it.
-    So the final answer is: The value for how affected the accessibility of edge_3_4 is by the event is 40.
+    Intermediate answer: Moderately, a fallen tree blocking part of the path would moderately affect the accessibility of edge edge_3_4 because the transportation vehicles would have to change their speed or position a lot to be sure that they avoid it.
+    So the final answer is: The value is 40.
     """,
         "reasoning": """
     Because the event of a fallen tree blocking part of the path is important enough to moderately affect the accessibility of edge_3_4 so we are giving a moderate value of 40.
@@ -196,7 +196,7 @@ def get_examples():
     Are follow up questions needed here: Yes.
     Follow up: How affected is the accessibility of edge edge_N3_N4?
     Intermediate answer: A little, some small branches are on the ground would affect the accessibility of edge edge_N3_N4 a little because the transportation vehicles would have to slow down a little.
-    So the final answer is: The value for how affected the accessibility of edge_N3_N4 is by the event is 20.
+    So the final answer is: The value is 20.
     """,
         "reasoning": """
     Because the event of small branches being on the ground would affect the accessibility of edge_N3_N4 a little so we are giving a low value of 20.
@@ -305,8 +305,8 @@ def get_template_fewshot():
     The values are between 0-100 with 100 being the most affected, values between 0-25 are for events that affect the accessibility of the edge a little bit, 
     values between 25-50 are for events that moderately affect the accessibility of the edge, values between 50-75 are for events that seriously affect the accessibility of the edge 
     and values between 75-100 affect the accessibility of the edge critically. 
-    Don't provide the examples in you response but base your answer on them.""",
-    suffix="{input} Please provide a mandatory single value between 0 and 100 for how much is the accessibility of the edge for the transportation vehicles is affected.",
+    Don't provide the examples in you response but base your answer on them, provide the value only for the last event.""",
+    suffix="{input} Please provide a mandatory single value between 0 and 100 for how much is the accessibility of the edge for the transportation vehicles is affected. Format it exactly like this: The value is X.",
     input_variables=["input"],
     example_separator='\n\n\n')
 
@@ -319,8 +319,7 @@ def get_template_zeroshot():
     The values are between 0-100 with 100 being the most affected, values between 0-25 are for events that affect the accessibility of the edge a little bit, 
     values between 25-50 are for events that moderately affect the accessibility of the edge, values between 50-75 are for events that seriously affect the accessibility of the edge 
     and values between 75-100 affect the accessibility of the edge critically. 
-    Don't provide the examples in you response but base your answer on them.
-    {input} Please provide a mandatory single value between 0 and 100 for how much is the accessibility of the edge for the transportation vehicles is affected."""
+    {input} Please provide a mandatory single value between 0 and 100 for how much is the accessibility of the edge for the transportation vehicles is affected. Format it exactly like this: The value is X."""
 
     zeroshot_template = PromptTemplate(input_variables=["input"], template=context_zero_shot)
 
@@ -344,7 +343,7 @@ def get_template_testing_fewshot():
     values between 25-50 are for events that moderately affect the accessibility of the edge, values between 50-75 are for events that seriously affect the accessibility of the edge 
     and values between 75-100 affect the accessibility of the edge critically. 
     Don't provide the examples in you response but base your answer on them.""",
-    suffix="At edge edge_7120224687_7112240050 {input} Please provide a mandatory single value between 0 and 100 for how much is the accessibility of the edge for the transportation vehicles is affected.",
+    suffix="At edge edge_7120224687_7112240050 {input} Please provide a mandatory single value between 0 and 100 for how much is the accessibility of the edge for the transportation vehicles is affected. Format it exactly like this: The value is X.",
     input_variables=["input"],
     example_separator='\n\n\n')
 
@@ -369,7 +368,7 @@ def get_model_llama3():
     return LLama(model=llama3)
 
 
-def invoke_llm(prompt, model_type='openai', approach='fewshot'):
+def invoke_llm(prompt, model_type='llama2', approach='zeroshot'):
     #Load the edges
     G=load_edges()
 
@@ -418,10 +417,29 @@ def load_edges():
     #print("EDGES" ,edges_list)
     return edges_list
 
+def parse_output_weights(output):
+    #try a pettern for The value is X
+    pattern = r"[V|v]alue[^\d]{0,20}\d{1,3}"
+
+    result = re.findall(pattern, output)
+    if len(result)==0:
+        pattern = r"[^\d]{2,5}\d{1,3}[^\d]{2,5}"
+        result = re.findall(pattern, output)
+
+    if len(result)==0:
+        return None
+    
+    final_pattern = r"\d{1,3}"
+    result[0] = re.findall(final_pattern, result[0])[0]
+    result_number = int(result[0])
+
+
+
+    return result_number
 
 def main(ref_routing):
     # Get node id as input from the command line
-    time.sleep(5)
+    #time.sleep(5)
     prompt = input("Enter your prompt: ")
 
     # Get output of the LLM
@@ -432,7 +450,8 @@ def main(ref_routing):
     # Parse the output
     parsed_res = parsing_llm_result(output)
     # print(parsed_res)
-
+    print("Value:",parse_output_weights(output))
+    print(type(parse_output_weights(output)))
     # Update graph in the routing
     ref_routing.graph = set_weights_to_inf(ref_routing.graph, parsed_res)
 
