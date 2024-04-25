@@ -58,56 +58,56 @@ A burst water tank floods the path.;True;True;100
 A nearby explosion damages the path.;False;False;180
 A broken fence allows dangerous animals onto the path.;True;False;45
 A burst fire hydrant floods the path.;True;True;100
-A collapsed bridge on the path.;False;True;100
-Dropped papers on the ground.;True;False;5
+A collapsed bridge on the path.;True;True;100
+Dropped papers on the ground.;False;False;5
 Light rain has left small puddles on the sidewalk.;True;False;5
 A pedestrian is walking on the sidewalk.;True;False;1
-A small animal crosses the pathway.;True;False;5
-A group of people is chatting near the edge.;True;False;5
-A delivery package is left on the side of the road.;True;False;1
-An ice cream fell on the ground.;True;False;1
+A small animal crosses the pathway.;False;False;5
+A group of people is chatting near the edge.; False;False;5
+A delivery package is left on the side of the road.; False;False;1
+An ice cream fell on the ground.; False;False;1
 A cyclist is riding along the path.;True;False;5
-Students are walking to class on the sidewalk.;True;False;0
-A squirrel is crossing the pathway.;True;False;5
+Students are walking to class on the sidewalk.; False;False;0
+A squirrel is crossing the pathway.; False;False;5
 A group of friends is jogging together.;True;False;0
-A delivery person is dropping off a package.;True;False;1
+A delivery person is dropping off a package.; False;False;1
 A gardener is trimming the bushes along the path.;True;False;5
 A maintenance worker is inspecting the path.;True;False;0
 A person is walking their dog.;True;False;1
-A student is skateboarding down the sidewalk.;True;False;0
-A jogger is listening to music while running.;True;False;1
-A student is reading a book on a bench.;True;False;0
+A student is skateboarding down the sidewalk.; False;False;0
+A jogger is listening to music while running.; False;False;1
+A student is reading a book on a bench.; False;False;0
 A gardener is watering the plants along the path.;True;False;2
-A maintenance worker is repairing a light post.;True;False;40
+A maintenance worker is repairing a light post.; False;False;40
 A person is walking with a stroller.;True;False;20
-A cyclist is using the bike lane.;True;False;5
+A cyclist is using the bike lane.; False;False;5
 A student is texting while walking.;True;False;1
-A jogger is stretching before running.;True;False;1
+A jogger is stretching before running.; False;False;1
 A person is walking their pet cat on a leash.;True;False;0
-A group of friends is playing frisbee.;True;False;5
-A maintenance worker is painting a bench.;True;False;5
+A group of friends is playing frisbee.; False;False;5
+A maintenance worker is painting a bench.; False;False;5
 A gardener is planting flowers along the path.;True;False;5
-A student is taking photographs of the scenery.;True;False;1
-A cyclist is ringing their bell to signal others.;True;False;0
+A student is taking photographs of the scenery.; False;False;1
+A cyclist is ringing their bell to signal others.; False;False;0
 A person is rollerblading along the path.;True;False;1
-A student is practicing yoga on the grass.;True;False;5
-A maintenance worker is cleaning up litter.;True;False;5
-A group of friends is having a barbecue.;True;False;5
+A student is practicing yoga on the grass.; False;False;5
+A maintenance worker is cleaning up litter.; False;False;5
+A group of friends is having a barbecue.; False;False;5
 A gardener is raking leaves off the pathway.;True;False;5
 A person is walking with a guide dog.;True;False;5
-A cyclist is using hand signals to indicate turns.;True;False;5
-A student is playing guitar on a bench.;True;False;5
-A jogger is wearing reflective gear for safety.;True;False;0
+A cyclist is using hand signals to indicate turns.; False;False;5
+A student is playing guitar on a bench.; False;False;5
+A jogger is wearing reflective gear for safety.; False;False;0
 A person is walking with crutches.;True;False;15
-A maintenance worker is installing a new sign.;True;False;10
+A maintenance worker is installing a new sign.; False;False;10
 A gardener is trimming hedges along the path.;True;False;5
 A person is walking with a cane.;True;False;5
-A cyclist is carrying groceries in a basket.;True;False;1
-A student is sketching a landscape.;True;False;1
-A jogger is running with a dog on a leash.;True;False;1
+A cyclist is carrying groceries in a basket.; False;False;1
+A student is sketching a landscape.; False;False;1
+A jogger is running with a dog on a leash.; False;False;1
 A person is walking with a baby in a carrier.;True;False;15
-A group of friends is birdwatching.;True;False;0
-A maintenance worker is fixing a bench.;True;False;1
-A gardener is mulching the flower beds.;True;False;5
+A group of friends is birdwatching.; False;False;0
+A maintenance worker is fixing a bench.; False;False;1
+A gardener is mulching the flower beds.; False;False;5
 A person is walking with a child holding their hand.;True;False;2
-A cyclist is adjusting their helmet.;True;False;1
+A cyclist is adjusting their helmet.; False;False;1
