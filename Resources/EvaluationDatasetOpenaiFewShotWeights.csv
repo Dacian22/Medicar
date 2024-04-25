@@ -1,0 +1,113 @@
+action;edgeUsable;LLMAnswer;Value
+A person fell on the ground.;False;False;15
+There is an unexpected construction on the usual path.;False;True;90
+Fallen branches from nearby trees.;False;False;20
+Street cleaning crew sweeping debris.;False;False;20
+The sidewalk is obstructed by a parked car.;False;True;50
+Heavy rain has flooded the pathway.;False;True;90
+A large pothole has formed in the middle of the path.;False;True;85
+Traffic cones block the entrance to the path.;False;False;30
+A fallen power line is lying across the path.;False;False;45
+The pathway is covered in thick mud due to recent rain.;False;True;70
+A road sign indicates the pathway is closed for maintenance.;False;False;45
+A barrier blocks the entrance to a construction site.;False;False;120
+A large fallen tree is on the pathway.;False;False;45
+A deep trench is dug across the road for utility work.;False;True;90
+A chemical spill blocks the path.;False;True;95
+A medical emergency requires the path to be cleared for ambulance access.;False;False;45
+Fallen debris from nearby construction on the way.;False;False;20
+A broken water pipe has flooded the pathway.;False;True;100
+Fallen rocks from a nearby hillside obstruct the path.;False;False;70
+A swarm of bees has settled on the path.;False;False;45
+A suspicious package has been found on the path.;False;True;100
+A wild animal has made a den in the path.;False;False;45
+Road repair work is in progress.;False;True;50
+There is a protest demonstration.;False;False;120
+A gas leak has been detected.;False;False;120
+A fallen telephone pole at the entrance to the path.;False;True;95
+A vehicle accident has occurred.;False;False;None
+Fallen snow on the pathway.;False;True;50
+An electrical fault has caused a power outage.;False;True;90
+A sinkhole has developed in the middle of the path.;False;False;60
+A fallen scaffolding structure blocks the path.;False;True;90
+A wild fire in close vicinity of the path.;False;False;90
+A broken sewer line has flooded the path with sewage.;False;True;100
+A broken fence allows livestock to roam onto the path.;False;True;100
+A vehicle breakdown is blocking the path.;False;True;85
+A fallen streetlight pole obstructs the path.;False;False;80
+A fallen billboard blocks the entrance to the path.;False;True;95
+A burst water main floods the path.;False;True;100
+A swarm of wasps has built a nest on the path.;False;False;30
+A chemical spillage from a laboratory has contaminated the path.;False;True;90
+A fallen satellite dish blocks the path.;False;True;100
+A nearby construction crane has collapsed.;False;True;100
+A protest march is crossing the pathway.;False;True;90
+A collapsed building has debris strewn across the path.;False;True;100
+A burst sewage pipe has flooded the path.;False;True;100
+A fallen antenna tower at the entrance to the path.;False;False;45
+A burst gas line has caused an evacuation.;False;True;100
+A fallen billboard has crushed part of the path.;False;False;45
+A burst sprinkler system has flooded the path.;False;True;90
+A broken railing leaves a drop-off hazard on the path.;False;False;55
+A landslide has covered the path with debris.;False;True;85
+A medical quarantine requires the path to be sealed off.;False;True;100
+A collapsed retaining wall.;False;True;100
+A chemical spill has created a toxic hazard on the path.;False;True;100
+A fallen statue blocks the pathway.;False;False;45
+A burst water tank floods the path.;False;True;100
+A nearby explosion damages the path.;False;False;180
+A broken fence allows dangerous animals onto the path.;False;False;45
+A burst fire hydrant floods the path.;False;True;100
+A collapsed bridge on the path.;False;True;100
+Dropped papers on the ground.;True;False;5
+Light rain has left small puddles on the sidewalk.;True;False;5
+A pedestrian is walking on the sidewalk.;True;False;1
+A small animal crosses the pathway.;True;False;5
+A group of people is chatting near the edge.;True;False;5
+A delivery package is left on the side of the road.;True;False;1
+An ice cream fell on the ground.;True;False;1
+A cyclist is riding along the path.;True;False;5
+Students are walking to class on the sidewalk.;True;False;0
+A squirrel is crossing the pathway.;True;False;5
+A group of friends is jogging together.;True;False;0
+A delivery person is dropping off a package.;True;False;1
+A gardener is trimming the bushes along the path.;True;False;5
+A maintenance worker is inspecting the path.;True;False;0
+A person is walking their dog.;True;False;1
+A student is skateboarding down the sidewalk.;True;False;0
+A jogger is listening to music while running.;True;False;1
+A student is reading a book on a bench.;True;False;0
+A gardener is watering the plants along the path.;True;False;2
+A maintenance worker is repairing a light post.;True;False;40
+A person is walking with a stroller.;True;False;20
+A cyclist is using the bike lane.;True;False;5
+A student is texting while walking.;True;False;1
+A jogger is stretching before running.;True;False;1
+A person is walking their pet cat on a leash.;True;False;0
+A group of friends is playing frisbee.;True;False;5
+A maintenance worker is painting a bench.;True;False;5
+A gardener is planting flowers along the path.;True;False;5
+A student is taking photographs of the scenery.;True;False;1
+A cyclist is ringing their bell to signal others.;True;False;0
+A person is rollerblading along the path.;True;False;1
+A student is practicing yoga on the grass.;True;False;5
+A maintenance worker is cleaning up litter.;True;False;5
+A group of friends is having a barbecue.;True;False;5
+A gardener is raking leaves off the pathway.;True;False;5
+A person is walking with a guide dog.;True;False;5
+A cyclist is using hand signals to indicate turns.;True;False;5
+A student is playing guitar on a bench.;True;False;5
+A jogger is wearing reflective gear for safety.;True;False;0
+A person is walking with crutches.;True;False;15
+A maintenance worker is installing a new sign.;True;False;10
+A gardener is trimming hedges along the path.;True;False;5
+A person is walking with a cane.;True;False;5
+A cyclist is carrying groceries in a basket.;True;False;1
+A student is sketching a landscape.;True;False;1
+A jogger is running with a dog on a leash.;True;False;1
+A person is walking with a baby in a carrier.;True;False;15
+A group of friends is birdwatching.;True;False;0
+A maintenance worker is fixing a bench.;True;False;1
+A gardener is mulching the flower beds.;True;False;5
+A person is walking with a child holding their hand.;True;False;2
+A cyclist is adjusting their helmet.;True;False;1
