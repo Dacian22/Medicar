@@ -1,5 +1,5 @@
 import paho.mqtt.client as paho
-from paho import mqtt
+import paho.mqtt.client as mqtt
 from order import Order
 import threading
 import time
@@ -10,18 +10,20 @@ import os
 
 
 class OrderManager:
+
+    time_between_orders = 2  # seconds
     
     
     def __init__(self, mqtt_broker_url, mqtt_username, mqtt_password,heuristics_file):
         # create a MQTT client
-        self.client = paho.Client(protocol=paho.MQTTv5)
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, protocol=paho.MQTTv5)
         self.client.on_connect = self.on_connect
-        self.client.on_publish = self.on_publish
-        self.client.on_message = self.on_message  # added on_message callback
-        self.client.on_subscribe = self.on_subscribe  # added on_subscribe callback
+        # self.client.on_publish = self.on_publish
+        # self.client.on_message = self.on_message  # added on_message callback
+        # self.client.on_subscribe = self.on_subscribe  # added on_subscribe callback
 
         # enable TLS for secure connection
-        self.client.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
+        self.client.tls_set()  # tls_version=mqtt.client.ssl.PROTOCOL_TLS
 
         # set username and password
         self.client.username_pw_set(mqtt_username, mqtt_password)
@@ -31,9 +33,7 @@ class OrderManager:
 
         # subscribe to topic to get the status of the vehicles
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/+/status", qos=2)
-        # get the closest vehicle from the message sent by simulation
-        self.client.message_callback_add("simulation/closest_vehicle", self.closest_vehicle_callback)
-        
+
         self.heuristics_file = heuristics_file
         # load the heuristics file
         self.heuristics = self.load_heuristics()
@@ -41,17 +41,21 @@ class OrderManager:
         # store the list of idle vehicles
         self.idle_vehicles = []
 
-    def on_connect(self, client, userdata, flags, rc):
+        self.client.loop_start()
+
+    def on_connect(self, client, userdata, flags, rc, properties=None):
         print("Connected with result code " + str(rc))
 
-    def on_publish(self, client, userdata, mid):
-        print("Message published")
+    # def on_publish(self, client, userdata, mid):
+    #     # print("Message published")
+    #     pass
 
-    def on_message(self, client, userdata, message):
-       pass
+    # def on_message(self, client, userdata, message):
+    #    pass
 
-    def on_subscribe(self, client, userdata, mid, granted_qos):
-        print("Subscribed to topic with QoS:", granted_qos)
+    # def on_subscribe(self, client, userdata, mid, granted_qos, properties):
+    #     # print("Subscribed to topic with QoS:", granted_qos)
+    #     pass
         
     def load_heuristics(self):
         heuristics = []
@@ -73,13 +77,11 @@ class OrderManager:
             # create orders from the current heuristic
             order_instance.create_order()
 
-            # start a new thread to send orders periodically for the current heuristic
-            # thread = threading.Thread(target=self.send_order_periodically,args=(order_instance,))
-            # thread.start()
-
             # send the order to the transportation manager
             self.send_order(order_instance)
-            time.sleep(17) # TODO very dirty hack
+            time.sleep(self.time_between_orders) # TODO very dirty hack
+
+        self.client.loop_start()
     
     def send_order(self, order):
         # convert the order instance to a dictionary
@@ -92,37 +94,6 @@ class OrderManager:
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + topic, order_json, qos=2)
         print("Order sent:", order_json)
 
-    def send_order_periodically(self, order_instance):
-      while True:
-         interval = order_instance.order_interval
-         # send order only if the order interval has elapsed
-         if interval > 0:
-                self.send_order(order_instance)
-                # sleep for the interval before sending the next order
-                # time.sleep(interval)
-                time.sleep(17) # TODO very dirty hack
-    
-    def update_vehicle_status(self, vehicle_id, status):
-       """
-       Update the status of the given vehicle in the list of idle vehicles.
-       If the vehicle is now idle and was not previously, add it to the list.
-       If the vehicle is no longer idle and was previously, remove it from the list.
-       """
-       if status == "idle" and vehicle_id not in self.idle_vehicles:
-           self.idle_vehicles.append(vehicle_id)
-       elif status != "idle" and vehicle_id in self.idle_vehicles:
-           self.idle_vehicles.remove(vehicle_id)
-
-
-    # require from the simulation which vehicle is the closest to the order source
-    def assign_vehicle(self, order):
-        payload = {
-            "order_id": order.order_id,
-            "source": order.source,
-            "idle_vehicles": self.idle_vehicles
-        }
-        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "simulation/get_closest_vehicle", json.dumps(payload), qos=2)
-    
     #assign the vehicle id to current order when a message with the closest vehicle
     # is received from simulation
     def closest_vehicle_callback(self, client, userdata, message):

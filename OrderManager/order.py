@@ -71,8 +71,7 @@ class Order:
             order_dict["vehicle_id"] = self.vehicle_id
             return order_dict 
        else:
-           print("Not a valid Vehicle ID")
-             
+           raise ValueError("Vehicle ID is None")
 
 
 
