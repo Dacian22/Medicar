@@ -73,6 +73,7 @@ class Vehicle:
         elif msg.topic == os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/random_seed":
             # print("Received new random seed: " + msg.payload.decode("utf-8"))
             self.generate_incidents_seed = int(msg.payload.decode("utf-8"))
+            random.seed(self.generate_incidents_seed)
         elif msg.topic == os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/generate_incidents":
             # print("Received new generate_incidents: " + msg.payload.decode("utf-8"))
             received_value = msg.payload.decode("utf-8")

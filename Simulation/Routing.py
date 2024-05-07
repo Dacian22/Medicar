@@ -498,7 +498,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                     {'label': 'LLAMA-2', 'value': 'llama'},
                                 ],
                                 value='gpt',
-                                style={'marginRight': '5px', 'borderRadius': '15px', 'padding': 5, 'width':'95%'}
+                                style={'borderRadius': '15px', 'padding': 5, 'width':'95%'}
                             ),
                             html.Button('Submit', id='press-invoke-llm', n_clicks=0,
                                         style={'padding': 5, 'backgroundColor': '#99C554', 'border': 'none',
@@ -510,22 +510,26 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                       'font-family': 'Arial, sans-serif', 'display': 'none', 'flexGrow': 1,
                                       'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}),
                     html.Div([
-                        html.H2("Settings",
+                        html.H2("Incident Generation",
                                 style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
                                        'marginTop': '60px'}),
                         html.Div([
-                            html.Label('Seed:', style={'font-family': 'Arial, sans-serif', 'color': '#99C554', 'marginRight': '5px'}),
-                            dcc.Input(id='random-seed', type='number', value=42, style={'marginRight': '5px'}),
-                            html.Button('Update Seed', id='update-seed-button', n_clicks=0,
-                                        style={'padding': 5, 'backgroundColor': '#99C554', 'border': 'none',
-                                               'color': 'white', 'borderRadius': '15px', 'marginRight': '10px'}),
-                            html.Button('Choose random Seed', id='choose-random-seed-button', n_clicks=0,
-                                        style={'padding': 5, 'backgroundColor': '#99C554', 'border': 'none',
-                                               'color': 'white', 'borderRadius': '15px', 'marginRight': '10px'}),
-                            html.Label('Generate Incidents (from vehicles):',
-                                       style={'font-family': 'Arial, sans-serif', 'color': '#99C554'}),
-                            dcc.RadioItems(["off", "on"], self.generate_incidents, id='generate-incidents')
-                        ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'center',
+                            html.Div([
+                                html.Label('Seed used by all vehicles:', style={'font-family': 'Arial, sans-serif', 'color': 'black', 'marginRight': '20px', 'width': '35%'}),
+                                dcc.Input(id='random-seed', type='number', value=42, style={'marginRight': '5px', 'width': '10%', 'borderRadius': '15px'}),
+                                html.Button('Update Seed', id='update-seed-button', n_clicks=0,
+                                            style={'padding': 5, 'backgroundColor': '#99C554', 'border': 'none',
+                                                   'color': 'white', 'borderRadius': '15px', 'marginRight': '5px'}),
+                                html.Button('Randomize Seed', id='choose-random-seed-button', n_clicks=0,
+                                            style={'padding': 5, 'backgroundColor': '#99C554', 'border': 'none',
+                                                   'color': 'white', 'borderRadius': '15px'})
+                            ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'left'}),
+                            html.Div([
+                                html.Label('Generate Incidents from vehicles:',
+                                           style={'font-family': 'Arial, sans-serif', 'color': 'black', 'marginRight': '20px', 'width': '35%'}),
+                                dcc.RadioItems(["off", "on"], self.generate_incidents, id='generate-incidents', inline=True, style={'width': '10%'})
+                            ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'left', 'marginTop': '30px'}),
+                        ], style={'display': 'flex', 'flexDirection': 'column', 'alignItems': 'left',
                                   'marginTop': '10px'})
                     ]),
                     html.H2("Ongoing Incidents",
