@@ -324,18 +324,18 @@ def examples_length():
     # Because the event of someone having a heart attack is important enough to block access to the node C so we are removing the edges that contain the node C, those being ('B', 'C'), ('C','A'), ('C', 'D'), ('C','F')
     # """,
     # },
-    # {
-    #     "question": "At edge edge_A_B someone dropped their papers on the ground. Please provide a mandatory single value between 0 and 100 for how much is the accessibility of the edge affected.",
-    #     "answer": """
-    # Are follow up questions needed here: Yes.
-    # Follow up: Would a vehicle be affected by the event for the whole length of edge edge_A_B?
-    # Intermediate answer: Very little, someone dropping their papers would barely affect the accessibility of edge edge_A_B because the transportation vehicles would not be affected by that.
-    # So the final answer is: The value is 5.
-    # """,
-    #     "reasoning":"""
-    # Because the event of someone dropping their papers is not important enough to disrupt the accessibility of edge_A_B so we are giving a very low value of 5.
-    # """,
-    # },
+    {
+        "question": "At edge edge_A_B a barrier blocks the entrance. Please provide a mandatory True/False value if the event affects the whole edge or not.",
+        "answer": """
+    Are follow up questions needed here: Yes.
+    Follow up: Would a vehicle be affected by the event for the whole length of edge edge_A_B?
+    Intermediate answer: Yes, because the path is blocked at the beggining then the whole edge is inaccessible and so it would seriously affect a vehicle for the whole length of edge edge_A_B.
+    So the final answer is: The answer is True, the event affects the whole edge.
+    """,
+        "reasoning":"""
+    Because the event a barrier blocking the entrance affects the accessibility of edge_A_B during its whole length we are giving back the value True.
+    """,
+    },
     {
         "question": "At edge edge_A_B the pathway is covered in thick mud due to recent rain. Please provide a mandatory True/False value if the event affects the whole edge or not.",
         "answer": """
@@ -651,6 +651,7 @@ def parse_output(output):
     
     return result_bool
 
+#Fucntion for callling the LLM for Dynamic Weights
 def invoke_llm_chain(prompt, model_type='openai', approach='fewshot'):
     #Load the edges
     G=load_edges()

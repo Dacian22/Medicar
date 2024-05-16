@@ -145,7 +145,7 @@ def test_llm_weights(model="openai",approach="fewshot"):
     edge_ids,tests=load_tests()
     
     f=get_output_file_openai_fewshot_weights()
-    f.write('action;edgeUsable;LLMAnswer;Value\n')
+    f.write('action;lengthDependency;LLMAnswer;Value\n')
 
     none_answers=0
     
