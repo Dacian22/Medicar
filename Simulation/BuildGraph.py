@@ -194,6 +194,8 @@ def build_nx_graph(allowed_highway_types, allowed_surface_types, special_nodes):
     closest_node = closest_node_to_special_nodes(special_nodes, dict(G.nodes(data=True)), named_nodes)
     for node_id, nd_id in closest_node.items():
         G.add_edge(node_id, nd_id)
+        # set node attribute 'length' to 1
+        G[node_id][nd_id]['length'] = 1
 
     # delete self loops in the case they coincide
     G.remove_edges_from(nx.selfloop_edges(G))
