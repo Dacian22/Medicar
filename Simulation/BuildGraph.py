@@ -241,4 +241,28 @@ def set_weights_to_inf(G, edges_to_be_set_to_inf):
                 print(f"{edge} weight was set to inf")
                 G[edge[0]][edge[1]]['length'] = float('inf')
                 return G, "SUCCESS"
-    raise ValueError(f"Edge to be set to infinity can not be found! edge: {edges_to_be_set_to_inf}")
+    print(f"ERROR: Edge to be set to infinity can not be found! edge: {edges_to_be_set_to_inf}")
+    return G, "FAIL"
+
+def set_weight_to_value(G, edge_to_be_set_to_inf, value_to_set, method): # only single edge # method: minutes, factor
+    if edge_to_be_set_to_inf is None:
+        raise ValueError("edge_to_be_set_to_inf is None")
+    elif str(edge_to_be_set_to_inf[0]) == str(edge_to_be_set_to_inf[1]):
+        print(f"WEIRD: Edges are the same, no weight was set to inf! edge: {edge_to_be_set_to_inf}")
+        return G, "FAIL"
+    else:
+        for edge in G.edges():
+            if (str(edge[0]) == str(edge_to_be_set_to_inf[0]) and str(edge[1]) == str(edge_to_be_set_to_inf[1])) or (str(edge[0]) == str(edge_to_be_set_to_inf[1]) and str(edge[1]) == str(edge_to_be_set_to_inf[0])) :
+                if method == "minutes":
+                    G[edge[0]][edge[1]]['length'] = G[edge[0]][edge[1]]['length'] + value_to_set
+                    print(f"{edge} weight was set to {value_to_set} minutes")
+                    return G, "SUCCESS"
+                elif method == "factor":
+                    G[edge[0]][edge[1]]['length'] = G[edge[0]][edge[1]]['length'] * value_to_set
+                    print(f"{edge} weight was set to {value_to_set} times the original value")
+                    return G, "SUCCESS"
+                else:
+                    print(f"ERROR: Method {method} is not implemented!")
+                    return G, "FAIL"
+    print(f"ERROR: Edge to be set to infinity can not be found! edge: {edge_to_be_set_to_inf}")
+    return G, "FAIL"

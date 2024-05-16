@@ -22,6 +22,8 @@ import Playground_LLM_Dacian
 import TestEvaluationCsv
 import queue
 
+import LLM_Dynamic_Weights
+
 lock = threading.Lock()
 warnings.filterwarnings("ignore")
 
@@ -244,24 +246,33 @@ class Routing():  # singleton class. Do not create more than one object of this 
         else:
             return order["vehicle_id"]
 
-
-    def apply_llm_output(self, llm_output, edgeId=None, human=True, vehicleId=None):
-        # Parse the output
-        parsed_res = TestEvaluationCsv.parse_output(llm_output)
-        print(parsed_res)
-        if not parsed_res:  # remove edge
-            pattern = r"\([`']?(\d+)[`']?,.?[`']?(\d+)[`']?\)"
-            re_str = r"edge_([0-9]+)_([0-9]+)"
-            if edgeId is None:
+    def parse_edge(self, llm_output, edge_id=None):
+        print(llm_output)
+        pattern1 = r"\([`']?(\d+)[`']?,.?[`']?(\d+)[`']?\)"
+        pattern2 = r"edge_([0-9]+)_([0-9]+)"
+        if edge_id is None:
+            try:
+                edge_id = int(re.findall(pattern2, llm_output)[0][0]), int(re.findall(pattern2, llm_output)[0][1])
+            except IndexError:
                 try:
-                    # Get edge from llm_output
-                    result = re.findall(re_str, llm_output)
-                    edgeId = int(re.findall(re_str, llm_output)[0][0]), int(re.findall(re_str, llm_output)[0][1])
+                    edge_id = int(re.findall(pattern1, llm_output)[0][0]), int(re.findall(pattern1, llm_output)[0][1])
                 except IndexError:
-                    result = re.findall(pattern, llm_output)
-                    edgeId = int(re.findall(pattern, llm_output)[0][0]), int(re.findall(pattern, llm_output)[0][1])
-            else:
-                edgeId = int(re.findall(re_str, edgeId)[0][0]), int(re.findall(re_str, edgeId)[0][1])
+                    print("ERROR: Could not find edge in LLM output")
+                    return "ERROR"
+        else:
+            edge_id = int(re.findall(pattern2, edge_id)[0][0]), int(re.findall(pattern2, edge_id)[0][1])
+        return edge_id
+
+    def apply_llm_output(self, llm_output, edgeId=None, human=True, vehicleId=None, dynamic=False):
+        # Parse the output
+        if not dynamic:
+            parsed_res = TestEvaluationCsv.parse_output(llm_output)
+            print(parsed_res)
+        else:
+            parsed_res = LLM_Dynamic_Weights.parse_output(llm_output)
+            print(parsed_res)
+        if not parsed_res:  # remove edge
+            edgeId = self.parse_edge(llm_output, edgeId)
             # Update graph in the routing
             # print(f"trying to remove edge {edgeId}...")
             self.graph, success_message = BuildGraph.set_weights_to_inf(self.graph, edgeId)
@@ -276,6 +287,33 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
                 # Reroute vehicles
                 self.reroute_vehicles(edgeId)
+                return "SUCCESS"
+            else:
+                print("ERROR: Could not remove edge")
+                return "ERROR"
+
+    def apply_llm_output_dynamic(self, llm_output_second_stage, llm_output_first_stage, method, human=True, edge_id=None):
+        # Parse the output
+        parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_second_stage)
+        edge_id = self.parse_edge(llm_output_first_stage, edge_id)
+        # Set the weights in the graph
+        self.graph, success_message = BuildGraph.set_weight_to_value(self.graph, edge_id, parsed_value, method)
+
+        if success_message == "SUCCESS":
+            # Add incident to incidents
+            self.incidents[edge_id] = {
+                "value": str(parsed_value) + " " + str(method),
+                # timestamp in HH:MM:SS
+                "timestamp": time.strftime('%H:%M:%S', time.localtime()),
+                "origin": "Human" if human else "Vehicle"
+            }
+
+            # Reroute vehicles
+            self.reroute_vehicles(edge_id)
+            return "SUCCESS"
+        else:
+            print("ERROR: Could not set weight")
+            return "ERROR"
 
 
     def reroute_vehicles(self, obstacle_edge_id):
@@ -488,16 +526,22 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     html.H2("LLM", style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554'}),
                     html.Div([
                         dcc.Textarea(id='input-prompt', value='Prompt...',
-                                     style={'height': 60, 'padding': 5, 'flex': 3, 'borderRadius': '15px',
+                                     style={'height': 60, 'padding': 5, 'flex': 1, 'borderRadius': '15px',
                                             'marginRight': '5px'}),
                         html.Div([
                             dcc.Dropdown(
                                 id='llm-model-dropdown',
                                 options=[
-                                    {'label': 'GPT-3.5', 'value': 'gpt'},
-                                    {'label': 'LLAMA-2', 'value': 'llama'},
+                                    {'label': 'GPT-3.5-Few', 'value': 'gpt-few-shot'},
+                                    {'label': 'LLAMA-2-Few', 'value': 'llama-few-shot'},
+                                    {'label': 'GPT-3.5-Zero', 'value': 'gpt-zero-shot'},
+                                    {'label': 'LLAMA-2-Zero', 'value': 'llama-zero-shot'},
+                                    {'label': 'GPT-3.5-Few-Dynamic', 'value': 'gpt-few-shot-dynamic'},
+                                    {'label': 'LLAMA-2-Few-Dynamic', 'value': 'llama-few-shot-dynamic'},
+                                    {'label': 'GPT-3.5-Zero-Dynamic', 'value': 'gpt-zero-shot-dynamic'},
+                                    {'label': 'LLAMA-2-Zero-Dynamic', 'value': 'llama-zero-shot-dynamic'},
                                 ],
-                                value='gpt',
+                                value='gpt-few-shot',
                                 style={'borderRadius': '15px', 'padding': 5, 'width':'95%'}
                             ),
                             html.Button('Submit', id='press-invoke-llm', n_clicks=0,
@@ -650,12 +694,44 @@ class Routing():  # singleton class. Do not create more than one object of this 
             prevent_initial_call=True
         )
         def update_output(_, value_prompt, value_model):
-            if value_model == 'gpt':
-                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai")
+            if value_model == 'gpt-few-shot':
+                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "fewshot")
+                success_code = self.apply_llm_output(llm_output, human=True)
+            elif value_model == 'llama-few-shot':
+                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "fewshot")
+                success_code = self.apply_llm_output(llm_output, human=True)
+            elif value_model == 'gpt-zero-shot':
+                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "zeroshot")
+                print(llm_output)
+                success_code = self.apply_llm_output(llm_output, human=True)
+            elif value_model == 'llama-zero-shot':
+                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "zeroshot")
+                success_code = self.apply_llm_output(llm_output, human=True)
+            elif value_model == 'gpt-few-shot-dynamic':
+                llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "openai", "fewshot")
+                success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, human=True, method=method)
+            elif value_model == 'llama-few-shot-dynamic':
+                llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "llama2", "fewshot")
+                success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, human=True, method=method)
+            elif value_model == 'gpt-zero-shot-dynamic':
+                llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "openai", "zeroshot")
+                success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, human=True, method=method)
+            elif value_model == 'llama-zero-shot-dynamic':
+                llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "llama2", "zeroshot")
+                success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, human=True, method=method)
             else:
-                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt)
-            self.apply_llm_output(llm_output, human=True)
-            return llm_output, {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
+                print("ERROR: Model not found")
+                return "ERROR: Model not found", {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
+                                                  'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
+                                                  'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}
+
+            if success_code == "SUCCESS":
+                return llm_output, {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
+                                    'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
+                                    'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}
+            else:
+                print("ERROR: Could not apply LLM output")
+                return "ERROR: Could not apply LLM output", {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
                                 'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
                                 'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}
 

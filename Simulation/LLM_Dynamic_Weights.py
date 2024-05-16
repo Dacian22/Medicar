@@ -670,11 +670,11 @@ def invoke_llm_chain(prompt, model_type='openai', approach='fewshot'):
 
     if output==False:
         print("Minutes")
-        type='minutes'
+        output='minutes'
         template = get_template_time_penalty_fewshot()
     else:
         print("Factor")
-        type='factor'
+        output='factor'
         template = get_template_fewshot()
 
     llm=get_llm(model_type)
@@ -685,7 +685,7 @@ def invoke_llm_chain(prompt, model_type='openai', approach='fewshot'):
     answer=chain.invoke(prompt)
 
     #Return the output of the LLM
-    return answer["text"],output
+    return answer["text"], output_length["text"], output
 
 def parsing_llm_result(answer):
     pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
