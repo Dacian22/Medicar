@@ -550,9 +550,14 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                   style_cell={
                                                       'backgroundColor': 'white',
                                                       'color': 'black',
-                                                      'border': '1px solid grey'
+                                                      'border': '1px solid grey',
+                                                      'maxWidth': '150px',
+                                                      'overflow': 'hidden',
+                                                      'textOverflow': 'ellipsis',
+                                                      'whiteSpace': 'normal'
                                                   },
-                                                  )),
+                                                  ),
+                             style={'maxWidth': '100%'}),
                     dcc.Interval(
                         id='table-update-interval-incidents',
                         interval=2 * 1000,  # in milliseconds
@@ -579,9 +584,20 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                   style_cell={
                                                       'backgroundColor': 'white',
                                                       'color': 'black',
-                                                      'border': '1px solid grey'
+                                                      'border': '1px solid grey',
+                                                      'maxWidth': '150px',
+                                                      'overflow': 'hidden',
+                                                      'textOverflow': 'ellipsis',
+                                                      'whiteSpace': 'normal'
                                                   },
-                                                  )),
+                                                  style_table={
+                                                      'maxHeight': '280px',
+                                                      'overflowY': 'scroll'
+                                                  },
+                                                  fixed_rows={'headers': True},
+                                                  ),
+                             style={'maxWidth': '100%'}
+                             ),
                     dcc.Interval(
                         id='table-update-interval',
                         interval=2 * 1000,  # in milliseconds
@@ -607,6 +623,11 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                       'color': 'black',
                                                       'border': '1px solid grey'
                                                   },
+                                                  style_table={
+                                                      'maxHeight': '280px',
+                                                      'overflowY': 'scroll'
+                                                  },
+                                                  fixed_rows={'headers': True},
                                                   )),
                     dcc.Interval(
                         id='vehicle-table-update-interval',
@@ -660,8 +681,23 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     del order["vehicle_id"]
                 if 'timestamp' in order:
                     del order['timestamp']
+                if 'order_id' in order:
+                    del order['order_id']
 
             return orders_list_copy
+
+        @app.callback(
+            Output('tbl', 'style_data_conditional'),
+            Input('tbl', 'data')
+        )
+        def update_order_table_style(data):
+            style_data_conditional = []
+            for row in data:
+                style_data_conditional.append({
+                    'if': {'column_id': 'Vehicle', 'row_index': data.index(row)},
+                    'backgroundColor': row['Vehicle']
+                })
+            return style_data_conditional
 
         @app.callback(
             Output('vehicle-table', 'data'),
@@ -698,10 +734,31 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     del vehicle['headerId']
                 if 'currentTask' in vehicle:
                     del vehicle['currentTask']
+                if 'order_id' in vehicle:
+                    del vehicle['order_id']
+                if 'speeed' in vehicle:
+                    del vehicle['speeed']
+                if 'currentSequenceId' in vehicle:
+                    del vehicle['currentSequenceId']
                 if 'position' in vehicle:
                     vehicle['position'] = f"({vehicle['position'][0]:.8f}, {vehicle['position'][1]:.8f})"
+                if 'vehicleId' in vehicle:
+                    del vehicle['vehicleId']
 
             return vehicles_list_copy
+
+        @app.callback(
+            Output('vehicle-table', 'style_data_conditional'),
+            Input('vehicle-table', 'data')
+        )
+        def update_table_style(data):
+            style_data_conditional = []
+            for row in data:
+                style_data_conditional.append({
+                    'if': {'column_id': 'Vehicle', 'row_index': data.index(row)},
+                    'backgroundColor': row['Vehicle']
+                })
+            return style_data_conditional
 
         @app.callback(
         Output('incidents-tbl', 'data'),
