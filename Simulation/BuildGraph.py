@@ -253,6 +253,9 @@ def set_weight_to_value(G, edge_to_be_set_to_inf, value_to_set, method): # only 
     else:
         for edge in G.edges():
             if (str(edge[0]) == str(edge_to_be_set_to_inf[0]) and str(edge[1]) == str(edge_to_be_set_to_inf[1])) or (str(edge[0]) == str(edge_to_be_set_to_inf[1]) and str(edge[1]) == str(edge_to_be_set_to_inf[0])) :
+                if len(G[edge[0]][edge[1]]) == 0:
+                    print(f"WEIRD: Edge {edge} has no length attribute!")
+                    return G, "FAIL"
                 if method == "minutes":
                     G[edge[0]][edge[1]]['length'] = G[edge[0]][edge[1]]['length'] + value_to_set
                     print(f"{edge} weight was set to {value_to_set} minutes")

@@ -41,6 +41,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.incidents = {}
         self.order_queue = queue.Queue()
         self.generate_incidents = "off"
+        self.current_model = "gpt-few-shot"
         self.connect_to_mqtt()
 
 
@@ -81,9 +82,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
             # Add incident to self.incidents
             incident = json.loads(msg.payload.decode("utf-8"))
             print(f"Received incident: {incident}")
-            llm_output = Playground_LLM_Dacian.invoke_llm(incident["prompt"], "openai")
-            # print(llm_output)
-            self.apply_llm_output(llm_output, incident["edgeId"], human=False, vehicleId=incident["vehicleId"])
+            prompt = incident["edgeId"] + " " + incident["prompt"]
+            threading.Thread(target=self.invoke_selected_model, args=[prompt, self.current_model, False, incident["vehicleId"]]).start()
         elif msg.topic.startswith(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/") and msg.topic.endswith("/order_finish"):
             print("Received order finished message: " + msg.payload.decode("utf-8"))
             order_id = json.loads(msg.payload.decode("utf-8"))["orderId"]
@@ -247,7 +247,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
             return order["vehicle_id"]
 
     def parse_edge(self, llm_output, edge_id=None):
-        print(llm_output)
         pattern1 = r"\([`']?(\d+)[`']?,.?[`']?(\d+)[`']?\)"
         pattern2 = r"edge_([0-9]+)_([0-9]+)"
         if edge_id is None:
@@ -263,7 +262,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             edge_id = int(re.findall(pattern2, edge_id)[0][0]), int(re.findall(pattern2, edge_id)[0][1])
         return edge_id
 
-    def apply_llm_output(self, llm_output, edgeId=None, human=True, vehicleId=None, dynamic=False):
+    def apply_llm_output(self, llm_output, edgeId, human=True, vehicleId=None, dynamic=False):
         # Parse the output
         if not dynamic:
             parsed_res = TestEvaluationCsv.parse_output(llm_output)
@@ -272,7 +271,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             parsed_res = LLM_Dynamic_Weights.parse_output(llm_output)
             print(parsed_res)
         if not parsed_res:  # remove edge
-            edgeId = self.parse_edge(llm_output, edgeId)
+            # edgeId = self.parse_edge(llm_output, edgeId)
             # Update graph in the routing
             # print(f"trying to remove edge {edgeId}...")
             self.graph, success_message = BuildGraph.set_weights_to_inf(self.graph, edgeId)
@@ -291,25 +290,25 @@ class Routing():  # singleton class. Do not create more than one object of this 
             else:
                 print("ERROR: Could not remove edge")
                 return "ERROR"
+        return "NO_CHANGE"
 
-    def apply_llm_output_dynamic(self, llm_output_second_stage, llm_output_first_stage, method, human=True, edge_id=None):
+    def apply_llm_output_dynamic(self, llm_output_second_stage, llm_output_first_stage, method, edgeId, human=True, vehicleId=None):
         # Parse the output
         parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_second_stage)
-        edge_id = self.parse_edge(llm_output_first_stage, edge_id)
         # Set the weights in the graph
-        self.graph, success_message = BuildGraph.set_weight_to_value(self.graph, edge_id, parsed_value, method)
+        self.graph, success_message = BuildGraph.set_weight_to_value(self.graph, edgeId, parsed_value, method)
 
         if success_message == "SUCCESS":
             # Add incident to incidents
-            self.incidents[edge_id] = {
+            self.incidents[edgeId] = {
                 "value": str(parsed_value) + " " + str(method),
                 # timestamp in HH:MM:SS
                 "timestamp": time.strftime('%H:%M:%S', time.localtime()),
-                "origin": "Human" if human else "Vehicle"
+                "origin": "Human" if human else str(vehicleId)
             }
 
             # Reroute vehicles
-            self.reroute_vehicles(edge_id)
+            self.reroute_vehicles(edgeId)
             return "SUCCESS"
         else:
             print("ERROR: Could not set weight")
@@ -352,6 +351,67 @@ class Routing():  # singleton class. Do not create more than one object of this 
             # print("order id:", order_id)
             self.handle_order(None, order_id, current_node, current_node_index, True)
             # threading.Thread(target=self.handle_order, args=(None, order_id, current_node, current_node_index, True)).start()
+
+    def invoke_selected_model(self, value_prompt, value_model, human=True, vehicleId=None, edge_id=None):
+        if edge_id is None:
+            edge_id = self.parse_edge(value_prompt)
+        if value_model == 'gpt-few-shot':
+            llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "fewshot")
+            success_code = self.apply_llm_output(llm_output, human=human, vehicleId=vehicleId, edgeId=edge_id)
+        elif value_model == 'llama-few-shot':
+            llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "fewshot")
+            success_code = self.apply_llm_output(llm_output, human=human, vehicleId=vehicleId, edgeId=edge_id)
+        elif value_model == 'gpt-zero-shot':
+            llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "zeroshot")
+            success_code = self.apply_llm_output(llm_output, human=human, vehicleId=vehicleId, edgeId=edge_id)
+        elif value_model == 'llama-zero-shot':
+            llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "zeroshot")
+            success_code = self.apply_llm_output(llm_output, human=human, vehicleId=vehicleId, edgeId=edge_id)
+        elif value_model == 'gpt-few-shot-dynamic':
+            llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "openai",
+                                                                                               "fewshot")
+            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
+            llm_output = llm_output + "\n" + llm_output_second_stage
+        elif value_model == 'llama-few-shot-dynamic':
+            llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "llama2",
+                                                                                               "fewshot")
+            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output,
+                                                         human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
+            llm_output = llm_output + "\n" + llm_output_second_stage
+        elif value_model == 'gpt-zero-shot-dynamic':
+            llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "openai",
+                                                                                               "zeroshot")
+            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
+            llm_output = llm_output + "\n" + llm_output_second_stage
+        elif value_model == 'llama-zero-shot-dynamic':
+            llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "llama2",
+                                                                                               "zeroshot")
+            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output,
+                                                         human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
+            llm_output = llm_output + "\n" + llm_output_second_stage
+        else:
+            print("ERROR: Model not found")
+            return "ERROR: Model not found", {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
+                                              'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
+                                              'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}
+
+        if success_code == "SUCCESS":
+            return llm_output, {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
+                                'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
+                                'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}
+        elif success_code == "NO_CHANGE":
+            return "Does not affect the graph.", {'whiteSpace': 'pre-line', 'padding': 5,
+                                                  'backgroundColor': 'lightgrey',
+                                                  'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
+                                                  'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}
+        else:
+            print("ERROR: Could not apply LLM output")
+            return "ERROR: Could not apply LLM output", {'whiteSpace': 'pre-line', 'padding': 5,
+                                                         'backgroundColor': 'lightgrey',
+                                                         'font-family': 'Arial, sans-serif', 'display': 'flex',
+                                                         'flexGrow': 1,
+                                                         'minHeight': '40px', 'borderRadius': '15px',
+                                                         'marginTop': '5px'}
 
     def get_map(self):
 
@@ -694,46 +754,18 @@ class Routing():  # singleton class. Do not create more than one object of this 
             prevent_initial_call=True
         )
         def update_output(_, value_prompt, value_model):
-            if value_model == 'gpt-few-shot':
-                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "fewshot")
-                success_code = self.apply_llm_output(llm_output, human=True)
-            elif value_model == 'llama-few-shot':
-                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "fewshot")
-                success_code = self.apply_llm_output(llm_output, human=True)
-            elif value_model == 'gpt-zero-shot':
-                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "zeroshot")
-                print(llm_output)
-                success_code = self.apply_llm_output(llm_output, human=True)
-            elif value_model == 'llama-zero-shot':
-                llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "zeroshot")
-                success_code = self.apply_llm_output(llm_output, human=True)
-            elif value_model == 'gpt-few-shot-dynamic':
-                llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "openai", "fewshot")
-                success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, human=True, method=method)
-            elif value_model == 'llama-few-shot-dynamic':
-                llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "llama2", "fewshot")
-                success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, human=True, method=method)
-            elif value_model == 'gpt-zero-shot-dynamic':
-                llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "openai", "zeroshot")
-                success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, human=True, method=method)
-            elif value_model == 'llama-zero-shot-dynamic':
-                llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "llama2", "zeroshot")
-                success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, human=True, method=method)
-            else:
-                print("ERROR: Model not found")
-                return "ERROR: Model not found", {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
-                                                  'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
-                                                  'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}
+            return self.invoke_selected_model(value_prompt, value_model)
 
-            if success_code == "SUCCESS":
-                return llm_output, {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
-                                    'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
-                                    'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}
-            else:
-                print("ERROR: Could not apply LLM output")
-                return "ERROR: Could not apply LLM output", {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
-                                'font-family': 'Arial, sans-serif', 'display': 'flex', 'flexGrow': 1,
-                                'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}
+        @app.callback(
+            Output('choose-random-seed-button', 'style'),  # Dirty hack
+            [Input('llm-model-dropdown', 'value'),
+            Input('choose-random-seed-button', 'style')], # Dirty hack
+            prevent_initial_call=True,
+        )
+        def update_model(value_model, style_hack):
+            self.current_model = value_model
+            print(self.current_model)
+            return style_hack
 
         @app.callback(
             Output('tbl', 'data'),
@@ -870,9 +902,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
             prevent_initial_call=True
         )
         def update_random_seed(n_clicks, value):
-            for vehicle_id in self.vehicles.keys():
+            for index, vehicle_id in enumerate(self.vehicles.keys()):
                 self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/random_seed",
-                                    value, qos=2)
+                                    value + index, qos=2)
                 time.sleep(0.1)
             return value
 
