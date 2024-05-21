@@ -111,19 +111,20 @@ class Routing():  # singleton class. Do not create more than one object of this 
             order["vehicle_id"] = vehicle_id
             order_id = order['order_id']
 
-            shortest_path_astar = self.find_astar_path(self.graph, self.get_node_id_from_name(order["source"]),
+            shortest_path_astar, astar_time = self.find_astar_path(self.graph, self.get_node_id_from_name(order["source"]),
                                                     self.get_node_id_from_name(order["target"]))
             if self.vehicles[order["vehicle_id"]]["targetNode"] != self.get_node_id_from_name(order["source"]):
                 if current_node is None:
-                    shortest_path_astar_to_start_node = self.find_astar_path(self.graph,
+                    shortest_path_astar_to_start_node, astar_time1 = self.find_astar_path(self.graph,
                                                                             self.vehicles[order["vehicle_id"]]["targetNode"],
                                                                             self.get_node_id_from_name(order["source"]))
                 else:
-                    shortest_path_astar_to_start_node = self.find_astar_path(self.graph,
+                    shortest_path_astar_to_start_node, astar_time1 = self.find_astar_path(self.graph,
                                                                             current_node,
                                                                             self.get_node_id_from_name(order["source"]))
                 # add the two paths together
                 shortest_path_astar = shortest_path_astar_to_start_node + shortest_path_astar
+                astar_time = astar_time + astar_time1
 
             # print("old shortest path:", shortest_path_astar)
         if order_id is not None and order is None:
@@ -140,13 +141,16 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         self.handle_order(order, current_node=current_node, order_update=order_update)
                         return
                     else:
-                        shortest_path_astar = self.find_astar_path(self.graph, current_node,
+                        shortest_path_astar, astar_time = self.find_astar_path(self.graph, current_node,
                                                         self.get_node_id_from_name(order["target"]))
                         break
         if shortest_path_astar is None:
             print(f"\n## WARNING! Could not find a path for order {order_id}\n")
             order["status"] = "unreachable"
             shortest_path_astar = []
+        total_weight = self.evaluate_shortest_path_weight(self.graph, shortest_path_astar)
+        print(f"Running time of order {order_id}", astar_time)
+        print(f"Total weight of order {order_id}", total_weight)
         message = self.translate_path_to_mqtt(shortest_path_astar, order_id )
         # send the message to the MQTT broker and set vehicle status to busy
         threading.Thread(target=self.send_route_to_vehicle_async, args=(vehicle_id, message, order_update, order)).start()
@@ -186,27 +190,39 @@ class Routing():  # singleton class. Do not create more than one object of this 
         return self.get_distance(vehicle["targetNode"], start_node_id)
 
     def find_astar_path(self, G, start_node_id, end_node_id):
+        start_time = time.perf_counter()
         # use the a* algorithm to find the shortest path between the source and target node
         shortest_path = nx.astar_path(G, str(start_node_id), str(end_node_id), weight='length')
-        return shortest_path
+        end_time = time.perf_counter()
+        astar_time = end_time - start_time
+        return shortest_path, astar_time
 
     def find_dijkstra_path(self, G, start_node_id, end_node_id):
+        start_time = time.perf_counter()
         # use Dijkstra's algorithm to find the shortest path between the source and target node
-        shortest_path_length, shortest_path = nx.single_source_dijkstra(G, start_node_id, target=end_node_id,
+        shortest_path_length, shortest_path = nx.single_source_dijkstra(G, str(start_node_id), target=str(end_node_id),
                                                                         weight='length')
-        return shortest_path
+        end_time = time.perf_counter()
+        dijkstra_time = end_time - start_time
+        return shortest_path, dijkstra_time
 
     def find_bellman_ford_path(self, G, start_node_id, end_node_id):
+        start_time = time.perf_counter()
         # use Bellman-Ford algorithm to find the shortest path between the source and target node
-        shortest_path = nx.bellman_ford_path(G, start_node_id, end_node_id, weight='length')
-        return shortest_path
+        shortest_path = nx.bellman_ford_path(G, str(start_node_id), str(end_node_id), weight='length')
+        end_time = time.perf_counter()
+        bellman_ford_time = end_time - start_time
+        return shortest_path, bellman_ford_time
 
-    def evaluate_shortest_path_weight(G, shortest_path):
+    def evaluate_shortest_path_weight(self, G, shortest_path):
         total_weight = 0
         for i in range(len(shortest_path) - 1):
             source = shortest_path[i]
             target = shortest_path[i + 1]
-            edge_weight = G[source][target]['length']
+            if source != target:
+                edge_weight = G[source][target]['length']
+            else:
+                edge_weight = 0
             total_weight += edge_weight
         return total_weight
 
