@@ -320,7 +320,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 "value": str(parsed_value) + " " + str(method),
                 # timestamp in HH:MM:SS
                 "timestamp": time.strftime('%H:%M:%S', time.localtime()),
-                "origin": "Human" if human else str(vehicleId)
+                "origin": "Human" if human else "Vehicle" + str(vehicleId)
             }
 
             # Reroute vehicles
@@ -676,6 +676,11 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                       'textOverflow': 'ellipsis',
                                                       'whiteSpace': 'normal'
                                                   },
+                                                  style_table={
+                                                      'maxHeight': '280px',
+                                                      'overflowY': 'scroll'
+                                                  },
+                                                  fixed_rows={'headers': True},
                                                   ),
                              style={'maxWidth': '100%'}),
                     dcc.Interval(
@@ -770,7 +775,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             prevent_initial_call=True
         )
         def update_output(_, value_prompt, value_model):
-            return self.invoke_selected_model(value_prompt, value_model)
+            return self.invoke_selected_model(value_prompt, value_model)⁄
 
         @app.callback(
             Output('choose-random-seed-button', 'style'),  # Dirty hack
