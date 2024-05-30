@@ -775,7 +775,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             prevent_initial_call=True
         )
         def update_output(_, value_prompt, value_model):
-            return self.invoke_selected_model(value_prompt, value_model)⁄
+            return self.invoke_selected_model(value_prompt, value_model)
 
         @app.callback(
             Output('choose-random-seed-button', 'style'),  # Dirty hack
