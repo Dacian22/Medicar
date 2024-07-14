@@ -38,7 +38,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.nodes_df = nodes_df
         self.vehicles = {}
         self.orders = {}
-        self.incidents = {}
+        self.events = {}
         self.order_queue = queue.Queue()
         self.generate_incidents = "off"
         self.current_model = "gpt-few-shot"
@@ -278,7 +278,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
             edge_id = int(re.findall(pattern2, edge_id)[0][0]), int(re.findall(pattern2, edge_id)[0][1])
         return edge_id
 
-    def apply_llm_output(self, llm_output, edgeId, human=True, vehicleId=None, dynamic=False):
+    def apply_llm_output(self, llm_output, prompt, edgeId, human=True, vehicleId=None, dynamic=False):
+        self.events[edgeId] = {
+            "status": "N/A",
+            "value": 0,
+            # timestamp in HH:MM:SS
+            "timestamp": time.strftime('%H:%M:%S', time.localtime()),
+            "origin": "Human" if human else "Vehicle " + str(vehicleId),
+            "prompt": prompt
+        }
         # Parse the output
         if not dynamic:
             parsed_res = TestEvaluationCsv.parse_output(llm_output)
@@ -293,11 +301,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
             self.graph, success_message = BuildGraph.set_weights_to_inf(self.graph, edgeId)
             if success_message == "SUCCESS":
                 # Add incident to incidents
-                self.incidents[edgeId] = {
+                self.events[edgeId] = {
+                    "status": "Yes",
                     "value": "inf",
                     # timestamp in HH:MM:SS
                     "timestamp": time.strftime('%H:%M:%S', time.localtime()),
-                    "origin": "Human" if human else "Vehicle" + str(vehicleId)
+                    "origin": "Human" if human else "Vehicle " + str(vehicleId),
+                    "prompt": prompt
                 }
 
                 # Reroute vehicles
@@ -306,9 +316,17 @@ class Routing():  # singleton class. Do not create more than one object of this 
             else:
                 print("ERROR: Could not remove edge")
                 return "ERROR"
+        self.events[edgeId] = {
+            "status": "No",
+            "value": 0,
+            # timestamp in HH:MM:SS
+            "timestamp": time.strftime('%H:%M:%S', time.localtime()),
+            "origin": "Human" if human else "Vehicle " + str(vehicleId),
+            "prompt": prompt
+        }
         return "NO_CHANGE"
 
-    def apply_llm_output_dynamic(self, llm_output_second_stage, llm_output_first_stage, method, edgeId, human=True, vehicleId=None):
+    def apply_llm_output_dynamic(self, llm_output_second_stage, llm_output_first_stage, prompt, method, edgeId, human=True, vehicleId=None):
         # Parse the output
         parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_second_stage)
         # Set the weights in the graph
@@ -316,11 +334,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
         if success_message == "SUCCESS":
             # Add incident to incidents
-            self.incidents[edgeId] = {
+            self.events[edgeId] = {
+                "status": "Yes",
                 "value": str(parsed_value) + " " + str(method),
                 # timestamp in HH:MM:SS
                 "timestamp": time.strftime('%H:%M:%S', time.localtime()),
-                "origin": "Human" if human else "Vehicle" + str(vehicleId)
+                "origin": "Human" if human else "Vehicle " + str(vehicleId),
+                "prompt": prompt
             }
 
             # Reroute vehicles
@@ -373,36 +393,36 @@ class Routing():  # singleton class. Do not create more than one object of this 
             edge_id = self.parse_edge(value_prompt)
         if value_model == 'gpt-few-shot':
             llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "fewshot")
-            success_code = self.apply_llm_output(llm_output, human=human, vehicleId=vehicleId, edgeId=edge_id)
+            success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId, edgeId=edge_id)
         elif value_model == 'llama-few-shot':
             llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "fewshot")
-            success_code = self.apply_llm_output(llm_output, human=human, vehicleId=vehicleId, edgeId=edge_id)
+            success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId, edgeId=edge_id)
         elif value_model == 'gpt-zero-shot':
             llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "zeroshot")
-            success_code = self.apply_llm_output(llm_output, human=human, vehicleId=vehicleId, edgeId=edge_id)
+            success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId, edgeId=edge_id)
         elif value_model == 'llama-zero-shot':
             llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "zeroshot")
-            success_code = self.apply_llm_output(llm_output, human=human, vehicleId=vehicleId, edgeId=edge_id)
+            success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId, edgeId=edge_id)
         elif value_model == 'gpt-few-shot-dynamic':
             llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "openai",
                                                                                                "fewshot")
-            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
+            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt, human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
             llm_output = llm_output + "\n" + llm_output_second_stage
         elif value_model == 'llama-few-shot-dynamic':
             llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "llama2",
                                                                                                "fewshot")
-            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output,
+            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt,
                                                          human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
             llm_output = llm_output + "\n" + llm_output_second_stage
         elif value_model == 'gpt-zero-shot-dynamic':
             llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "openai",
                                                                                                "zeroshot")
-            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
+            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt, human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
             llm_output = llm_output + "\n" + llm_output_second_stage
         elif value_model == 'llama-zero-shot-dynamic':
             llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "llama2",
                                                                                                "zeroshot")
-            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output,
+            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt,
                                                          human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
             llm_output = llm_output + "\n" + llm_output_second_stage
         else:
@@ -529,7 +549,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
             # Add incidents to the map
             # with lock:
-            for edge_id, incident_value in self.incidents.items():
+            for edge_id, incident_value in self.events.items():
                 lons = [self.nodes_df.loc[edge_id[0]]["lon"], self.nodes_df.loc[edge_id[1]]["lon"]]
                 lats = [self.nodes_df.loc[edge_id[0]]["lat"], self.nodes_df.loc[edge_id[1]]["lat"]]
                 fig.add_trace(go.Scattermapbox(mode='lines',
@@ -575,7 +595,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
                              colors={ 'border': '#d6d6d6', 'primary': '#99C554', 'background': '#f9f9f9'},
                              children=[
                                 dcc.Tab(label='Incidents', value='tab-1'),
+                                dcc.Tab(label='Events', value='tab-events'),
                                 dcc.Tab(label='Status', value='tab-2'),
+                                dcc.Tab(label='Prompts', value='tab-prompts')
                             ]),
                     html.Div(id='tabs-content')
                 ], style={'padding': 5, 'flex': 1})
@@ -599,59 +621,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         def render_content(tab):
             if tab == 'tab-1':
                 return html.Div([
-                    html.H2("LLM", style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554'}),
-                    html.Div([
-                        dcc.Textarea(id='input-prompt', value='Prompt...',
-                                     style={'height': 60, 'padding': 5, 'flex': 1, 'borderRadius': '15px',
-                                            'marginRight': '5px'}),
-                        html.Div([
-                            dcc.Dropdown(
-                                id='llm-model-dropdown',
-                                options=[
-                                    {'label': 'GPT-3.5-Few', 'value': 'gpt-few-shot'},
-                                    {'label': 'LLAMA-2-Few', 'value': 'llama-few-shot'},
-                                    {'label': 'GPT-3.5-Zero', 'value': 'gpt-zero-shot'},
-                                    {'label': 'LLAMA-2-Zero', 'value': 'llama-zero-shot'},
-                                    {'label': 'GPT-3.5-Few-Dynamic', 'value': 'gpt-few-shot-dynamic'},
-                                    {'label': 'LLAMA-2-Few-Dynamic', 'value': 'llama-few-shot-dynamic'},
-                                    {'label': 'GPT-3.5-Zero-Dynamic', 'value': 'gpt-zero-shot-dynamic'},
-                                    {'label': 'LLAMA-2-Zero-Dynamic', 'value': 'llama-zero-shot-dynamic'},
-                                ],
-                                value='gpt-few-shot',
-                                style={'borderRadius': '15px', 'padding': 5, 'width':'95%'}
-                            ),
-                            html.Button('Submit', id='press-invoke-llm', n_clicks=0,
-                                        style={'padding': 5, 'backgroundColor': '#99C554', 'border': 'none',
-                                               'color': 'white', 'borderRadius': '15px', 'width':'95%'}),
-                        ], style={'alignItems': 'center', 'flex': 1, 'flexDirection': 'column', 'display': 'flex'}),
-                    ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'center'}),
-                    html.Label(id='llm-output',
-                               style={'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
-                                      'font-family': 'Arial, sans-serif', 'display': 'none', 'flexGrow': 1,
-                                      'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}),
-                    html.Div([
-                        html.H2("Incident Generation",
-                                style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
-                                       'marginTop': '60px'}),
-                        html.Div([
-                            html.Div([
-                                html.Label('Seed used by all vehicles:', style={'font-family': 'Arial, sans-serif', 'color': 'black', 'marginRight': '20px', 'width': '35%'}),
-                                dcc.Input(id='random-seed', type='number', value=42, style={'marginRight': '5px', 'width': '10%', 'borderRadius': '15px'}),
-                                html.Button('Update Seed', id='update-seed-button', n_clicks=0,
-                                            style={'padding': 5, 'backgroundColor': '#99C554', 'border': 'none',
-                                                   'color': 'white', 'borderRadius': '15px', 'marginRight': '5px'}),
-                                html.Button('Randomize Seed', id='choose-random-seed-button', n_clicks=0,
-                                            style={'padding': 5, 'backgroundColor': '#99C554', 'border': 'none',
-                                                   'color': 'white', 'borderRadius': '15px'})
-                            ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'left'}),
-                            html.Div([
-                                html.Label('Generate Incidents from vehicles:',
-                                           style={'font-family': 'Arial, sans-serif', 'color': 'black', 'marginRight': '20px', 'width': '35%'}),
-                                dcc.RadioItems(["off", "on"], self.generate_incidents, id='generate-incidents', inline=True, style={'width': '10%'})
-                            ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'left', 'marginTop': '30px'}),
-                        ], style={'display': 'flex', 'flexDirection': 'column', 'alignItems': 'left',
-                                  'marginTop': '10px'})
-                    ]),
                     html.H2("Ongoing Incidents",
                             style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
                                    'marginTop': '60px'}),
@@ -749,17 +718,121 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                       'border': '1px solid grey'
                                                   },
                                                   style_table={
-                                                      'maxHeight': '280px',
+                                                      'maxHeight': '280%',
                                                       'overflowY': 'scroll'
                                                   },
                                                   fixed_rows={'headers': True},
-                                                  )),
+                                                  ), style={'maxWidth': '100%', 'maxHeight': '100%'}),
                     dcc.Interval(
                         id='vehicle-table-update-interval',
                         interval=2 * 1000,  # in milliseconds
                         n_intervals=0
                     )
                 ])
+            elif tab == 'tab-events':
+                return html.Div([
+                    html.H2("Events",
+                            style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
+                                   'marginTop': '60px'}),
+                    html.Div(dash_table.DataTable(id='events-tbl', cell_selectable=False,
+                                                  style_data_conditional=[
+                                                      {
+                                                          "if": {"state": "selected"},
+                                                          "backgroundColor": "inherit !important",
+                                                          "border": "inherit !important",
+                                                      }
+                                                  ],
+                                                  style_header={
+                                                      'backgroundColor': 'lightgrey',
+                                                      'fontWeight': 'bold'
+                                                  },
+                                                  style_cell={
+                                                      'backgroundColor': 'white',
+                                                      'color': 'black',
+                                                      'border': '1px solid grey',
+                                                      'maxWidth': '150px',
+                                                      'overflow': 'hidden',
+                                                      'textOverflow': 'ellipsis',
+                                                      'whiteSpace': 'normal'
+                                                  },
+                                                  style_table={
+                                                      'maxHeight': '100%',
+                                                      'overflowY': 'scroll'
+                                                  },
+                                                  fixed_rows={'headers': True},
+                                                  ),
+                             style={'maxWidth': '100%', 'maxHeight': '100%'}),
+                    dcc.Interval(
+                        id='table-update-interval-events',
+                        interval=2 * 1000,  # in milliseconds
+                        n_intervals=0
+                    ),
+                ])
+            elif tab == 'tab-prompts':
+                return html.Div([
+                    html.H2("LLM",
+                            style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
+                                   'marginTop': '60px'}),
+                    html.Div([
+                        dcc.Textarea(id='input-prompt', value='Prompt...',
+                                     style={'height': 60, 'padding': 5, 'flex': 1, 'borderRadius': '15px',
+                                            'marginRight': '5px'}),
+                        html.Div([
+                            dcc.Dropdown(
+                                id='llm-model-dropdown',
+                                options=[
+                                    {'label': 'GPT-3.5-Few', 'value': 'gpt-few-shot'},
+                                    {'label': 'LLAMA-2-Few', 'value': 'llama-few-shot'},
+                                    {'label': 'GPT-3.5-Zero', 'value': 'gpt-zero-shot'},
+                                    {'label': 'LLAMA-2-Zero', 'value': 'llama-zero-shot'},
+                                    {'label': 'GPT-3.5-Few-Dynamic', 'value': 'gpt-few-shot-dynamic'},
+                                    {'label': 'LLAMA-2-Few-Dynamic', 'value': 'llama-few-shot-dynamic'},
+                                    {'label': 'GPT-3.5-Zero-Dynamic', 'value': 'gpt-zero-shot-dynamic'},
+                                    {'label': 'LLAMA-2-Zero-Dynamic', 'value': 'llama-zero-shot-dynamic'},
+                                ],
+                                value='gpt-few-shot',
+                                style={'borderRadius': '15px', 'padding': 5, 'width': '95%'}
+                            ),
+                            html.Button('Submit', id='press-invoke-llm', n_clicks=0,
+                                        style={'padding': 5, 'backgroundColor': '#99C554', 'border': 'none',
+                                               'color': 'white', 'borderRadius': '15px', 'width': '95%'}),
+                        ], style={'alignItems': 'center', 'flex': 1, 'flexDirection': 'column', 'display': 'flex'}),
+                    ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'center'}),
+                    html.Label(id='llm-output',
+                               style={'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
+                                      'font-family': 'Arial, sans-serif', 'display': 'none', 'flexGrow': 1,
+                                      'minHeight': '40px', 'borderRadius': '15px', 'marginTop': '5px'}),
+                    html.Div([
+                        html.H2("Prompt Generation",
+                                style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
+                                       'marginTop': '60px'}),
+                        html.Div([
+                            html.Div([
+                                html.Label('Seed used by all vehicles:',
+                                           style={'font-family': 'Arial, sans-serif', 'color': 'black',
+                                                  'marginRight': '20px', 'width': '35%'}),
+                                dcc.Input(id='random-seed', type='number', value=42,
+                                          style={'marginRight': '5px', 'width': '10%', 'borderRadius': '15px'}),
+                                html.Button('Update Seed', id='update-seed-button', n_clicks=0,
+                                            style={'padding': 5, 'backgroundColor': '#99C554', 'border': 'none',
+                                                   'color': 'white', 'borderRadius': '15px', 'marginRight': '5px'}),
+                                html.Button('Randomize Seed', id='choose-random-seed-button', n_clicks=0,
+                                            style={'padding': 5, 'backgroundColor': '#99C554', 'border': 'none',
+                                                   'color': 'white', 'borderRadius': '15px'})
+                            ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'left'}),
+                            html.Div([
+                                html.Label('Generate prompts from vehicles:',
+                                           style={'font-family': 'Arial, sans-serif', 'color': 'black',
+                                                  'marginRight': '20px', 'width': '35%'}),
+                                dcc.RadioItems(["off", "on"], self.generate_incidents, id='generate-incidents',
+                                               inline=True, style={'width': '10%'})
+                            ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'left',
+                                      'marginTop': '30px'}),
+                        ], style={'display': 'flex', 'flexDirection': 'column', 'alignItems': 'left',
+                                  'marginTop': '10px'})
+                    ])
+                ])
+
 
         @app.callback(Output('live-update-graph', 'figure'),
                       Input('interval-component', 'n_intervals'))
@@ -890,21 +963,74 @@ class Routing():  # singleton class. Do not create more than one object of this 
             return style_data_conditional
 
         @app.callback(
-        Output('incidents-tbl', 'data'),
-                Input('table-update-interval-incidents', 'n_intervals')
+            Output('incidents-tbl', 'data'),
+            Input('table-update-interval-incidents', 'n_intervals')
         )
-        def update_incidents_table(_):  # don't care about the input
-            incidents_edge_ids = [f"edge_{edge[0]}_{edge[1]}" for edge in self.incidents.keys()]
-            incidents_attributes = [incident for incident in self.incidents.values()]
+        def update_incidents_table(_):
+            incidents_edge_ids = [f"edge_{edge[0]}_{edge[1]}" for edge in self.events.keys()]
+            incidents_attributes = [incident for incident in self.events.values()]
+
+            incidents_edge_ids_copy = copy.deepcopy(incidents_edge_ids)
+            incidents_attributes_copy = copy.deepcopy(incidents_attributes)
+
+            # Filter the incidents with status "Incident"
+            incidents_attributes_copy = [incident for incident in incidents_attributes_copy if
+                                         incident.get('status') == 'Yes']
+
+            for index, incident in enumerate(incidents_attributes_copy):
+                # Set vehicle_id to vehicle color
+                incident["Edge_ID"] = incidents_edge_ids_copy[index]
+                if 'status' in incident:
+                    del incident['status']
+                if 'prompt' in incident:
+                    del incident['prompt']
+
+            return incidents_attributes_copy
+
+        @app.callback(
+            Output('events-tbl', 'data'),
+            Input('table-update-interval-events', 'n_intervals')
+        )
+        def update_events_table(_):  # don't care about the input
+            incidents_edge_ids = [f"edge_{edge[0]}_{edge[1]}" for edge in self.events.keys()]
+            incidents_attributes = [incident for incident in self.events.values()]
 
             incidents_edge_ids_copy = copy.deepcopy(incidents_edge_ids)
             incidents_attributes_copy = copy.deepcopy(incidents_attributes)
 
             for index, incident in enumerate(incidents_attributes_copy):
                 # Set vehicle_id to vehicle color
-                incident["Edge_ID"] = incidents_edge_ids_copy[index]
+                if 'status' in incident:
+                    incident["Incident"] = incident["status"]
+                    del incident['status']
+                if 'value' in incident:
+                    incident["Value"] = incident["value"]
+                    del incident['value']
 
             return incidents_attributes_copy
+
+        @app.callback(
+            Output('events-tbl', 'style_data_conditional'),
+            Input('events-tbl', 'data')
+        )
+        def update_events_table_style(data):
+            style_data_conditional = []
+            style_data_conditional.append({
+                'if': {
+                    'filter_query': '{Incident} = Yes',
+                    'column_id': 'Incident'
+                },
+                'backgroundColor': 'red'
+            })
+            style_data_conditional.append({
+                'if': {
+                    'filter_query': '{Incident} = No',
+                    'column_id': 'Incident'
+                },
+                'backgroundColor': 'green'
+            })
+            return style_data_conditional
+
 
         @app.callback(
             Output('random-seed', 'value', allow_duplicate=True),
