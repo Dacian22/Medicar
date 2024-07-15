@@ -148,6 +148,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             print(f"\n## WARNING! Could not find a path for order {order_id}\n")
             order["status"] = "unreachable"
             shortest_path_astar = []
+            return
         total_weight = self.evaluate_shortest_path_weight(self.graph, shortest_path_astar)
         print(f"Running time of order {order_id}", astar_time)
         print(f"Total weight of order {order_id}", total_weight)
@@ -651,13 +652,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                   },
                                                   fixed_rows={'headers': True},
                                                   ),
-                             style={'maxWidth': '100%'}),
+                             style={'maxWidth': '100%', 'height': '80vh'}),
                     dcc.Interval(
                         id='table-update-interval-incidents',
                         interval=2 * 1000,  # in milliseconds
                         n_intervals=0
                     ),
-                ])
+                ], style={'display': 'flex', 'flexDirection': 'column', 'height': '100%'})
             elif tab == 'tab-2':
                 return html.Div([
                     html.H2("Orders",
@@ -718,7 +719,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                       'border': '1px solid grey'
                                                   },
                                                   style_table={
-                                                      'maxHeight': '280%',
+                                                      'maxHeight': '280px',
                                                       'overflowY': 'scroll'
                                                   },
                                                   fixed_rows={'headers': True},
@@ -740,6 +741,20 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                           "if": {"state": "selected"},
                                                           "backgroundColor": "inherit !important",
                                                           "border": "inherit !important",
+                                                      },
+                                                      {
+                                                          'if': {
+                                                              'filter_query': '{Incident} = Yes',
+                                                              'column_id': 'Incident'
+                                                          },
+                                                          'backgroundColor': 'red'
+                                                      },
+                                                      {
+                                                          'if': {
+                                                              'filter_query': '{Incident} = No',
+                                                              'column_id': 'Incident'
+                                                          },
+                                                          'backgroundColor': 'green'
                                                       }
                                                   ],
                                                   style_header={
@@ -756,8 +771,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                       'whiteSpace': 'normal'
                                                   },
                                                   style_table={
-                                                      'maxHeight': '100%',
-                                                      'overflowY': 'scroll'
+                                                      'height': '500%',
+                                                      'overflowY': 'auto'
                                                   },
                                                   fixed_rows={'headers': True},
                                                   ),
@@ -1008,29 +1023,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     del incident['value']
 
             return incidents_attributes_copy
-
-        @app.callback(
-            Output('events-tbl', 'style_data_conditional'),
-            Input('events-tbl', 'data')
-        )
-        def update_events_table_style(data):
-            style_data_conditional = []
-            style_data_conditional.append({
-                'if': {
-                    'filter_query': '{Incident} = Yes',
-                    'column_id': 'Incident'
-                },
-                'backgroundColor': 'red'
-            })
-            style_data_conditional.append({
-                'if': {
-                    'filter_query': '{Incident} = No',
-                    'column_id': 'Incident'
-                },
-                'backgroundColor': 'green'
-            })
-            return style_data_conditional
-
 
         @app.callback(
             Output('random-seed', 'value', allow_duplicate=True),
