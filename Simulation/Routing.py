@@ -562,6 +562,29 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                hoverlabel={'namelength': -1}
                                                ))
 
+                # Add markers in the middle of the edge
+                fig.add_trace(go.Scattermapbox(
+                    lon = [(self.nodes_df.loc[edge_id[0]]["lon"] + self.nodes_df.loc[edge_id[1]]["lon"])/2],
+                    lat = [(self.nodes_df.loc[edge_id[0]]["lat"] + self.nodes_df.loc[edge_id[1]]["lat"])/2],
+                    marker=go.scattermapbox.Marker(
+                        size=17,
+                        color='rgb(255, 0, 0)',
+                        opacity=1
+                        )
+                    ))
+
+                fig.add_trace(go.Scattermapbox(
+                    lon = [(self.nodes_df.loc[edge_id[0]]["lon"] + self.nodes_df.loc[edge_id[1]]["lon"])/2],
+                    lat = [(self.nodes_df.loc[edge_id[0]]["lat"] + self.nodes_df.loc[edge_id[1]]["lat"])/2],
+                    marker=go.scattermapbox.Marker(
+                        size=8,
+                        color='rgb(242, 177, 172)',
+                        opacity=1
+                        ),
+                    text=incident_value["prompt"],
+                    hoverinfo='text'
+                    ))
+
 
             fig.update_layout(mapbox_style="open-street-map",
                               mapbox_zoom=16,
