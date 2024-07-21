@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import queue
 import re
 import sys
 import threading
@@ -9,20 +10,17 @@ import warnings
 
 import networkx as nx
 import numpy as np
+import paho.mqtt.client as mqtt
 import paho.mqtt.client as paho
 import plotly.graph_objects as go
 from dash import Dash, dash_table
 from dash import html, dcc, Output, Input, State, no_update
 from dotenv import load_dotenv
-import paho.mqtt.client as mqtt
-
 
 import BuildGraph
+import LLM_Dynamic_Weights
 import Playground_LLM_Dacian
 import TestEvaluationCsv
-import queue
-
-import LLM_Dynamic_Weights
 
 lock = threading.Lock()
 warnings.filterwarnings("ignore")
@@ -43,7 +41,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.generate_incidents = "off"
         self.current_model = "gpt-few-shot"
         self.connect_to_mqtt()
-
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
         print("CONNACK received with code %s." % rc)
@@ -78,13 +75,16 @@ class Routing():  # singleton class. Do not create more than one object of this 
             vehicle_id = msg.topic.split("/")[2]
             vehicle_status = json.loads(msg.payload.decode())
             self.vehicles[vehicle_id] = vehicle_status
-        elif msg.topic.startswith(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/") and msg.topic.endswith("/incident"):
+        elif msg.topic.startswith(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/") and msg.topic.endswith(
+                "/incident"):
             # Add incident to self.incidents
             incident = json.loads(msg.payload.decode("utf-8"))
             print(f"Received incident: {incident}")
             prompt = incident["edgeId"] + " " + incident["prompt"]
-            threading.Thread(target=self.invoke_selected_model, args=[prompt, self.current_model, False, incident["vehicleId"]]).start()
-        elif msg.topic.startswith(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/") and msg.topic.endswith("/order_finish"):
+            threading.Thread(target=self.invoke_selected_model,
+                             args=[prompt, self.current_model, False, incident["vehicleId"]]).start()
+        elif msg.topic.startswith(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/") and msg.topic.endswith(
+                "/order_finish"):
             print("Received order finished message: " + msg.payload.decode("utf-8"))
             order_id = json.loads(msg.payload.decode("utf-8"))["orderId"]
             self.orders[order_id]["status"] = "completed"
@@ -98,12 +98,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
     def process_orders(self):
         while True:
             # If vehicles are available (idle)
-            if len(self.vehicles) > 0 and any(vehicle["status"] == "idle" for vehicle in self.vehicles.values()) and not self.order_queue.empty():
+            if len(self.vehicles) > 0 and any(
+                    vehicle["status"] == "idle" for vehicle in self.vehicles.values()) and not self.order_queue.empty():
                 order = self.order_queue.get()
                 self.handle_order(order)
             time.sleep(0.1)
 
-    def handle_order(self, order=None, order_id = None, current_node = None, current_node_index = None, order_update=False):
+    def handle_order(self, order=None, order_id=None, current_node=None, current_node_index=None, order_update=False):
         shortest_path_astar = None
         if order is not None and order_id is None:
             vehicle_id = self.get_vehicle_id_for_order(order)
@@ -111,17 +112,22 @@ class Routing():  # singleton class. Do not create more than one object of this 
             order["vehicle_id"] = vehicle_id
             order_id = order['order_id']
 
-            shortest_path_astar, astar_time = self.find_astar_path(self.graph, self.get_node_id_from_name(order["source"]),
-                                                    self.get_node_id_from_name(order["target"]))
+            shortest_path_astar, astar_time = self.find_astar_path(self.graph,
+                                                                   self.get_node_id_from_name(order["source"]),
+                                                                   self.get_node_id_from_name(order["target"]))
             if self.vehicles[order["vehicle_id"]]["targetNode"] != self.get_node_id_from_name(order["source"]):
                 if current_node is None:
                     shortest_path_astar_to_start_node, astar_time1 = self.find_astar_path(self.graph,
-                                                                            self.vehicles[order["vehicle_id"]]["targetNode"],
-                                                                            self.get_node_id_from_name(order["source"]))
+                                                                                          self.vehicles[
+                                                                                              order["vehicle_id"]][
+                                                                                              "targetNode"],
+                                                                                          self.get_node_id_from_name(
+                                                                                              order["source"]))
                 else:
                     shortest_path_astar_to_start_node, astar_time1 = self.find_astar_path(self.graph,
-                                                                            current_node,
-                                                                            self.get_node_id_from_name(order["source"]))
+                                                                                          current_node,
+                                                                                          self.get_node_id_from_name(
+                                                                                              order["source"]))
                 # add the two paths together
                 shortest_path_astar = shortest_path_astar_to_start_node + shortest_path_astar
                 astar_time = astar_time + astar_time1
@@ -135,14 +141,16 @@ class Routing():  # singleton class. Do not create more than one object of this 
             vehicle = self.vehicles.get(vehicle_id)
             order_source = self.get_node_id_from_name(order["source"])
             for task_edge in vehicle["currentTask"]["edges"]:
-                if str(task_edge['startNodeId']) == str(order_source) or str(task_edge['endNodeId']) == str(order_source):
+                if str(task_edge['startNodeId']) == str(order_source) or str(task_edge['endNodeId']) == str(
+                        order_source):
                     order_source_index = task_edge['sequenceId']
                     if current_node_index <= order_source_index:
                         self.handle_order(order, current_node=current_node, order_update=order_update)
                         return
                     else:
                         shortest_path_astar, astar_time = self.find_astar_path(self.graph, current_node,
-                                                        self.get_node_id_from_name(order["target"]))
+                                                                               self.get_node_id_from_name(
+                                                                                   order["target"]))
                         break
         if shortest_path_astar is None:
             print(f"\n## WARNING! Could not find a path for order {order_id}\n")
@@ -152,9 +160,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
         total_weight = self.evaluate_shortest_path_weight(self.graph, shortest_path_astar)
         print(f"Running time of order {order_id}", astar_time)
         print(f"Total weight of order {order_id}", total_weight)
-        message = self.translate_path_to_mqtt(shortest_path_astar, order_id )
+        message = self.translate_path_to_mqtt(shortest_path_astar, order_id)
         # send the message to the MQTT broker and set vehicle status to busy
-        threading.Thread(target=self.send_route_to_vehicle_async, args=(vehicle_id, message, order_update, order)).start()
+        threading.Thread(target=self.send_route_to_vehicle_async,
+                         args=(vehicle_id, message, order_update, order)).start()
 
     def send_route_to_vehicle_async(self, vehicle_id, route, force=False, order=None):  # please call this method async
         while not force and self.vehicles[vehicle_id]["status"] != "idle":
@@ -327,7 +336,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
         }
         return "NO_CHANGE"
 
-    def apply_llm_output_dynamic(self, llm_output_second_stage, llm_output_first_stage, prompt, method, edgeId, human=True, vehicleId=None):
+    def apply_llm_output_dynamic(self, llm_output_second_stage, llm_output_first_stage, prompt, method, edgeId,
+                                 human=True, vehicleId=None):
         # Parse the output
         parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_second_stage)
         # Set the weights in the graph
@@ -351,10 +361,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
             print("ERROR: Could not set weight")
             return "ERROR"
 
-
     def reroute_vehicles(self, obstacle_edge_id):
-        #TODO Check if the vehicle has reached the order['source'] before it reaches an obstacle.
-        #TODO Check the direction of the vehicle (start node/end node of the edge)
+        # TODO Check if the vehicle has reached the order['source'] before it reaches an obstacle.
+        # TODO Check the direction of the vehicle (start node/end node of the edge)
         current_node = None
         affected_vehicles = []
         for vehicle_id, vehicle in self.vehicles.items():
@@ -368,7 +377,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         current_node_index = edge['sequenceId']
                     if edge["sequenceId"] > vehicle["currentSequenceId"]:
                         if (str(edge["startNodeId"]) == str(obstacle_edge_id[0]) and str(edge["endNodeId"]) == str(
-                                obstacle_edge_id[1])) or (str(edge["startNodeId"]) == str(obstacle_edge_id[1]) and str(edge["endNodeId"]) == str(obstacle_edge_id[0])):
+                                obstacle_edge_id[1])) or (
+                                str(edge["startNodeId"]) == str(obstacle_edge_id[1]) and str(edge["endNodeId"]) == str(
+                            obstacle_edge_id[0])):
                             affected_vehicles.append(vehicle_id)
                             break
 
@@ -379,10 +390,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
             vehicle = self.vehicles[vehicle_id]
             order_id = vehicle['currentTask']['orderId']
             for edge in vehicle["currentTask"]["edges"]:
-                    if edge["sequenceId"] == vehicle["currentSequenceId"]:
-                        current_node = edge["endNodeId"]
-                        current_node_index = edge['sequenceId']
-                        break
+                if edge["sequenceId"] == vehicle["currentSequenceId"]:
+                    current_node = edge["endNodeId"]
+                    current_node_index = edge['sequenceId']
+                    break
             # print(f"rerouted vehicle {vehicle_id}")
             # print("current node:", current_node)
             # print("order id:", order_id)
@@ -394,37 +405,45 @@ class Routing():  # singleton class. Do not create more than one object of this 
             edge_id = self.parse_edge(value_prompt)
         if value_model == 'gpt-few-shot':
             llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "fewshot")
-            success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId, edgeId=edge_id)
+            success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId,
+                                                 edgeId=edge_id)
         elif value_model == 'llama-few-shot':
             llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "fewshot")
-            success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId, edgeId=edge_id)
+            success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId,
+                                                 edgeId=edge_id)
         elif value_model == 'gpt-zero-shot':
             llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "zeroshot")
-            success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId, edgeId=edge_id)
+            success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId,
+                                                 edgeId=edge_id)
         elif value_model == 'llama-zero-shot':
             llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "zeroshot")
-            success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId, edgeId=edge_id)
+            success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId,
+                                                 edgeId=edge_id)
         elif value_model == 'gpt-few-shot-dynamic':
             llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "openai",
                                                                                                "fewshot")
-            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt, human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
+            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt, human=human,
+                                                         method=method, vehicleId=vehicleId, edgeId=edge_id)
             llm_output = llm_output + "\n" + llm_output_second_stage
         elif value_model == 'llama-few-shot-dynamic':
             llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "llama2",
                                                                                                "fewshot")
             success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt,
-                                                         human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
+                                                         human=human, method=method, vehicleId=vehicleId,
+                                                         edgeId=edge_id)
             llm_output = llm_output + "\n" + llm_output_second_stage
         elif value_model == 'gpt-zero-shot-dynamic':
             llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "openai",
                                                                                                "zeroshot")
-            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt, human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
+            success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt, human=human,
+                                                         method=method, vehicleId=vehicleId, edgeId=edge_id)
             llm_output = llm_output + "\n" + llm_output_second_stage
         elif value_model == 'llama-zero-shot-dynamic':
             llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "llama2",
                                                                                                "zeroshot")
             success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt,
-                                                         human=human, method=method, vehicleId=vehicleId, edgeId=edge_id)
+                                                         human=human, method=method, vehicleId=vehicleId,
+                                                         edgeId=edge_id)
             llm_output = llm_output + "\n" + llm_output_second_stage
         else:
             print("ERROR: Model not found")
@@ -452,12 +471,12 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     def get_map(self):
 
-        vehicle_colors = [    
-                "red", "darkorange", "green", "yellow", "royalblue", "darkkhaki", "lightslategray",
-                "purple", "burlywood", "darkslategray", "lemonchiffon", "lightsteelblue", "powderblue", "olivedrab",
-                "peru", "gold", "mediumseagreen", "lavenderblush", "skyblue", "tomato", "orange", "darkslategrey",
-                "lightgoldenrodyellow", "darkred", "slategray"
-            ]
+        vehicle_colors = [
+            "red", "darkorange", "green", "yellow", "royalblue", "darkkhaki", "lightslategray",
+            "purple", "burlywood", "darkslategray", "lemonchiffon", "lightsteelblue", "powderblue", "olivedrab",
+            "peru", "gold", "mediumseagreen", "lavenderblush", "skyblue", "tomato", "orange", "darkslategrey",
+            "lightgoldenrodyellow", "darkred", "slategray"
+        ]
         graph_color = '#4b42f5'
 
         def get_map_plot():
@@ -564,35 +583,35 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
                 # Add markers in the middle of the edge
                 fig.add_trace(go.Scattermapbox(
-                    lon = [(self.nodes_df.loc[edge_id[0]]["lon"] + self.nodes_df.loc[edge_id[1]]["lon"])/2],
-                    lat = [(self.nodes_df.loc[edge_id[0]]["lat"] + self.nodes_df.loc[edge_id[1]]["lat"])/2],
+                    lon=[(self.nodes_df.loc[edge_id[0]]["lon"] + self.nodes_df.loc[edge_id[1]]["lon"]) / 2],
+                    lat=[(self.nodes_df.loc[edge_id[0]]["lat"] + self.nodes_df.loc[edge_id[1]]["lat"]) / 2],
                     marker=go.scattermapbox.Marker(
                         size=17,
                         color='rgb(255, 0, 0)',
                         opacity=1
-                        )
-                    ))
+                    )
+                ))
 
                 fig.add_trace(go.Scattermapbox(
-                    lon = [(self.nodes_df.loc[edge_id[0]]["lon"] + self.nodes_df.loc[edge_id[1]]["lon"])/2],
-                    lat = [(self.nodes_df.loc[edge_id[0]]["lat"] + self.nodes_df.loc[edge_id[1]]["lat"])/2],
+                    lon=[(self.nodes_df.loc[edge_id[0]]["lon"] + self.nodes_df.loc[edge_id[1]]["lon"]) / 2],
+                    lat=[(self.nodes_df.loc[edge_id[0]]["lat"] + self.nodes_df.loc[edge_id[1]]["lat"]) / 2],
                     marker=go.scattermapbox.Marker(
                         size=8,
                         color='rgb(242, 177, 172)',
                         opacity=1
-                        ),
+                    ),
                     text=incident_value["prompt"],
                     hoverinfo='text'
-                    ))
-
+                ))
 
             fig.update_layout(mapbox_style="open-street-map",
                               mapbox_zoom=16,
                               mapbox_center_lat=48.00632,
                               mapbox_center_lon=7.838,
                               margin={"r": 0, "t": 0, "l": 0, "b": 0},
-                              width=1050,
-                              height=850,
+                              autosize=True,
+                              # width=1050,
+                              # height=850,
                               showlegend=False)
 
             fig['layout']['uirevision'] = 'currentZoom'
@@ -603,30 +622,50 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
         app.layout = html.Div([
             html.H1(children='Intelligent Hospital Logistics',
-                    style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554'}),
+                    style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554', 'height': '20px'}),
             html.Div([
                 html.Div([
-                    dcc.Graph(id='live-update-graph'),
+                    dcc.Graph(id='live-update-graph',
+                              responsive=True,
+                              style={
+                                  'width': '100%',
+                                  'height': '100%'}),
                     dcc.Interval(
                         id='interval-component',
                         interval=2 * 1000,  # in milliseconds
                         n_intervals=0
                     )
-                ], style={'padding': 5, 'flex': 1}),
+                ], style={'padding': 5, 'flex': 2}),
                 html.Div([
                     dcc.Tabs(id="tabs",
                              value='tab-1',
-                             colors={ 'border': '#d6d6d6', 'primary': '#99C554', 'background': '#f9f9f9'},
+                             colors={'border': '#d6d6d6', 'primary': '#99C554', 'background': '#f9f9f9'},
                              children=[
-                                dcc.Tab(label='Incidents', value='tab-1'),
-                                dcc.Tab(label='Events', value='tab-events'),
-                                dcc.Tab(label='Status', value='tab-2'),
-                                dcc.Tab(label='Prompts', value='tab-prompts')
-                            ]),
-                    html.Div(id='tabs-content')
-                ], style={'padding': 5, 'flex': 1})
-            ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'stretch'})
-        ], style={'fontFamily': 'Arial, sans-serif'})
+                                 dcc.Tab(label='Incidents', value='tab-1'),
+                                 dcc.Tab(label='Events', value='tab-events'),
+                                 dcc.Tab(label='Status', value='tab-2'),
+                                 dcc.Tab(label='Prompts', value='tab-prompts')
+                             ],
+                             style={
+                                 'height': '100%'
+                             }),
+                    html.Div(id='tabs-content',
+                             style={
+                                 'height': '100%',
+                                 'maxHeight': 'calc(95vh - 100px)',
+                                 'overflowY': 'auto'
+                             })
+                ], style={'padding': 5, 'flex': 1, 'flexDirection': 'row', 'minWidth': '100px', 'maxWidth': '500px',
+                          'height': '100%'})
+            ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'stretch',
+                      'height': 'calc(100% - 20px)'
+                      })
+        ], style={'fontFamily': 'Arial, sans-serif',
+                  'width': '100%',
+                  # 'height': '100%'
+                  'height': '95vh',
+                  'maxHeight': '95vh'
+                  })
 
         # For buttons
         button_style = {'padding': 5, 'backgroundColor': '#99C554', 'border': 'none', 'color': 'white',
@@ -641,13 +680,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
         dcc.RadioItems(["off", "on"], self.generate_incidents, id='generate-incidents', style=radio_items_style)
 
         @app.callback(Output('tabs-content', 'children'),
-                             Input('tabs', 'value'))
+                      Input('tabs', 'value'))
         def render_content(tab):
             if tab == 'tab-1':
                 return html.Div([
                     html.H2("Ongoing Incidents",
                             style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
-                                   'marginTop': '60px'}),
+                                   'marginTop': '30px'}),
                     html.Div(dash_table.DataTable(id='incidents-tbl', cell_selectable=False,
                                                   style_data_conditional=[
                                                       {
@@ -670,12 +709,12 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                       'whiteSpace': 'normal'
                                                   },
                                                   style_table={
-                                                      'maxHeight': '280px',
+                                                      'height': '100%',
                                                       'overflowY': 'scroll'
                                                   },
                                                   fixed_rows={'headers': True},
                                                   ),
-                             style={'maxWidth': '100%', 'height': '80vh'}),
+                             style={'width': '100%'}),
                     dcc.Interval(
                         id='table-update-interval-incidents',
                         interval=2 * 1000,  # in milliseconds
@@ -686,7 +725,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 return html.Div([
                     html.H2("Orders",
                             style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
-                                   'marginTop': '60px'}),
+                                   'marginTop': '30px',
+                                   }),
                     html.Div(dash_table.DataTable(id='tbl', cell_selectable=False,
                                                   style_data_conditional=[
                                                       {
@@ -709,12 +749,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                       'whiteSpace': 'normal'
                                                   },
                                                   style_table={
-                                                      'maxHeight': '280px',
                                                       'overflowY': 'scroll'
                                                   },
                                                   fixed_rows={'headers': True},
                                                   ),
-                             style={'maxWidth': '100%'}
+                             style={
+                                 'width': '100%',
+                             }
                              ),
                     dcc.Interval(
                         id='table-update-interval',
@@ -723,7 +764,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     ),
                     html.H2("Vehicles",
                             style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
-                                   'marginTop': '60px'}),
+                                   'marginTop': '30px',
+                                   }),
                     html.Div(dash_table.DataTable(id='vehicle-table', cell_selectable=False,
                                                   style_data_conditional=[
                                                       {
@@ -742,22 +784,24 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                       'border': '1px solid grey'
                                                   },
                                                   style_table={
-                                                      'maxHeight': '280px',
                                                       'overflowY': 'scroll'
                                                   },
                                                   fixed_rows={'headers': True},
-                                                  ), style={'maxWidth': '100%', 'maxHeight': '100%'}),
+                                                  ),
+                             style={
+                                 'width': '100%',
+                             }),
                     dcc.Interval(
                         id='vehicle-table-update-interval',
                         interval=2 * 1000,  # in milliseconds
                         n_intervals=0
                     )
-                ])
+                ], style={'display': 'flex', 'flexDirection': 'column', 'height': '100%'})
             elif tab == 'tab-events':
                 return html.Div([
                     html.H2("Events",
                             style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
-                                   'marginTop': '60px'}),
+                                   'marginTop': '30px'}),
                     html.Div(dash_table.DataTable(id='events-tbl', cell_selectable=False,
                                                   style_data_conditional=[
                                                       {
@@ -767,15 +811,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                       },
                                                       {
                                                           'if': {
-                                                              'filter_query': '{Incident} = Yes',
-                                                              'column_id': 'Incident'
+                                                              'filter_query': '{Res.} = Yes',
+                                                              'column_id': 'Res.'
                                                           },
                                                           'backgroundColor': 'red'
                                                       },
                                                       {
                                                           'if': {
-                                                              'filter_query': '{Incident} = No',
-                                                              'column_id': 'Incident'
+                                                              'filter_query': '{Res.} = No',
+                                                              'column_id': 'Res.'
                                                           },
                                                           'backgroundColor': 'green'
                                                       }
@@ -794,23 +838,23 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                       'whiteSpace': 'normal'
                                                   },
                                                   style_table={
-                                                      'height': '500%',
-                                                      'overflowY': 'auto'
+                                                      'height': 'height',
+                                                      'overflowY': 'scroll'
                                                   },
                                                   fixed_rows={'headers': True},
                                                   ),
-                             style={'maxWidth': '100%', 'maxHeight': '100%'}),
+                             style={'maxWidth': '100%'}),
                     dcc.Interval(
                         id='table-update-interval-events',
                         interval=2 * 1000,  # in milliseconds
                         n_intervals=0
                     ),
-                ])
+                ], style={'display': 'flex', 'flexDirection': 'column', 'height': '100%'})
             elif tab == 'tab-prompts':
                 return html.Div([
                     html.H2("LLM",
                             style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
-                                   'marginTop': '60px'}),
+                                   'marginTop': '30px'}),
                     html.Div([
                         dcc.Textarea(id='input-prompt', value='Prompt...',
                                      style={'height': 60, 'padding': 5, 'flex': 1, 'borderRadius': '15px',
@@ -869,8 +913,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         ], style={'display': 'flex', 'flexDirection': 'column', 'alignItems': 'left',
                                   'marginTop': '10px'})
                     ])
-                ])
-
+                ], style={'display': 'flex', 'flexDirection': 'column', 'height': '100%'})
 
         @app.callback(Output('live-update-graph', 'figure'),
                       Input('interval-component', 'n_intervals'))
@@ -891,7 +934,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         @app.callback(
             Output('choose-random-seed-button', 'style'),  # Dirty hack
             [Input('llm-model-dropdown', 'value'),
-            Input('choose-random-seed-button', 'style')], # Dirty hack
+             Input('choose-random-seed-button', 'style')],  # Dirty hack
             prevent_initial_call=True,
         )
         def update_model(value_model, style_hack):
@@ -1022,6 +1065,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     del incident['status']
                 if 'prompt' in incident:
                     del incident['prompt']
+                if 'timestamp' in incident:
+                    incident["Timestamp"] = incident["timestamp"]
+                    del incident['timestamp']
+                if 'origin' in incident:
+                    incident["Origin"] = incident["origin"]
+                    del incident['origin']
+                if 'value' in incident:
+                    incident["Val."] = incident["value"]
+                    del incident['value']
 
             return incidents_attributes_copy
 
@@ -1039,11 +1091,20 @@ class Routing():  # singleton class. Do not create more than one object of this 
             for index, incident in enumerate(incidents_attributes_copy):
                 # Set vehicle_id to vehicle color
                 if 'status' in incident:
-                    incident["Incident"] = incident["status"]
+                    incident["Res."] = incident["status"]
                     del incident['status']
                 if 'value' in incident:
-                    incident["Value"] = incident["value"]
+                    incident["Val."] = incident["value"]
                     del incident['value']
+                if 'timestamp' in incident:
+                    incident["Timestamp"] = incident["timestamp"]
+                    del incident['timestamp']
+                if 'origin' in incident:
+                    incident["Origin"] = incident["origin"]
+                    del incident['origin']
+                if 'prompt' in incident:
+                    incident["Prompt"] = incident["prompt"]
+                    del incident['prompt']
 
             return incidents_attributes_copy
 
@@ -1082,6 +1143,5 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                     value, qos=2)
                 time.sleep(0.1)
             return value
-
 
         app.run(debug=False, dev_tools_hot_reload=False, dev_tools_silence_routes_logging=True)
