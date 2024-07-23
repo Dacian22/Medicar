@@ -572,37 +572,65 @@ class Routing():  # singleton class. Do not create more than one object of this 
             for edge_id, incident_value in self.events.items():
                 lons = [self.nodes_df.loc[edge_id[0]]["lon"], self.nodes_df.loc[edge_id[1]]["lon"]]
                 lats = [self.nodes_df.loc[edge_id[0]]["lat"], self.nodes_df.loc[edge_id[1]]["lat"]]
-                fig.add_trace(go.Scattermapbox(mode='lines',
-                                               lon=lons,
-                                               lat=lats,
-                                               line={'color': 'black', 'width': 5},
-                                               name=f"Incident on edge_{int(edge_id[0])}_{int(edge_id[1])}",
-                                               hoverinfo='name',
-                                               hoverlabel={'namelength': -1}
-                                               ))
+                # Case 1: Incident status = 'Yes'
+                if incident_value["status"] == "Yes":
+                    fig.add_trace(go.Scattermapbox(mode='lines',
+                                                lon=lons,
+                                                lat=lats,
+                                                line={'color': 'black', 'width': 5},
+                                                name=f"Incident on edge_{int(edge_id[0])}_{int(edge_id[1])}",
+                                                hoverinfo='name',
+                                                hoverlabel={'namelength': -1}
+                                                ))
 
-                # Add markers in the middle of the edge
-                fig.add_trace(go.Scattermapbox(
-                    lon=[(self.nodes_df.loc[edge_id[0]]["lon"] + self.nodes_df.loc[edge_id[1]]["lon"]) / 2],
-                    lat=[(self.nodes_df.loc[edge_id[0]]["lat"] + self.nodes_df.loc[edge_id[1]]["lat"]) / 2],
-                    marker=go.scattermapbox.Marker(
-                        size=17,
-                        color='rgb(255, 0, 0)',
-                        opacity=1
-                    )
-                ))
+                    # Add markers in the middle of the edge
+                    fig.add_trace(go.Scattermapbox(
+                        lon=[(self.nodes_df.loc[edge_id[0]]["lon"] + self.nodes_df.loc[edge_id[1]]["lon"]) / 2],
+                        lat=[(self.nodes_df.loc[edge_id[0]]["lat"] + self.nodes_df.loc[edge_id[1]]["lat"]) / 2],
+                        marker=go.scattermapbox.Marker(
+                            size=17,
+                            color='rgb(255, 0, 0)',
+                            opacity=1
+                        )
+                    ))
 
-                fig.add_trace(go.Scattermapbox(
-                    lon=[(self.nodes_df.loc[edge_id[0]]["lon"] + self.nodes_df.loc[edge_id[1]]["lon"]) / 2],
-                    lat=[(self.nodes_df.loc[edge_id[0]]["lat"] + self.nodes_df.loc[edge_id[1]]["lat"]) / 2],
-                    marker=go.scattermapbox.Marker(
-                        size=8,
-                        color='rgb(242, 177, 172)',
-                        opacity=1
-                    ),
-                    text=incident_value["prompt"],
-                    hoverinfo='text'
-                ))
+                    fig.add_trace(go.Scattermapbox(
+                        lon=[(self.nodes_df.loc[edge_id[0]]["lon"] + self.nodes_df.loc[edge_id[1]]["lon"]) / 2],
+                        lat=[(self.nodes_df.loc[edge_id[0]]["lat"] + self.nodes_df.loc[edge_id[1]]["lat"]) / 2],
+                        marker=go.scattermapbox.Marker(
+                            size=8,
+                            color='rgb(242, 177, 172)',
+                            opacity=1
+                        ),
+                        # parse everything after edge_x_y
+                        text=re.sub(r"edge_[0-9]+_[0-9]+", "", incident_value["prompt"]),
+                        hoverinfo='text'
+                    ))
+
+                # Case 2: Incident status = 'No'
+                else:
+                    # Add markers in the middle of the edge
+                    fig.add_trace(go.Scattermapbox(
+                        lon=[(self.nodes_df.loc[edge_id[0]]["lon"] + self.nodes_df.loc[edge_id[1]]["lon"]) / 2],
+                        lat=[(self.nodes_df.loc[edge_id[0]]["lat"] + self.nodes_df.loc[edge_id[1]]["lat"]) / 2],
+                        marker=go.scattermapbox.Marker(
+                            size=17,
+                            color='rgb(0, 255, 0)',
+                            opacity=1
+                        )
+                    ))
+
+                    fig.add_trace(go.Scattermapbox(
+                        lon=[(self.nodes_df.loc[edge_id[0]]["lon"] + self.nodes_df.loc[edge_id[1]]["lon"]) / 2],
+                        lat=[(self.nodes_df.loc[edge_id[0]]["lat"] + self.nodes_df.loc[edge_id[1]]["lat"]) / 2],
+                        marker=go.scattermapbox.Marker(
+                            size=8,
+                            color='rgb(177, 242, 172)',
+                            opacity=1
+                        ),
+                        text=re.sub(r"edge_[0-9]+_[0-9]+", "", incident_value["prompt"]),
+                        hoverinfo='text'
+                    ))
 
             fig.update_layout(mapbox_style="open-street-map",
                               mapbox_zoom=16,
