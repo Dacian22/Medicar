@@ -472,10 +472,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
     def get_map(self):
 
         vehicle_colors = [
-            "red", "darkorange", "green", "yellow", "royalblue", "darkkhaki", "lightslategray",
-            "purple", "burlywood", "darkslategray", "lemonchiffon", "lightsteelblue", "powderblue", "olivedrab",
+            "darkorange", "green", "yellow", "darkred", "lightslategray", "purple", "red", "royalblue",
+            "burlywood", "darkslategray", "lemonchiffon", "lightsteelblue", "powderblue", "olivedrab",
             "peru", "gold", "mediumseagreen", "lavenderblush", "skyblue", "tomato", "orange", "darkslategrey",
-            "lightgoldenrodyellow", "darkred", "slategray"
+            "lightgoldenrodyellow", "darkkhaki", "slategray"
         ]
         graph_color = '#4b42f5'
 
@@ -633,7 +633,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                     ))
 
             fig.update_layout(mapbox_style="open-street-map",
-                              mapbox_zoom=16,
+                              mapbox_zoom=15.7,
                               mapbox_center_lat=48.00632,
                               mapbox_center_lon=7.838,
                               margin={"r": 0, "t": 0, "l": 0, "b": 0},
