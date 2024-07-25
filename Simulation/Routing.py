@@ -275,18 +275,16 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     def parse_edge(self, llm_output, edge_id=None):
         pattern1 = r"\([`']?(\d+)[`']?,.?[`']?(\d+)[`']?\)"
-        pattern2 = r"edge_([0-9]+)_([0-9]+)"
+        pattern2 = r"(?:edge_)?([0-9]+)_([0-9]+)"
         if edge_id is None:
             try:
-                #edge_id = int(re.findall(pattern2, llm_output)[0][0]), int(re.findall(pattern2, llm_output)[0][1])
                 matches = re.findall(pattern2, llm_output)
                 if len(matches) == 1:
                     edge_id = int(re.findall(pattern2, llm_output)[0][0]), int(re.findall(pattern2, llm_output)[0][1])
                 elif len(matches) > 1:
                     edge_id = [] 
                     for match in matches:
-                        edge_id = edge_id.append((int(match[0]), int(match[1])))
-                print("edge_id: ", edge_id)
+                        edge_id.append((int(match[0]), int(match[1])))
             except IndexError:
                 try:
                     edge_id = int(re.findall(pattern1, llm_output)[0][0]), int(re.findall(pattern1, llm_output)[0][1])
@@ -375,13 +373,14 @@ class Routing():  # singleton class. Do not create more than one object of this 
                        llm_output_nodes, llm_output_nodes_time, prompt, method, edgeId,
                                  human=True, vehicleId=None):
         parsed_value = None
-
         if llm_output_length is not None:
             parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_length)
         elif llm_output_time is not None:
             parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_time)
         elif llm_output_nodes_time is not None:
             parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_nodes_time)
+        
+        results = {}
 
         if isinstance(edgeId, list):
             for edge in edgeId:
@@ -400,10 +399,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
                     # Reroute vehicles
                     self.reroute_vehicles(edge)
-                    return "SUCCESS"
+                    results[edge] = "SUCCESS"
                 else:
                     print("ERROR: Could not set weight")
-                    return "ERROR"  
+                    return "ERROR"
+            
+            if results:
+                return "SUCCESS"
         else:
             self.graph, success_message = BuildGraph.set_weight_to_value(self.graph, edgeId, parsed_value, method)
 
