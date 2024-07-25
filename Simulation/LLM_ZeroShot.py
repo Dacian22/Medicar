@@ -123,25 +123,6 @@ def write_decisions_to_csv(filename, questions, decisions, parsed_res):
 
 
 def main(ref_routing):
-
-    # Read questions from CSV file
-    #questions = read_questions_from_csv(r'Playground_LLM\questions.csv')
-
-    # Initialize list to store decisions
-    #decisions = []
-    #parsed_res=[]
-    # Loop over each question
-    #for question in questions:
-        # Invoke LLM for each question
-        #output = invoke_llm(question)
-        # Parse the output
-        #parsed_res, decision = parsing_llm_result(output, question)
-        # Update decisions list
-        #decisions.append(decision)
-        #parsed_res.append(parsed_res)
-    # Write decisions back to CSV file
-    #write_decisions_to_csv('decisions.csv', questions,decisions,parsed_res)
-    # Get node id as input from the command line
     
     time.sleep(5)
     prompt = input("Enter your prompt: ")

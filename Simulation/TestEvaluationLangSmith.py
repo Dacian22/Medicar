@@ -5,7 +5,7 @@ from langchain.smith import RunEvalConfig, run_on_dataset
 from dotenv import load_dotenv
 import re
 import os
-from Playground_LLM_Dacian import get_model_testing
+from medicar.Simulation.LLM_FewShot import get_model_testing
 load_dotenv()
 client=Client(api_key=os.getenv("LANGCHAIN_API_KEY"))
 

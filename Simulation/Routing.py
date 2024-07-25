@@ -21,6 +21,7 @@ import BuildGraph
 import LLM_Dynamic_Weights
 import Playground_LLM_Dacian
 import TestEvaluationCsv
+import LLM_MetaModel
 
 lock = threading.Lock()
 warnings.filterwarnings("ignore")
@@ -277,7 +278,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
         pattern2 = r"edge_([0-9]+)_([0-9]+)"
         if edge_id is None:
             try:
-                edge_id = int(re.findall(pattern2, llm_output)[0][0]), int(re.findall(pattern2, llm_output)[0][1])
+                #edge_id = int(re.findall(pattern2, llm_output)[0][0]), int(re.findall(pattern2, llm_output)[0][1])
+                matches = re.findall(pattern2, llm_output)
+                if len(matches) == 1:
+                    edge_id = int(re.findall(pattern2, llm_output)[0][0]), int(re.findall(pattern2, llm_output)[0][1])
+                elif len(matches) > 1:
+                    edge_id = [] 
+                    for match in matches:
+                        edge_id = edge_id.append((int(match[0]), int(match[1])))
+                print("edge_id: ", edge_id)
             except IndexError:
                 try:
                     edge_id = int(re.findall(pattern1, llm_output)[0][0]), int(re.findall(pattern1, llm_output)[0][1])
@@ -360,6 +369,61 @@ class Routing():  # singleton class. Do not create more than one object of this 
         else:
             print("ERROR: Could not set weight")
             return "ERROR"
+    
+    
+    def apply_llm_output_meta(self, llm_output_usability, llm_output_dynamic, llm_output_length, llm_output_time, 
+                       llm_output_nodes, llm_output_nodes_time, prompt, method, edgeId,
+                                 human=True, vehicleId=None):
+        parsed_value = None
+
+        if llm_output_length is not None:
+            parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_length)
+        elif llm_output_time is not None:
+            parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_time)
+        elif llm_output_nodes_time is not None:
+            parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_nodes_time)
+
+        if isinstance(edgeId, list):
+            for edge in edgeId:
+                self.graph, success_message = BuildGraph.set_weight_to_value(self.graph, edge, parsed_value, method)
+
+                if success_message == "SUCCESS":
+                     # Add incident to incidents
+                    self.events[edge] = {
+                        "status": "Yes",
+                        "value": str(parsed_value) + " " + str(method),
+                        # timestamp in HH:MM:SS
+                        "timestamp": time.strftime('%H:%M:%S', time.localtime()),
+                        "origin": "Human" if human else "Vehicle " + str(vehicleId),
+                        "prompt": prompt
+                    }
+
+                    # Reroute vehicles
+                    self.reroute_vehicles(edge)
+                    return "SUCCESS"
+                else:
+                    print("ERROR: Could not set weight")
+                    return "ERROR"  
+        else:
+            self.graph, success_message = BuildGraph.set_weight_to_value(self.graph, edgeId, parsed_value, method)
+
+            if success_message == "SUCCESS":
+                # Add incident to incidents
+                self.events[edgeId] = {
+                    "status": "Yes",
+                    "value": str(parsed_value) + " " + str(method),
+                    # timestamp in HH:MM:SS
+                    "timestamp": time.strftime('%H:%M:%S', time.localtime()),
+                    "origin": "Human" if human else "Vehicle " + str(vehicleId),
+                    "prompt": prompt
+                }
+
+                # Reroute vehicles
+                self.reroute_vehicles(edgeId)
+                return "SUCCESS"
+            else:
+                print("ERROR: Could not set weight")
+                return "ERROR"
 
     def reroute_vehicles(self, obstacle_edge_id):
         # TODO Check if the vehicle has reached the order['source'] before it reaches an obstacle.
@@ -401,31 +465,41 @@ class Routing():  # singleton class. Do not create more than one object of this 
             # threading.Thread(target=self.handle_order, args=(None, order_id, current_node, current_node_index, True)).start()
 
     def invoke_selected_model(self, value_prompt, value_model, human=True, vehicleId=None, edge_id=None):
-        if edge_id is None:
-            edge_id = self.parse_edge(value_prompt)
         if value_model == 'gpt-few-shot':
+            if edge_id is None:
+                edge_id = self.parse_edge(value_prompt)            
             llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "fewshot")
             success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId,
                                                  edgeId=edge_id)
         elif value_model == 'llama-few-shot':
+            if edge_id is None:
+                edge_id = self.parse_edge(value_prompt)
             llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "fewshot")
             success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId,
                                                  edgeId=edge_id)
         elif value_model == 'gpt-zero-shot':
+            if edge_id is None:
+                edge_id = self.parse_edge(value_prompt)
             llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "zeroshot")
             success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId,
                                                  edgeId=edge_id)
         elif value_model == 'llama-zero-shot':
+            if edge_id is None:
+                edge_id = self.parse_edge(value_prompt)
             llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "zeroshot")
             success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId,
                                                  edgeId=edge_id)
         elif value_model == 'gpt-few-shot-dynamic':
+            if edge_id is None:
+                edge_id = self.parse_edge(value_prompt)
             llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "openai",
                                                                                                "fewshot")
             success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt, human=human,
                                                          method=method, vehicleId=vehicleId, edgeId=edge_id)
             llm_output = llm_output + "\n" + llm_output_second_stage
         elif value_model == 'llama-few-shot-dynamic':
+            if edge_id is None:
+                edge_id = self.parse_edge(value_prompt)
             llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "llama2",
                                                                                                "fewshot")
             success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt,
@@ -433,18 +507,48 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                          edgeId=edge_id)
             llm_output = llm_output + "\n" + llm_output_second_stage
         elif value_model == 'gpt-zero-shot-dynamic':
+            if edge_id is None:
+                edge_id = self.parse_edge(value_prompt)
             llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "openai",
                                                                                                "zeroshot")
             success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt, human=human,
                                                          method=method, vehicleId=vehicleId, edgeId=edge_id)
             llm_output = llm_output + "\n" + llm_output_second_stage
         elif value_model == 'llama-zero-shot-dynamic':
+            if edge_id is None:
+                edge_id = self.parse_edge(value_prompt)
             llm_output_second_stage, llm_output, method = LLM_Dynamic_Weights.invoke_llm_chain(value_prompt, "llama2",
                                                                                                "zeroshot")
             success_code = self.apply_llm_output_dynamic(llm_output_second_stage, llm_output, value_prompt,
                                                          human=human, method=method, vehicleId=vehicleId,
                                                          edgeId=edge_id)
             llm_output = llm_output + "\n" + llm_output_second_stage
+        elif value_model == 'meta-model':
+            llm_output_usability, llm_output_dynamic, llm_output_length, llm_output_time, llm_output_nodes, llm_output_nodes_time, method = LLM_MetaModel.invoke_llm(value_prompt)
+            if edge_id is None:
+                if llm_output_length is not None or llm_output_time is not None:
+                    edge_id = self.parse_edge(value_prompt)
+                elif llm_output_nodes is not None:
+                    edge_id = self.parse_edge(llm_output_nodes)
+            success_code = self.apply_llm_output_meta(llm_output_usability, llm_output_dynamic, llm_output_length, llm_output_time, 
+                                                      llm_output_nodes, llm_output_nodes_time, value_prompt, method=method,
+                                                      edgeId=edge_id, human=human, vehicleId=vehicleId
+                                                      )
+            if llm_output_dynamic is not None:
+                llm_output = llm_output_usability + "\n" + llm_output_dynamic
+                if llm_output_length is not None:
+                    llm_output = llm_output + "\n" + llm_output_length
+                else:
+                    llm_output = llm_output + "\n" + llm_output_time
+            elif llm_output_nodes is not None:
+                llm_output = llm_output_usability + "\n" + llm_output_nodes
+                if llm_output_nodes_time is not None:
+                    llm_output = llm_output + "\n" + llm_output_nodes_time
+            else:
+                llm_output = llm_output_usability
+
+            
+
         else:
             print("ERROR: Model not found")
             return "ERROR: Model not found", {'whiteSpace': 'pre-line', 'padding': 5, 'backgroundColor': 'lightgrey',
