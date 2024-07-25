@@ -1003,6 +1003,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                     {'label': 'LLAMA-2-Few-Dynamic', 'value': 'llama-few-shot-dynamic'},
                                     {'label': 'GPT-3.5-Zero-Dynamic', 'value': 'gpt-zero-shot-dynamic'},
                                     {'label': 'LLAMA-2-Zero-Dynamic', 'value': 'llama-zero-shot-dynamic'},
+                                    {'label': 'GPT-3.5-Meta', 'value': 'meta-model'},
                                 ],
                                 value='gpt-few-shot',
                                 style={'borderRadius': '15px', 'padding': 5, 'width': '95%'}
