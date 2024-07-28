@@ -128,7 +128,7 @@ class Vehicle:
         payload["prompt"] = incident_prompt
         payload["edgeId"] = edgeId
         payload["vehicleId"] = self.vehicle_id
-        print("Sending incident: " + json.dumps(payload))
+        # print("Sending incident: " + json.dumps(payload))
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/incident",
                             json.dumps(payload), qos=2)
 

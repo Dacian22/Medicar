@@ -102,12 +102,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
             if len(self.vehicles) > 0 and any(
                     vehicle["status"] == "idle" for vehicle in self.vehicles.values()) and not self.order_queue.empty():
                 order = self.order_queue.get()
-                self.handle_order(order)
+                self.handle_order(order, order["order_id"])
             time.sleep(0.1)
 
-    def handle_order(self, order=None, order_id=None, current_node=None, current_node_index=None, order_update=False):
+    def handle_order(self, order, order_id):
         vehicle_id = self.get_vehicle_id_for_order(order)
-        path_to_target = self.find_astar_path(self.graph,
+        order["vehicle_id"] = vehicle_id
+        path_to_target, _ = self.find_astar_path(self.graph,
                                     self.get_node_id_from_name(order["source"]),
                                     self.get_node_id_from_name(order["target"]))
         if path_to_target is None:
@@ -118,7 +119,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         if self.vehicles[vehicle_id]["targetNode"] == self.get_node_id_from_name(order["source"]):
             path = path_to_target
         else:
-            path_to_source = self.find_astar_path(self.graph,
+            path_to_source, _ = self.find_astar_path(self.graph,
                                     self.vehicles[vehicle_id]["targetNode"],
                                     self.get_node_id_from_name(order["source"]))
             if path_to_source is None:
@@ -127,16 +128,18 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 return
             path = path_to_source + path_to_target
 
-        print(path)
-
         message = self.translate_path_to_mqtt(path, order_id)
         # send the message to the MQTT broker and set vehicle status to busy
         threading.Thread(target=self.send_route_to_vehicle_async,
-                         args=(vehicle_id, message, False, order)).start()
+                         args=(vehicle_id, message)).start()
+        order["status"] = "in progress..."
 
-    def send_route_to_vehicle_async(self, vehicle_id, route, force=False, order=None):  # please call this method async
-        while not force and self.vehicles[vehicle_id]["status"] != "idle":
-            time.sleep(0.1)
+    def send_route_to_vehicle_async(self, vehicle_id, route):  # please call this method async
+        # while not force and self.vehicles[vehicle_id]["status"] != "idle":
+        #     time.sleep(0.1)
+        if self.vehicles[vehicle_id]["status"] != "idle":
+            print(f"ERROR: Vehicle {vehicle_id} is not idle")
+            return
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/route", json.dumps(route),
                             qos=2)
 
@@ -452,14 +455,16 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     def handle_rerouting(self, vehicle_id):
         while not self.vehicles[vehicle_id]["status"] == "stopped":
-            print(f"(routing) Waiting for vehicle {vehicle_id} to stop...")
             time.sleep(0.1)
 
         current_node = None
         current_node_index = None
         vehicle = self.vehicles[vehicle_id]
         order_id = vehicle['currentTask']['orderId']
+        print(vehicle)
+        print(order_id)
         order = self.orders.get(order_id)
+        print(self.orders)
         already_visited = False
         for edge in vehicle["currentTask"]["edges"]:
             # Check if vehicles has already visited the order['source']
@@ -474,7 +479,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             print(f"ERROR: Could not find current node (index) for vehicle {vehicle_id}")
 
         if already_visited:
-            path = self.find_astar_path(self.graph,
+            path, _ = self.find_astar_path(self.graph,
                                         current_node,
                                         self.get_node_id_from_name(order["target"]))
             if path is None:
@@ -482,10 +487,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                  args=(vehicle_id, order)).start()
                 return
         else:
-            path_to_source = self.find_astar_path(self.graph,
+            path_to_source, _ = self.find_astar_path(self.graph,
                                         current_node,
                                         self.get_node_id_from_name(order["source"]))
-            path_to_target = self.find_astar_path(self.graph,
+            path_to_target, _ = self.find_astar_path(self.graph,
                                         self.get_node_id_from_name(order["source"]),
                                         self.get_node_id_from_name(order["target"]))
             if path_to_source is None or path_to_target is None:
