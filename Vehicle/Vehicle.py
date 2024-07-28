@@ -2,15 +2,13 @@ import datetime
 import json
 import os
 import random
+import threading
 import time
 
-import paho.mqtt.client as paho
-from dotenv import load_dotenv
-
-import threading
-
-import pandas as pd
 import paho.mqtt.client as mqtt
+import paho.mqtt.client as paho
+import pandas as pd
+from dotenv import load_dotenv
 
 
 class Vehicle:
@@ -23,12 +21,12 @@ class Vehicle:
     current_speed = 5 * 10e-6  # meter per second
     current_task = None
     client = None  # mqtt client
-    status = None  # one of "idle", "busy", "moving"
+    status = "idle"  # one of "idle", "busy", "moving"
     target_node = None  # String
-    currentSequenceId = None # integer
+    currentSequenceId = None  # integer
     generate_incidents = False
     generate_incidents_interval = 6  # how often should incidents be generated (on average)
-    generate_incidents_seed = None # integer or none, if none, do not use predefined one. This is for drawing the incidents at random
+    generate_incidents_seed = None  # integer or none, if none, do not use predefined one. This is for drawing the incidents at random
     current_order_counter = 0
     current_do_task_thread = None
 
@@ -43,39 +41,37 @@ class Vehicle:
         self.possible_incident_list = [test[0] for _, test in df.iterrows()]
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
-        print("CONNACK received with code %s." % rc)
         # test connection
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/route", qos=2)
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/random_seed",
                               qos=2)
         self.client.subscribe(
             os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/generate_incidents", qos=2)
-        self.status = "idle"
         self.send_vehicle_status()
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/stop",
+                              qos=2)
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/update_route", qos=2)
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/cancel_route", qos=2)
+        if self.current_task is not None:
+            self.current_do_task_thread = threading.Thread(target=self.dotask, args=[self.current_task])
+            self.current_do_task_thread.start()
 
     def on_publish(self, client, userdata, mid, reason_code, properties=None):
-        # print("mid: " + str(mid))
         pass
 
     def on_subscribe(self, client, userdata, mid, reason_code_list, properties, granted_qos=None):
-        # print("Subscribed: " + str(mid) + " " + str(granted_qos))
         pass
 
     def on_message(self, client, userdata, msg):
         threading.Thread(target=self.message_worker, args=[msg]).start()
 
     def message_worker(self, msg):
-        # print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
         if msg.topic == os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/route":
-            print("Received new task: " + msg.payload.decode("utf-8"))
-            # self.receive_route(msg.payload.decode("utf-8"))
-            self.receive_route(msg.payload.decode("utf-8"), )
+            self.receive_route(msg.payload.decode("utf-8"))
         elif msg.topic == os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/random_seed":
-            # print("Received new random seed: " + msg.payload.decode("utf-8"))
             self.generate_incidents_seed = int(msg.payload.decode("utf-8"))
             random.seed(self.generate_incidents_seed)
         elif msg.topic == os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/generate_incidents":
-            # print("Received new generate_incidents: " + msg.payload.decode("utf-8"))
             received_value = msg.payload.decode("utf-8")
             if received_value == "off":
                 self.generate_incidents = False
@@ -83,8 +79,31 @@ class Vehicle:
                 self.generate_incidents = True
             else:
                 print("ERROR in generate incidents message: " + received_value)
+        elif msg.topic == os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/stop":
+            self.send_stop()
+        elif msg.topic == os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/update_route":
+            self.receive_route(msg.payload.decode("utf-8"))
+        elif msg.topic == os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/cancel_route":
+            if self.status == "moving":
+                self.send_stop()
+            self.current_task = None
+            self.status = "idle"
+            self.currentSequenceId = None
+            self.send_vehicle_status()
         else:
             print("ERROR: Received unsupported message: " + msg.topic)
+
+    def send_stop(self):
+        if self.status == "moving":
+            print(f"Vehicle {self.vehicle_id}: Received stop command")
+            self.status = "stopping"
+            while self.current_task is not None and self.current_do_task_thread.is_alive():
+                time.sleep(0.1)
+
+            print(f"Vehicle {self.vehicle_id}: Executed stop command")
+            self.send_vehicle_status()
+        else:
+            print(f"Vehicle {self.vehicle_id}: ERROR: Received stop command while not moving")
 
     def send_vehicle_status(self):
         payload = dict()
@@ -101,7 +120,8 @@ class Vehicle:
         payload["currentTask"] = self.current_task
         payload["currentSequenceId"] = self.currentSequenceId
 
-        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/status", json.dumps(payload), qos=0)
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/status",
+                            json.dumps(payload), qos=0)
 
     def send_incident(self, incident_prompt, edgeId):
         payload = dict()
@@ -109,26 +129,25 @@ class Vehicle:
         payload["edgeId"] = edgeId
         payload["vehicleId"] = self.vehicle_id
         print("Sending incident: " + json.dumps(payload))
-        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/incident", json.dumps(payload), qos=2)
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/incident",
+                            json.dumps(payload), qos=2)
 
     def receive_route(self, message):
         payload = json.loads(message)
         self.current_order_counter += 1
 
-        if self.status != 'idle': # cancle current task
+        if self.status != 'idle':  # cancel current task
             print(f"RECEIVED UPDATE TO ROUTE! Vehicle {self.vehicle_id}")
 
-        self.status = "busy"
-
         while self.current_task is not None and self.current_do_task_thread.is_alive():
-            print("Waiting for do task to terminate...")
+            self.status = "stopping"
+            print(f"ERROR Vehicle {self.vehicle_id}: Received new task while still busy on the old one")
             time.sleep(0.1)
 
         self.current_task = payload
         self.send_vehicle_status()
         self.current_do_task_thread = threading.Thread(target=self.dotask, args=[payload])
         self.current_do_task_thread.start()
-        # self.dotask(self.current_order_counter)
 
     def connect_to_mqtt(self):
         # Connect to MQTT
@@ -151,11 +170,11 @@ class Vehicle:
         # connect to HiveMQ Cloud on port 8883 (default for MQTT)
         self.client.connect(os.getenv("HYVE_MQTT_URL"), 8883)
 
-        self.client.loop_forever() # loop start (if constantly sending status)
+        self.client.loop_forever()  # loop start (if constantly sending status)
 
     def get_linear_function_for_edge(self, edge):
         divider = (float(edge["endCoordinate"][0]) - float(edge["startCoordinate"][0]))
-        if divider == 0: # edge is vertical
+        if divider == 0:  # edge is vertical
             divider = 0.0000001
         m = (float(edge["endCoordinate"][1]) - float(edge["startCoordinate"][1])) / divider  # slope
         n = float(edge["startCoordinate"][1]) - m * float(edge["startCoordinate"][0])  # y-intercept
@@ -174,7 +193,7 @@ class Vehicle:
         x_increase = abs(self.current_speed / m)
 
         while True:
-            end=False
+            end = False
             # calculate new position for positive slope
             if not negative_x:
                 new_x = self.current_position[0] + x_increase
@@ -190,18 +209,15 @@ class Vehicle:
                 end = True
             self.current_position = [new_x, new_y]
             self.send_vehicle_status()
-            if self.status != "moving":
-                return
             time.sleep(1)
             if end:
                 break
-            if self.status != "moving":
-                return
 
     def dotask(self, task):
         print(task)
         if task["edges"] is None or len(task["edges"]) == 0:  # edges are empty => do not move
-            print("No edges in task")
+            print(f"Vehicle {self.vehicle_id}: ERROR: Received task with no edges")
+            return
         else:  # work on the task
             self.status = "moving"
             self.target_node = task["edges"][-1]["endNodeId"]
@@ -210,11 +226,16 @@ class Vehicle:
                 self.currentSequenceId = edge["sequenceId"]
                 self.move_along_edge(edge)
                 if self.generate_incidents and random.randint(0, self.generate_incidents_interval) == 0:
-                    threading.Thread(target=self.send_incident, args=[random.choice(self.possible_incident_list), edge["edgeId"]]).start()
-                if self.status != "moving":
+                    threading.Thread(target=self.send_incident,
+                                     args=[random.choice(self.possible_incident_list), edge["edgeId"]]).start()
+                if self.status == "stopping":
+                    self.status = "stopped"
+                    self.target_node = edge["endNodeId"]
+                    self.send_vehicle_status()
                     return
         self.status = "idle"
         self.currentSequenceId = None
-        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/order_finish", payload=json.dumps({"orderId": task["orderId"]}) , qos=2)
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/order_finish",
+                            payload=json.dumps({"orderId": task["orderId"]}), qos=2)
         self.current_task = None
         self.send_vehicle_status()
