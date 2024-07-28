@@ -109,8 +109,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
         vehicle_id = self.get_vehicle_id_for_order(order)
         order["vehicle_id"] = vehicle_id
         path_to_target, _ = self.find_astar_path(self.graph,
-                                    self.get_node_id_from_name(order["source"]),
-                                    self.get_node_id_from_name(order["target"]))
+                                                 self.get_node_id_from_name(order["source"]),
+                                                 self.get_node_id_from_name(order["target"]))
         if path_to_target is None:
             threading.Thread(target=self.cancel_route_to_vehicle_async,
                              args=(vehicle_id, order)).start()
@@ -120,8 +120,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
             path = path_to_target
         else:
             path_to_source, _ = self.find_astar_path(self.graph,
-                                    self.vehicles[vehicle_id]["targetNode"],
-                                    self.get_node_id_from_name(order["source"]))
+                                                     self.vehicles[vehicle_id]["targetNode"],
+                                                     self.get_node_id_from_name(order["source"]))
             if path_to_source is None:
                 threading.Thread(target=self.cancel_route_to_vehicle_async,
                                  args=(vehicle_id, order)).start()
@@ -152,7 +152,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
     def update_route_to_vehicle_async(self, vehicle_id, route, order):
         # Send the new route to the vehicle
-        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/update_route", json.dumps(route),
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/update_route",
+                            json.dumps(route),
                             qos=2)
         # Update the order status
         order["status"] = "rerouted..."
@@ -447,8 +448,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         for vehicle_id in affected_vehicles:
             self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/stop", "stop", qos=2)
 
-        time.sleep(1)
-
         # Recalculate routes for affected vehicles
         for vehicle_id in affected_vehicles:
             threading.Thread(target=self.handle_rerouting, args=vehicle_id).start()
@@ -461,15 +460,12 @@ class Routing():  # singleton class. Do not create more than one object of this 
         current_node_index = None
         vehicle = self.vehicles[vehicle_id]
         order_id = vehicle['currentTask']['orderId']
-        print(vehicle)
-        print(order_id)
         order = self.orders.get(order_id)
-        print(self.orders)
         already_visited = False
         for edge in vehicle["currentTask"]["edges"]:
             # Check if vehicles has already visited the order['source']
             if edge["endNodeId"] == self.get_node_id_from_name(order["source"]):
-                # already visited the source node
+                print(f"Vehicle {vehicle_id} has already visited the source node of order {order_id}")
                 already_visited = True
             if edge["sequenceId"] == vehicle["currentSequenceId"]:
                 current_node = edge["endNodeId"]
@@ -480,19 +476,19 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
         if already_visited:
             path, _ = self.find_astar_path(self.graph,
-                                        current_node,
-                                        self.get_node_id_from_name(order["target"]))
+                                           current_node,
+                                           self.get_node_id_from_name(order["target"]))
             if path is None:
                 threading.Thread(target=self.cancel_route_to_vehicle_async,
                                  args=(vehicle_id, order)).start()
                 return
         else:
             path_to_source, _ = self.find_astar_path(self.graph,
-                                        current_node,
-                                        self.get_node_id_from_name(order["source"]))
+                                                     current_node,
+                                                     self.get_node_id_from_name(order["source"]))
             path_to_target, _ = self.find_astar_path(self.graph,
-                                        self.get_node_id_from_name(order["source"]),
-                                        self.get_node_id_from_name(order["target"]))
+                                                     self.get_node_id_from_name(order["source"]),
+                                                     self.get_node_id_from_name(order["target"]))
             if path_to_source is None or path_to_target is None:
                 threading.Thread(target=self.cancel_route_to_vehicle_async,
                                  args=(vehicle_id, order)).start()
@@ -501,6 +497,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
         message = self.translate_path_to_mqtt(path, order_id)
         # send the message to the MQTT broker and set vehicle status to busy
+        print(f"Rerouting vehicle {vehicle_id}...")
         threading.Thread(target=self.update_route_to_vehicle_async,
                          args=(vehicle_id, message, order)).start()
 
@@ -695,15 +692,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 if vehicle["currentTask"] is not None:
                     lons = []
                     lats = []
-                    # current_sequence_id = vehicle["currentSequenceId"]
+                    current_sequence_id = vehicle["currentSequenceId"]
                     for edge in vehicle["currentTask"]["edges"]:
-                        # if edge["sequenceId"] >= current_sequence_id:
-                        lons.append(self.nodes_df.loc[int(edge["startNodeId"])]["lon"])
-                        lons.append(self.nodes_df.loc[int(edge["endNodeId"])]["lon"])
-                        # lons.append(None)
-                        lats.append(self.nodes_df.loc[int(edge["startNodeId"])]["lat"])
-                        lats.append(self.nodes_df.loc[int(edge["endNodeId"])]["lat"])
-                        # lats.append(None)
+                        if edge["sequenceId"] >= current_sequence_id:
+                            lons.append(self.nodes_df.loc[int(edge["startNodeId"])]["lon"])
+                            lons.append(self.nodes_df.loc[int(edge["endNodeId"])]["lon"])
+                            # lons.append(None)
+                            lats.append(self.nodes_df.loc[int(edge["startNodeId"])]["lat"])
+                            lats.append(self.nodes_df.loc[int(edge["endNodeId"])]["lat"])
+                            # lats.append(None)
                     fig.add_trace(go.Scattermapbox(mode='lines',
                                                    lon=lons,
                                                    lat=lats,
