@@ -376,6 +376,18 @@ class Routing():  # singleton class. Do not create more than one object of this 
         elif llm_output_nodes_time is not None:
             parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_nodes_time)
 
+        if parsed_value is None or parsed_value <= 1:
+            # Event is not significant
+            self.events[edgeId] = {
+                "status": "No",
+                "value": str(parsed_value) + " " + str(method),
+                # timestamp in HH:MM:SS
+                "timestamp": time.strftime('%H:%M:%S', time.localtime()),
+                "origin": "Human" if human else "Vehicle " + str(vehicleId),
+                "prompt": prompt
+            }
+            return "SUCCESS"
+
         results = {}
 
         if isinstance(edgeId, list):
@@ -564,10 +576,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
             llm_output_usability, llm_output_dynamic, llm_output_length, llm_output_time, llm_output_nodes, llm_output_nodes_time, method = LLM_MetaModel.invoke_llm(
                 value_prompt)
             if edge_id is None:
-                if llm_output_length is not None or llm_output_time is not None:
-                    edge_id = self.parse_edge(value_prompt)
-                elif llm_output_nodes is not None:
+                if llm_output_nodes is not None:
                     edge_id = self.parse_edge(llm_output_nodes)
+                else:
+                    edge_id = self.parse_edge(value_prompt)
             success_code = self.apply_llm_output_meta(llm_output_usability, llm_output_dynamic, llm_output_length,
                                                       llm_output_time,
                                                       llm_output_nodes, llm_output_nodes_time, value_prompt,
