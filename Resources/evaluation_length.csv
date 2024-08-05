@@ -1,0 +1,48 @@
+Example,Factor,Score
+At edge edge_31404364_313157654 there is an unexpected construction on the usual path,['85'],0.8
+At edge edge_7112240050_7112240049 heavy rain has flooded the pathway,['85'],0.9
+At edge edge_7123481411_313157656 traffic cones block the entrance to the path,['85'],0.9
+At edge edge_313157656_313157659 a fallen power line is lying across the path,['95'],0.9
+At edge edge_313157659_31404365 the pathway is covered in thick mud due to recent rain,['70'],0.7
+At edge edge_31404365_1280377626 a road sign indicates the pathway is closed for maintenance,['95'],0.9
+At edge edge_1280377626_313157654 a barrier blocks the entrance to a construction site,['95'],0.9
+At edge edge_313157654_7112240047 a large fallen tree is on the pathway,['95'],0.9
+At edge edge_313157654_1213060725 a deep trench is dug across the road for utility work,['85'],0.9
+At edge edge_7112240047_7112240051 a chemical spill blocks the path,['95'],1
+At edge edge_7112240051_1280377624 a medical emergency requires the path to be cleared for ambulance access,['95'],1
+At edge edge_31404366_31404367 a broken water pipe has flooded the pathway,['85'],0.9
+At edge edge_31404367_31404363 fallen rocks from a nearby hillside obstruct the path,['85'],0.9
+At edge edge_31451750_313316730 a suspicious package has been found on the path,['95'],0.9
+At edge edge_313316730_245411483 there is a protest demonstration,['85'],0.9
+At edge edge_245411483_245004114 a gas leak has been detected,['85'],0.9
+At edge edge_245411483_245411480 a fallen telephone pole at the entrance to the path,['85'],0.9
+At edge edge_245004114_245004115 fallen snow on the pathway,['85'],1
+At edge edge_245004114_245411482 an electrical fault has caused a power outage,['85'],0.9
+At edge edge_245004115_313158259 a fallen scaffolding structure blocks the path,['95'],1
+At edge edge_245004120_7112240058 a wild fire in close vicinity of the path,['85'],0.9
+At edge edge_7112240058_7037192308 a broken sewer line has flooded the path with sewage,['95'],0.9
+At edge edge_7037192308_7112240052 a vehicle breakdown is blocking the path,['95'],0.9
+At edge edge_7037192307_7112240055 a fallen streetlight pole obstructs the path,['85'],0.9
+At edge edge_7112240055_245004124 a fallen billboard blocks the entrance to the path,['85'],0.9
+At edge edge_7112240055_245411453 a burst water main floods the path,['85'],1
+At edge edge_245004124_7037104959 a swarm of wasps has built a nest on the path,['85'],0.9
+At edge edge_7112240052_7112240056 a chemical spillage from a laboratory has contaminated the path,['95'],0.9
+At edge edge_7112240056_245411454 a fallen satellite dish blocks the path,['95'],1
+At edge edge_245411454_7115662747 a nearby construction crane has collapsed,['95'],0.9
+At edge edge_245411454_7115662749 a protest march is crossing the pathway,['95'],0.9
+At edge edge_1215519795_7365617927 a collapsed building has debris strewn across the path,['95'],0.9
+At edge edge_7365617927_7365570458 a burst sewage pipe has flooded the path,['95'],1
+At edge edge_8214469912_245411470 a fallen antenna tower at the entrance to the path,['85'],0.8
+At edge edge_8214469912_8214388994 a burst gas line has caused an evacuation,['95'],0.9
+At edge edge_6820696987_245411471 a burst sprinkler system has flooded the path,['85'],0.9
+At edge edge_245411471_245411482 a broken railing leaves a drop-off hazard on the path,['85'],0.9
+At edge edge_245411482_7113033361 a landslide has covered the path with debris,['85'],0.9
+At edge edge_245411472_7108628060 a medical quarantine requires the path to be sealed off,['100'],1
+At edge edge_245411472_245411491 a collapsed retaining wall,['95'],0.9
+At edge edge_7108628060_31451751 a chemical spill has created a toxic hazard on the path,['95'],0.9
+At edge edge_31451751_7108628061 a fallen statue blocks the pathway,['95'],0.9
+At edge edge_31451751_7047823175 a burst water tank floods the path,['85'],0.8
+At edge edge_31451751_245411475 a nearby explosion damages the path,['95'],1
+At edge edge_31451751_7405091582 a broken fence allows dangerous animals onto the path,['85'],0.9
+At edge edge_7108628061_245411474 a burst fire hydrant floods the path,['85'],0.9
+At edge edge_245411474_245411475 a collapsed bridge on the path,['100'],1

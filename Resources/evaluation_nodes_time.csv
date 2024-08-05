@@ -1,0 +1,6 @@
+Example,Time Penalty in minutes,Score
+There is a power outage at node 5327549890.,['60'],0.8
+An infectious disease outbreak was identified at node 7047823175.,['180'],0.9
+There is massive equipment malfunction at node 9954286428.,['180'],1
+There is a simulation exercise to test emergency response going on at node 7158216520.,['60'],0.8
+The third floor is blocked at node 388528852.,['60'],0.9

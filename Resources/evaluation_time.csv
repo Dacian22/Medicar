@@ -1,0 +1,15 @@
+Example,Time Penalty in minutes,Score
+There is a big medical conference being held at node 523915647.,['45'],0.9
+At edge edge_31404364_7120224687 a person fell on the ground,['20'],0.9
+At edge edge_31404364_7112240026 fallen branches from nearby trees,['20'],0.7
+At edge edge_7120224687_7112240050 the sidewalk is obstructed by a parked car,['20'],0.9
+At edge edge_7112240049_7123481411 a large pothole has formed in the middle of the path,['20'],0.6
+At edge edge_1280377624_31404366 fallen debris from nearby construction on the way,['20'],0.7
+At edge edge_31404367_7120224688 a swarm of bees has settled on the path,['45'],0.8
+At edge edge_31451750_7273047832 a wild animal has made a den in the path,['45'],0.9
+At edge edge_31451750_245411481 road repair work is in progress,['45'],0.9
+At edge edge_245411483_245411472 a vehicle accident has occurred,['45'],0.8
+At edge edge_245004114_245411472 a sinkhole has developed in the middle of the path,['45'],0.9
+At edge edge_245411470_6820696987 a fallen billboard has crushed part of the path,['20'],0.8
+At edge edge_6902231372_245411508 a student is skateboarding down the sidewalk,['20'],0.9
+At edge edge_245411469_245411468 a student is texting while walking,['10'],0.9
