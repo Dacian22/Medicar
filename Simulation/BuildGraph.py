@@ -13,6 +13,10 @@ load_dotenv()
 
 
 def get_xml_graph_data():
+    '''
+    This function reads the data from the xml file and stores it in a dictionary.
+    It returns the nodes, named nodes, ways and surface types.
+    '''
     # reading data inside xml file to a variable under the name data
     with open(os.path.join(os.getenv("RESOURCES"), "Uniklinikum_Freiburg_map.osm"), 'r', encoding='utf-8') as f:
         data = f.read()
@@ -56,6 +60,10 @@ def get_xml_graph_data():
     return nds_xml, named_nodes, ways, surface_types
 
 def build_xml_graph():
+    '''
+    This function builds a graph from the xml file.
+    It returns the graph.
+    '''
     nds_xml, named_nodes, ways, surface_types = get_xml_graph_data()
 
     # create graph
@@ -80,6 +88,10 @@ def build_xml_graph():
 ############################# 2. OSMNX - Graph ########################################
 
 def build_osmnx_graph():
+    '''
+    This function builds a graph from the osmnx library.
+    It returns the graph.
+    '''
     # downloading map as graph object
     G_osmnx = ox.graph_from_bbox(north = 48.00877, south = 48.00373,
                                  east = 7.84336, west = 7.83252,
@@ -103,6 +115,10 @@ def build_osmnx_graph():
 
 # define function that only keeps the largest connected component of the graph
 def keep_largest_connected_component(G):
+    ''' 
+    This function keeps only the largest connected component of the graph.
+    It returns the largest connected component.
+    '''
     # get all connected components
     connected_components = list(nx.connected_components(G))
     # get the largest connected component
@@ -113,6 +129,10 @@ def keep_largest_connected_component(G):
     return largest_subgraph
 
 def closest_node_to_special_nodes(special_nodes, nds, named_nodes):
+    '''
+    This function finds the closest node in the graph to a special node.
+    It returns a dictionary with the special node as key and the closest node in the graph as value.
+    '''
     closest_node = {}
     nodes_to_check = dict(filter(lambda x: x[0] not in named_nodes.keys(), nds.items()))
     # iterate over all special nodes
@@ -130,6 +150,10 @@ def closest_node_to_special_nodes(special_nodes, nds, named_nodes):
     return closest_node
 
 def build_nx_graph(allowed_highway_types, allowed_surface_types, special_nodes):
+    '''
+    This function builds the final graph.
+    It returns the graph, the edges and the nodes as dataframes.
+    '''
     # call created functions to get data
     nds_xml, named_nodes, ways, surface_types = get_xml_graph_data()
     G_osmnx = build_osmnx_graph()
@@ -232,6 +256,10 @@ def build_nx_graph(allowed_highway_types, allowed_surface_types, special_nodes):
 
     # define function that sets all weights from a given list in the graph to infinity
 def set_weights_to_inf(G, edges_to_be_set_to_inf):
+    '''
+    This function sets the weights of the edges in the graph to infinity.
+    It returns the graph and a string that indicates if the function was successful.
+    '''
     if edges_to_be_set_to_inf is None:
         raise ValueError("edges_to_be_set_to_inf are None")
     elif str(edges_to_be_set_to_inf[0]) == str(edges_to_be_set_to_inf[1]):
@@ -247,6 +275,10 @@ def set_weights_to_inf(G, edges_to_be_set_to_inf):
     return G, "FAIL"
 
 def set_weight_to_value(G, edge_to_be_set_to_inf, value_to_set, method): # only single edge # method: minutes, factor
+    '''
+    This function sets the weight of the edge in the graph to a given value.
+    It returns the graph and a string that indicates if the function was successful.
+    '''
     if edge_to_be_set_to_inf is None:
         raise ValueError("edge_to_be_set_to_inf is None")
     elif str(edge_to_be_set_to_inf[0]) == str(edge_to_be_set_to_inf[1]):

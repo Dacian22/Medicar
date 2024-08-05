@@ -271,6 +271,13 @@ def invoke_llm(prompt):
             method = 'minutes'
             output_nodes_time = response_nodes_time.choices[0].message.content
 
+    else: # False
+        output_dynamic = None
+        output_length = None
+        output_time = None
+        output_nodes = None
+        output_nodes_time = None
+        method = None
 
     return output_usability, output_dynamic, output_length, output_time, output_nodes, output_nodes_time, method
     

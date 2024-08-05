@@ -19,9 +19,9 @@ from dotenv import load_dotenv
 
 import BuildGraph
 import LLM_Dynamic_Weights
+import LLM_MetaModel
 import Playground_LLM_Dacian
 import TestEvaluationCsv
-import LLM_MetaModel
 
 lock = threading.Lock()
 warnings.filterwarnings("ignore")
@@ -102,77 +102,62 @@ class Routing():  # singleton class. Do not create more than one object of this 
             if len(self.vehicles) > 0 and any(
                     vehicle["status"] == "idle" for vehicle in self.vehicles.values()) and not self.order_queue.empty():
                 order = self.order_queue.get()
-                self.handle_order(order)
+                self.handle_order(order, order["order_id"])
             time.sleep(0.1)
 
-    def handle_order(self, order=None, order_id=None, current_node=None, current_node_index=None, order_update=False):
-        shortest_path_astar = None
-        if order is not None and order_id is None:
-            vehicle_id = self.get_vehicle_id_for_order(order)
-            # Update vehicle id in self.orders
-            order["vehicle_id"] = vehicle_id
-            order_id = order['order_id']
-
-            shortest_path_astar, astar_time = self.find_astar_path(self.graph,
-                                                                   self.get_node_id_from_name(order["source"]),
-                                                                   self.get_node_id_from_name(order["target"]))
-            if self.vehicles[order["vehicle_id"]]["targetNode"] != self.get_node_id_from_name(order["source"]):
-                if current_node is None:
-                    shortest_path_astar_to_start_node, astar_time1 = self.find_astar_path(self.graph,
-                                                                                          self.vehicles[
-                                                                                              order["vehicle_id"]][
-                                                                                              "targetNode"],
-                                                                                          self.get_node_id_from_name(
-                                                                                              order["source"]))
-                else:
-                    shortest_path_astar_to_start_node, astar_time1 = self.find_astar_path(self.graph,
-                                                                                          current_node,
-                                                                                          self.get_node_id_from_name(
-                                                                                              order["source"]))
-                # add the two paths together
-                shortest_path_astar = shortest_path_astar_to_start_node + shortest_path_astar
-                astar_time = astar_time + astar_time1
-
-            # print("old shortest path:", shortest_path_astar)
-        if order_id is not None and order is None:
-            order = self.orders.get(order_id)
-            vehicle_id = self.get_vehicle_id_for_order(order)
-            # Update vehicle id in self.orders
-            order["vehicle_id"] = vehicle_id
-            vehicle = self.vehicles.get(vehicle_id)
-            order_source = self.get_node_id_from_name(order["source"])
-            for task_edge in vehicle["currentTask"]["edges"]:
-                if str(task_edge['startNodeId']) == str(order_source) or str(task_edge['endNodeId']) == str(
-                        order_source):
-                    order_source_index = task_edge['sequenceId']
-                    if current_node_index <= order_source_index:
-                        self.handle_order(order, current_node=current_node, order_update=order_update)
-                        return
-                    else:
-                        shortest_path_astar, astar_time = self.find_astar_path(self.graph, current_node,
-                                                                               self.get_node_id_from_name(
-                                                                                   order["target"]))
-                        break
-        if shortest_path_astar is None:
-            print(f"\n## WARNING! Could not find a path for order {order_id}\n")
-            order["status"] = "unreachable"
-            shortest_path_astar = []
+    def handle_order(self, order, order_id):
+        vehicle_id = self.get_vehicle_id_for_order(order)
+        order["vehicle_id"] = vehicle_id
+        path_to_target, _ = self.find_astar_path(self.graph,
+                                                 self.get_node_id_from_name(order["source"]),
+                                                 self.get_node_id_from_name(order["target"]))
+        if path_to_target is None:
+            threading.Thread(target=self.cancel_route_to_vehicle_async,
+                             args=(vehicle_id, order)).start()
             return
-        total_weight = self.evaluate_shortest_path_weight(self.graph, shortest_path_astar)
-        print(f"Running time of order {order_id}", astar_time)
-        print(f"Total weight of order {order_id}", total_weight)
-        message = self.translate_path_to_mqtt(shortest_path_astar, order_id)
+        # Check if vehicle already on source node
+        if self.vehicles[vehicle_id]["targetNode"] == self.get_node_id_from_name(order["source"]):
+            path = path_to_target
+        else:
+            path_to_source, _ = self.find_astar_path(self.graph,
+                                                     self.vehicles[vehicle_id]["targetNode"],
+                                                     self.get_node_id_from_name(order["source"]))
+            if path_to_source is None:
+                threading.Thread(target=self.cancel_route_to_vehicle_async,
+                                 args=(vehicle_id, order)).start()
+                return
+            path = path_to_source + path_to_target
+
+        message = self.translate_path_to_mqtt(path, order_id)
         # send the message to the MQTT broker and set vehicle status to busy
         threading.Thread(target=self.send_route_to_vehicle_async,
-                         args=(vehicle_id, message, order_update, order)).start()
+                         args=(vehicle_id, message)).start()
+        order["status"] = "in progress..."
 
-    def send_route_to_vehicle_async(self, vehicle_id, route, force=False, order=None):  # please call this method async
-        while not force and self.vehicles[vehicle_id]["status"] != "idle":
-            time.sleep(0.1)
+    def send_route_to_vehicle_async(self, vehicle_id, route):  # please call this method async
+        # while not force and self.vehicles[vehicle_id]["status"] != "idle":
+        #     time.sleep(0.1)
+        if self.vehicles[vehicle_id]["status"] != "idle":
+            print(f"ERROR: Vehicle {vehicle_id} is not idle")
+            return
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/route", json.dumps(route),
                             qos=2)
-        self.vehicles[vehicle_id]["status"] = "busy"
-        order["status"] = "in progress..."
+
+    def cancel_route_to_vehicle_async(self, vehicle_id, order):
+        order["status"] = "unreachable"
+        print(f"\n## WARNING! Could not find a path for order {order.order_id}\n")
+        # Send empty route to vehicle
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/cancel_route", qos=2)
+        return
+
+    def update_route_to_vehicle_async(self, vehicle_id, route, order):
+        # Send the new route to the vehicle
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/update_route",
+                            json.dumps(route),
+                            qos=2)
+        # Update the order status
+        order["status"] = "rerouted..."
+        return
 
     def connect_to_mqtt(self):
         # Connect to MQTT
@@ -249,7 +234,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
                  'endNodeId': edge[1], 'startCoordinate': tuple(self.nodes_df.loc[int(edge[0])].loc[["lat", "lon"]]),
                  'endCoordinate': tuple(self.nodes_df.loc[int(edge[1])].loc[["lat", "lon"]])})
         message = {'edges': edges, 'orderId': order_id}
-        # print(json.dumps(message))
         return message
 
     def get_node_id_from_name(self, name):
@@ -282,7 +266,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 if len(matches) == 1:
                     edge_id = int(re.findall(pattern2, llm_output)[0][0]), int(re.findall(pattern2, llm_output)[0][1])
                 elif len(matches) > 1:
-                    edge_id = [] 
+                    edge_id = []
                     for match in matches:
                         edge_id.append((int(match[0]), int(match[1])))
             except IndexError:
@@ -347,6 +331,19 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                  human=True, vehicleId=None):
         # Parse the output
         parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_second_stage)
+
+        if parsed_value <= 1:
+            # Event is not significant
+            self.events[edgeId] = {
+                "status": "No",
+                "value": str(parsed_value) + " " + str(method),
+                # timestamp in HH:MM:SS
+                "timestamp": time.strftime('%H:%M:%S', time.localtime()),
+                "origin": "Human" if human else "Vehicle " + str(vehicleId),
+                "prompt": prompt
+            }
+            return "SUCCESS"
+
         # Set the weights in the graph
         self.graph, success_message = BuildGraph.set_weight_to_value(self.graph, edgeId, parsed_value, method)
 
@@ -367,11 +364,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
         else:
             print("ERROR: Could not set weight")
             return "ERROR"
-    
-    
-    def apply_llm_output_meta(self, llm_output_usability, llm_output_dynamic, llm_output_length, llm_output_time, 
-                       llm_output_nodes, llm_output_nodes_time, prompt, method, edgeId,
-                                 human=True, vehicleId=None):
+
+    def apply_llm_output_meta(self, llm_output_usability, llm_output_dynamic, llm_output_length, llm_output_time,
+                              llm_output_nodes, llm_output_nodes_time, prompt, method, edgeId,
+                              human=True, vehicleId=None):
         parsed_value = None
         if llm_output_length is not None:
             parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_length)
@@ -379,7 +375,19 @@ class Routing():  # singleton class. Do not create more than one object of this 
             parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_time)
         elif llm_output_nodes_time is not None:
             parsed_value = LLM_Dynamic_Weights.parse_output_weights(llm_output_nodes_time)
-        
+
+        if parsed_value is None or parsed_value <= 1:
+            # Event is not significant
+            self.events[edgeId] = {
+                "status": "No",
+                "value": str(parsed_value) + " " + str(method),
+                # timestamp in HH:MM:SS
+                "timestamp": time.strftime('%H:%M:%S', time.localtime()),
+                "origin": "Human" if human else "Vehicle " + str(vehicleId),
+                "prompt": prompt
+            }
+            return "SUCCESS"
+
         results = {}
 
         if isinstance(edgeId, list):
@@ -387,7 +395,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 self.graph, success_message = BuildGraph.set_weight_to_value(self.graph, edge, parsed_value, method)
 
                 if success_message == "SUCCESS":
-                     # Add incident to incidents
+                    # Add incident to incidents
                     self.events[edge] = {
                         "status": "Yes",
                         "value": str(parsed_value) + " " + str(method),
@@ -403,7 +411,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 else:
                     print("ERROR: Could not set weight")
                     return "ERROR"
-            
+
             if results:
                 return "SUCCESS"
         else:
@@ -430,17 +438,14 @@ class Routing():  # singleton class. Do not create more than one object of this 
     def reroute_vehicles(self, obstacle_edge_id):
         # TODO Check if the vehicle has reached the order['source'] before it reaches an obstacle.
         # TODO Check the direction of the vehicle (start node/end node of the edge)
-        current_node = None
         affected_vehicles = []
         for vehicle_id, vehicle in self.vehicles.items():
             if vehicle["currentTask"] is not None:
                 # Look up the current edge of the vehicle from the vehicle[sequenceId]
                 for edge in vehicle["currentTask"]["edges"]:
                     if vehicle["currentSequenceId"] is None:
+                        print(f"ERROR: Could not find current sequence id for vehicle {vehicle_id}")
                         break
-                    if edge["sequenceId"] == vehicle["currentSequenceId"]:
-                        current_node = edge["endNodeId"]
-                        current_node_index = edge['sequenceId']
                     if edge["sequenceId"] > vehicle["currentSequenceId"]:
                         if (str(edge["startNodeId"]) == str(obstacle_edge_id[0]) and str(edge["endNodeId"]) == str(
                                 obstacle_edge_id[1])) or (
@@ -449,27 +454,69 @@ class Routing():  # singleton class. Do not create more than one object of this 
                             affected_vehicles.append(vehicle_id)
                             break
 
-        print("Affected vehicle:", affected_vehicles)
+        print("Affected vehicles:", affected_vehicles)
+
+        # Tell every affected vehicle to stop
+        for vehicle_id in affected_vehicles:
+            self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/stop", "stop", qos=2)
 
         # Recalculate routes for affected vehicles
         for vehicle_id in affected_vehicles:
-            vehicle = self.vehicles[vehicle_id]
-            order_id = vehicle['currentTask']['orderId']
-            for edge in vehicle["currentTask"]["edges"]:
-                if edge["sequenceId"] == vehicle["currentSequenceId"]:
-                    current_node = edge["endNodeId"]
-                    current_node_index = edge['sequenceId']
-                    break
-            # print(f"rerouted vehicle {vehicle_id}")
-            # print("current node:", current_node)
-            # print("order id:", order_id)
-            self.handle_order(None, order_id, current_node, current_node_index, True)
-            # threading.Thread(target=self.handle_order, args=(None, order_id, current_node, current_node_index, True)).start()
+            threading.Thread(target=self.handle_rerouting, args=vehicle_id).start()
+
+    def handle_rerouting(self, vehicle_id):
+        while not self.vehicles[vehicle_id]["status"] == "stopped":
+            time.sleep(0.1)
+
+        current_node = None
+        current_node_index = None
+        vehicle = self.vehicles[vehicle_id]
+        order_id = vehicle['currentTask']['orderId']
+        order = self.orders.get(order_id)
+        already_visited = False
+        for edge in vehicle["currentTask"]["edges"]:
+            # Check if vehicles has already visited the order['source']
+            if edge["endNodeId"] == self.get_node_id_from_name(order["source"]):
+                print(f"Vehicle {vehicle_id} has already visited the source node of order {order_id}")
+                already_visited = True
+            if edge["sequenceId"] == vehicle["currentSequenceId"]:
+                current_node = edge["endNodeId"]
+                current_node_index = edge['sequenceId']
+                break
+        if current_node_index is None or current_node is None:
+            print(f"ERROR: Could not find current node (index) for vehicle {vehicle_id}")
+
+        if already_visited:
+            path, _ = self.find_astar_path(self.graph,
+                                           current_node,
+                                           self.get_node_id_from_name(order["target"]))
+            if path is None:
+                threading.Thread(target=self.cancel_route_to_vehicle_async,
+                                 args=(vehicle_id, order)).start()
+                return
+        else:
+            path_to_source, _ = self.find_astar_path(self.graph,
+                                                     current_node,
+                                                     self.get_node_id_from_name(order["source"]))
+            path_to_target, _ = self.find_astar_path(self.graph,
+                                                     self.get_node_id_from_name(order["source"]),
+                                                     self.get_node_id_from_name(order["target"]))
+            if path_to_source is None or path_to_target is None:
+                threading.Thread(target=self.cancel_route_to_vehicle_async,
+                                 args=(vehicle_id, order)).start()
+                return
+            path = path_to_source + path_to_target
+
+        message = self.translate_path_to_mqtt(path, order_id)
+        # send the message to the MQTT broker and set vehicle status to busy
+        print(f"Rerouting vehicle {vehicle_id}...")
+        threading.Thread(target=self.update_route_to_vehicle_async,
+                         args=(vehicle_id, message, order)).start()
 
     def invoke_selected_model(self, value_prompt, value_model, human=True, vehicleId=None, edge_id=None):
         if value_model == 'gpt-few-shot':
             if edge_id is None:
-                edge_id = self.parse_edge(value_prompt)            
+                edge_id = self.parse_edge(value_prompt)
             llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "fewshot")
             success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId,
                                                  edgeId=edge_id)
@@ -526,14 +573,17 @@ class Routing():  # singleton class. Do not create more than one object of this 
                                                          edgeId=edge_id)
             llm_output = llm_output + "\n" + llm_output_second_stage
         elif value_model == 'meta-model':
-            llm_output_usability, llm_output_dynamic, llm_output_length, llm_output_time, llm_output_nodes, llm_output_nodes_time, method = LLM_MetaModel.invoke_llm(value_prompt)
+            llm_output_usability, llm_output_dynamic, llm_output_length, llm_output_time, llm_output_nodes, llm_output_nodes_time, method = LLM_MetaModel.invoke_llm(
+                value_prompt)
             if edge_id is None:
-                if llm_output_length is not None or llm_output_time is not None:
-                    edge_id = self.parse_edge(value_prompt)
-                elif llm_output_nodes is not None:
+                if llm_output_nodes is not None:
                     edge_id = self.parse_edge(llm_output_nodes)
-            success_code = self.apply_llm_output_meta(llm_output_usability, llm_output_dynamic, llm_output_length, llm_output_time, 
-                                                      llm_output_nodes, llm_output_nodes_time, value_prompt, method=method,
+                else:
+                    edge_id = self.parse_edge(value_prompt)
+            success_code = self.apply_llm_output_meta(llm_output_usability, llm_output_dynamic, llm_output_length,
+                                                      llm_output_time,
+                                                      llm_output_nodes, llm_output_nodes_time, value_prompt,
+                                                      method=method,
                                                       edgeId=edge_id, human=human, vehicleId=vehicleId
                                                       )
             if llm_output_dynamic is not None:
@@ -549,7 +599,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             else:
                 llm_output = llm_output_usability
 
-            
+
 
         else:
             print("ERROR: Model not found")
@@ -654,15 +704,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 if vehicle["currentTask"] is not None:
                     lons = []
                     lats = []
-                    # current_sequence_id = vehicle["currentSequenceId"]
+                    current_sequence_id = vehicle["currentSequenceId"]
                     for edge in vehicle["currentTask"]["edges"]:
-                        # if edge["sequenceId"] >= current_sequence_id:
-                        lons.append(self.nodes_df.loc[int(edge["startNodeId"])]["lon"])
-                        lons.append(self.nodes_df.loc[int(edge["endNodeId"])]["lon"])
-                        # lons.append(None)
-                        lats.append(self.nodes_df.loc[int(edge["startNodeId"])]["lat"])
-                        lats.append(self.nodes_df.loc[int(edge["endNodeId"])]["lat"])
-                        # lats.append(None)
+                        if edge["sequenceId"] >= current_sequence_id:
+                            lons.append(self.nodes_df.loc[int(edge["startNodeId"])]["lon"])
+                            lons.append(self.nodes_df.loc[int(edge["endNodeId"])]["lon"])
+                            # lons.append(None)
+                            lats.append(self.nodes_df.loc[int(edge["startNodeId"])]["lat"])
+                            lats.append(self.nodes_df.loc[int(edge["endNodeId"])]["lat"])
+                            # lats.append(None)
                     fig.add_trace(go.Scattermapbox(mode='lines',
                                                    lon=lons,
                                                    lat=lats,
@@ -681,13 +731,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 # Case 1: Incident status = 'Yes'
                 if incident_value["status"] == "Yes":
                     fig.add_trace(go.Scattermapbox(mode='lines',
-                                                lon=lons,
-                                                lat=lats,
-                                                line={'color': 'black', 'width': 5},
-                                                name=f"Incident on edge_{int(edge_id[0])}_{int(edge_id[1])}",
-                                                hoverinfo='name',
-                                                hoverlabel={'namelength': -1}
-                                                ))
+                                                   lon=lons,
+                                                   lat=lats,
+                                                   line={'color': 'black', 'width': 5},
+                                                   name=f"Incident on edge_{int(edge_id[0])}_{int(edge_id[1])}",
+                                                   hoverinfo='name',
+                                                   hoverlabel={'namelength': -1}
+                                                   ))
 
                     # Add markers in the middle of the edge
                     fig.add_trace(go.Scattermapbox(
@@ -756,7 +806,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
         app.layout = html.Div([
             html.H1(children='Intelligent Hospital Logistics',
-                    style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554', 'height': '20px'}),
+                    style={'textAlign': 'left', 'font-family': 'Arial, sans-serif', 'color': '#99C554',
+                           'height': '20px'}),
             html.Div([
                 html.Div([
                     dcc.Graph(id='live-update-graph',
