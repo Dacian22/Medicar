@@ -1,47 +1,40 @@
-# medicar: Intelligent Hospital Logistics
-A European Team Project from Sergiu-Dacian Balint, Diana Matei, Sara Koni, Arved Schreiber and Paul König
-## Ressources
-* Main Overview Slidedeck: (Application-Architecture, message flow, etc.): https://1drv.ms/p/s!AmfhbH57g19vh2GM2p8LEDvWmaYj
-* Onboarding Slidedeck + Funevents planning: https://1drv.ms/p/s!AmfhbH57g19vh2pFDChNDunJDYHc
-* Trello Board (for task management): https://trello.com/b/3Z3z3z3z/medicar
-* Presentation Slides Cluj: https://1drv.ms/p/s!AmfhbH57g19viAUh8KrWNmzWnh5a
-* Presentation Slides Mannheim: https://1drv.ms/p/s!AmfhbH57g19viETaxxWYjNr_p_Rq
+# InES Team Project SS24 - Intelligent Hospital Logistics
+> A European Team Project from Sergiu-Dacian Balint, Diana Matei, Sara Koni, Arved Schreiber and Paul König.
+## Introduction
+### Background
+The coronavirus pandemic has shown that exceptional medical situations, coupled with staff shortages, can push entire hospital systems to their limits. The research project ”MediCar 4.0” seeks to create an advanced transport logistics platform for self-driving vehicles on clinic premises to avoid future bottlenecks and enhance operational efficiency. However, the dynamic nature of emergencies, failures, and other unpredictable events poses challenges. Many conflicts, such as congestion and deadlocks, can only be adequately resolved with expert knowledge, causing classical optimization algorithms to fall short.
+### Project Goal
+This team project aims to develop robust AI-based routing strategies that integrate world-knowledge from large language models to meet the challenges of clinical processes and various supplies. In this context, we build a simulation environment of the University Hospital in Freiburg and implement routing algorithms to test them in various scenarios.
 ## Quickstart
 * Install the required packages: `pip install -r requirements.txt`
-* Create .env file in the root directory according to the .env.example file (ask paul for credentials)
-* First start the simulation, then the vehicle and then the order manager
+* Create .env file in the root directory according to the .env.example file
+* Start the main.py scripts in the following order: First Simulation, second Vehicle and third OrderManager
 ## Development Guide
-### Environment
-Currently, we only use python and the dependencies in the `requirements.txt` file. For the visualization, we may use 
-some JS in future.
-### Architecture and File Structure
-The project is structured in a modular way. Each module is responsible for a specific task. The main modules for now are: 
-* Order Manager
-* Simulation (also includes the LLM)
-* Vehicle
-Each Module will be in its own directory and will have its own tests. Communication between the modules is done solely via MQTT, otherwise they are completely decoupled.
-For more information on the architecture, please refer to the main overview slidedeck. Each module, but especially the `Vehicle` module, 
-should be built to be converted into a single deployment unit as easily as possible. 
+### Repository Structure
+The project is structured in a modular way. Each module is responsible for a specific task. The main modules: 
+* `Simulation`
+* `Vehicle`
+* `Order Manager`
+
+Communication between the modules is done solely via MQTT, otherwise they are completely decoupled.
 ### MQTT Broker
 We are using the free-tier MQTT Broker from HiveMQ. You can find the URL and Port inside the .env.example file. Please 
-copy the `.env.example` file to your personal and secret `.env` fill and fill in the credentials provided by Paul.
+copy the `.env.example` file to your personal and secret `.env` file and fill in the credentials provided by Paul.
 For interaction with the MQTT Broker, we are using the `paho-mqtt` library. For an example on how to use it, please refer to the `Vehicle` module.
 
 We are trying to use, if possible and reasonable, the "VDA5050" standard for MQTT message protocols in the automotive industry.
 You can find it in the `Ressources/MQTT_APIS` folder as PDF and as txt. You can visualize the txt files nicely with the following
-online service https://studio.asyncapi.com/ (just paste the content there)
+online service https://studio.asyncapi.com/ (just paste the content there).
 
 If you want to monitor the mqtt messages in real time you can use the following open source app: https://mqttx.app/downloads
 
-### LangServe Server for llama 2
-This is set up on the university server.
-1. Install the university VPN client (https://www.uni-mannheim.de/en/it/instructions/vpn/)
-2. Connect to the university VPN (only necessary if accessed from outside of the university network)
-3. run `ssh -NfL localhost:8489:localhost:8489 inestp05@dws-student-01.informatik.uni-mannheim.de` in terminal and enter the password (see email)
-4. You can now use the llama 2 model on the server. Just try http://127.0.0.1:8489/llama2/playground/ in your browser or use Remote-Dev/Example-llama2.ipynb
+## LLM Evaluation
+The following two pictures show the final evaluation results of our large language models. For further explaination of the models feel free to take a look at our presentation slides in the folder `Artifacts/Presentation-Slides`. 
+### Submodels
+In the following picture you can see the evaluation results of our independent submodels.
 
-### Git "Workflow"
-For now, we want to use only the main branch. This may change, but currently we want full transparency. So please
-commit directly to main, even if your code isn't finished yet. If you want to try something out, please create a folder
-called `Playground_<YourName>` and push it. This way we have transparency about what is currently being worked on.
-We consider it as best-practise to push at least once a day, if you have some changes.
+![LLM Results Submodels](docs/LLM_results_submodels.png)
+### Metamodel
+This picture shows the accuracies of the final metamodel.
+
+![LLM Results Metamodel](docs/LLM_results_metamodel.png)
