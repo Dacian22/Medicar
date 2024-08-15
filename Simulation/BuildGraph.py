@@ -1,7 +1,5 @@
 ############################# Setup ########################################
-# import libraries
 import os
-
 import networkx as nx
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -11,6 +9,7 @@ import warnings
 from dotenv import load_dotenv
 load_dotenv()
 
+############################# 1. OSM - Graph ########################################
 
 def get_xml_graph_data():
     '''
