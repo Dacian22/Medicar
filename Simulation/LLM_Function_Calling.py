@@ -29,7 +29,7 @@ parameters = {
         'allowed_surface_types': [None, 'grass_paver', 'paving_stones', 'asphalt', 'cobblestone', 'sett']},
 }
 
-
+# Build the graph from the special nodes
 G, edge_df, nodes_df = BuildGraph.build_nx_graph(
         parameters['subgraph_params']['allowed_highway_types'],
         parameters['subgraph_params']['allowed_surface_types'],
@@ -82,6 +82,7 @@ full_prompt = f"{context} \n {user_prompt}"
 
 client = OpenAI(api_key = os.getenv("OPENAI_API_KEY"))
 
+# Get the original response from the model
 response1 = client.chat.completions.create(
     model="gpt-3.5-turbo",
     messages = [{'role': 'user', 'content': full_prompt}],
@@ -93,6 +94,7 @@ output = response1.choices[0].message
 
 response_content = output.content.strip().lower()
 
+# Check if other nodes are impacted as well
 if "only impacted node " not in response_content:
     
     response1 = client.chat.completions.create(
@@ -106,6 +108,7 @@ if "only impacted node " not in response_content:
 
 output = response1.choices[0].message
 
+# Check if the model has called the function
 if output.function_call:
     params = json.loads(output.function_call.arguments)
     chosen_function = eval(output.function_call.name)

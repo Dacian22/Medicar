@@ -1,6 +1,5 @@
 import time
 from typing import Any, Dict
-
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain_community.llms import Ollama
@@ -8,10 +7,7 @@ from dotenv import load_dotenv
 from langchain_community.graphs.networkx_graph import NetworkxEntityGraph
 import re
 import os
-
 import ast
-
-
 from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.prompts.prompt import PromptTemplate
 from langchain_openai import OpenAI,ChatOpenAI
@@ -27,6 +23,19 @@ load_dotenv(override=True)
 
 
 def get_examples():
+    """
+    Provides a list of example questions and answers related to determining
+    affected edges in a transportation network given specific events.
+
+    Each example contains:
+    - `question`: A description of an event affecting nodes in a graph.
+    - `answer`: The answer detailing which edges are affected by the event.
+    - `reasoning`: The explanation for why certain edges are removed based on the event.
+
+    Returns:
+        list: A list of dictionaries, each containing a question, answer, and reasoning.
+    """
+
     examples = [
     {
         "question": "The edge list provided is: [('N1', 'N2'), ('N2', 'N3'), ('N3', 'N4'), ('N4', 'N5'),('N3','N6')]\n Someone fell on the floor on node N2 blocking it. Please provide the affected edges.",
@@ -243,27 +252,52 @@ def get_examples():
 
 
 def get_model(model_type,approach):
-    template = get_prompt_template(approach)
+    """
+    Creates an instance of `LLMChain` using the specified model type and approach.
 
+    Args:
+        model_type (str): The type of the language model to be used.
+        approach (str): The approach to determine which prompt template to use.
+
+    Returns:
+        LLMChain: An instance of the `LLMChain` class, configured with the provided model type and prompt template.
+    """
+
+    template = get_prompt_template(approach)
     llm = get_llm(model_type)
 
     return LLMChain(prompt=template, llm=llm)
 
 
 def get_prompt_template(approach):
+    """
+    Retrieves the appropriate prompt template based on the specified approach.
+
+    Args:
+        approach (str): The approach to determine which prompt template to use. 
+                        Expected values are 'fewshot' or 'zeroshot'.
+
+    Returns:
+        PromptTemplate: The selected prompt template corresponding to the provided approach.
+    """
+
     template: Dict[str, Any] = {
         'fewshot': get_template_fewshot(),
         'zeroshot': get_template_zeroshot(),
-        'testing_fewshot': get_template_testing_fewshot(),
     }
 
     return template[approach]
 
 def get_template_fewshot():
-    #Getting the examples for FewShot approach
-    examples = get_examples()
+    """
+    Generates a FewShotPromptTemplate for evaluating edge usability in a transportation network.
 
-    #Create the template and model
+    Returns:
+        FewShotPromptTemplate: A FewShotPromptTemplate object set up for determining edge usability
+                               and affected edges based on input obstacles.
+    """
+    
+    examples = get_examples()
     example_prompt = PromptTemplate(
     input_variables=["question", "answer"], template="Question: {question}\n{answer}")
 
@@ -281,9 +315,17 @@ def get_template_fewshot():
 
 
 def get_template_zeroshot():
+    """
+    Generates a zero-shot PromptTemplate for evaluating edge usability in a transportation network.
+
+    Returns:
+        PromptTemplate: A PromptTemplate object set up for determining edge usability without examples.
+    """
+
     context_zero_shot = """As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network.
-    You must determine whether each provided edge is usable or not based on how important the obstacle given as input is.
-    Don't provide the examples in you response but base your answer on them.
+    Your goal is to assess whether each provided edge is passable or not for an electrical 
+    vehicle based on the importance of the obstacle at the moment that the input is given. 
+    Only use the provided graph and do not make assumptions beyond the given context.
     {input} Please provide a True/False value at the end if the edge is usable, exactly like this like this: True the edge is usable or False the edge is not usable."""
 
     zeroshot_template = PromptTemplate(input_variables=["input"], template=context_zero_shot)
@@ -291,29 +333,17 @@ def get_template_zeroshot():
     return zeroshot_template
 
 
-def get_template_testing_fewshot():
-    #Getting the examples for FewShot approach
-    examples = get_examples()
-    
-    #Create the template and model
-    example_prompt = PromptTemplate(
-    input_variables=["question", "answer"], template="Question: {question}\n{answer}")
-
-    fewshot_testing_template = FewShotPromptTemplate(
-    examples=examples,
-    example_prompt=example_prompt,
-    prefix ="""As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network.
-    You're tasked with removing edges from an edge list when something happens that would make the edge impassable. 
-    You must determine whether each provided edge is usable or not based on how important the obstacle given as input is. Respond
-    with True if the edge is available and False if the edge is not available.""",
-    #Using a static edge
-    suffix="At edge edge_7120224687_7112240050 {input} Please provide the affected edges, and a True/False value if the edge is usable.",
-    input_variables=["input"],
-    example_separator='\n\n\n')
-
-    return fewshot_testing_template
-
 def get_llm(model_type):
+    """
+    Retrieves the appropriate language model based on the specified type.
+
+    Args:
+        model_type (str): The type of the model to retrieve. Must be one of 'openai', 'llama2', or 'llama3'.
+
+    Returns:
+        Any: The language model object for the specified model type.
+    """
+
     model: Dict[str, Any] = {
         'openai': get_model_openai(),
         'llama2': get_model_llama2(),
@@ -323,45 +353,76 @@ def get_llm(model_type):
     return model[model_type]
 
 def get_model_openai():
+    """
+    Initializes and returns an OpenAI model instance.
+
+    Returns:
+        OpenAI: An instance of the OpenAI model initialized with the API key from the environment variables.
+
+    """
     return OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 def get_model_llama2():
+    """
+    Initializes and returns a LLama model instance for Llama2.
+
+    Returns:
+        LLama: An instance of the LLama model initialized with the identifier for Llama2.
+    """
     return LLama(model=llama2)
 
+
 def get_model_llama3():
+    """
+    Initializes and returns a LLama model instance for Llama3.
+
+    Returns:
+        LLama: An instance of the LLama model initialized with the identifier for Llama3.
+    """
+
     return LLama(model=llama3)
 
 
 def invoke_llm(prompt, model_type='openai', approach='fewshot'):
-    #Load the edges
+    """
+    Invokes a language model with a given prompt using a specified model type and approach.
+
+    Args:
+        prompt (str): The prompt to be sent to the language model.
+        model_type (str): The type of the model to use. Options are 'openai', 'llama2', 'llama3'. Default is 'openai'.
+        approach (str): The approach to use with the model. Options are 'fewshot' and 'zeroshot'. Default is 'fewshot'.
+
+    Returns:
+        str: The text output from the language model.
+    """
+
     G=load_edges()
-
-    #Create the LLM
     new_graph=get_model(model_type,approach)
-
-    #Create and run the prompt
     answer=new_graph.invoke(prompt)
 
-    #Return the output of the LLM
     return answer["text"]
 
 
 
 def parsing_llm_result(answer):
+    """
+    Parses the result from a language model to extract and clean a list of edges that have their weights changed to infinity.
+
+    Args:
+        answer (str): The response text from the language model containing information about edges with modified weights.
+
+    Returns:
+        list: A list of tuples representing the edges whose weights are changed to infinity. Each tuple contains two elements.
+    """
+
     pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
-
-    removed_edges = re.findall(pattern, answer, re.DOTALL)
-
-    # print("List of removed edges:", removed_edges)
+    removed_edges = re.findall(pattern, answer, re.DOTALL) 
 
     removed_edges_cleaned = []
 
     for removed_edge in removed_edges:
-        # print(removed_edge)
         cleaned = removed_edge.strip("'´")
-        # print(cleaned)
         cleaned = ast.literal_eval(cleaned)
-        # print(cleaned)
         removed_edges_cleaned.append(cleaned)
 
     print("List of edges which weights are changed to infinity:", removed_edges)
@@ -370,6 +431,13 @@ def parsing_llm_result(answer):
 
 
 def load_edges():
+    """
+    Loads edges from a CSV file into a list of tuples.
+
+    Returns:
+        list of tuple: A list where each tuple represents an edge with two elements (node1, node2).
+    """
+
     import pandas as pd
     try:
         df = pd.read_csv(os.path.join('..','Resources','edges_UH_Graph.csv'))
@@ -378,23 +446,26 @@ def load_edges():
 
 
     edges_list = [(f'{row[0]}', f'{row[1]}') for _, row in df.iterrows()]
-    #print("EDGES" ,edges_list)
+
     return edges_list
 
 
 def main(ref_routing):
-    # Get node id as input from the command line
+    """
+    Main function for processing a prompt with a language model and updating a graph.
+
+    Args:
+        ref_routing (object): An object with a `graph` attribute that represents the graph to be updated.
+
+    """
+     
     time.sleep(5)
     prompt = input("Enter your prompt: ")
-
-    # Get output of the LLM
     output = invoke_llm(prompt)
-    #output=try_llm(prompt)
     print(output)
 
     # Parse the output
     parsed_res = parsing_llm_result(output)
-    # print(parsed_res)
 
     # Update graph in the routing
     ref_routing.graph = set_weights_to_inf(ref_routing.graph, parsed_res)

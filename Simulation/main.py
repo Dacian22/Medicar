@@ -1,13 +1,7 @@
-# from Simulation import BuildGraph
-# from Simulation import Routing
-
 import BuildGraph
 import Routing
 
 import logging
-
-# log = logging.getLogger('werkzeug')
-# log.setLevel(logging.ERROR)
 
 parameters = {
     "subgraph_params": {
@@ -31,6 +25,8 @@ parameters = {
 
 
 def main():
+    """Main function to build the graph and initialize routing"""
+    
     G, edge_df, nodes_df = BuildGraph.build_nx_graph(
         parameters['subgraph_params']['allowed_highway_types'],
         parameters['subgraph_params']['allowed_surface_types'],

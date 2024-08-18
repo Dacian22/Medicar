@@ -31,7 +31,7 @@ parameters = {
         'allowed_surface_types': [None, 'grass_paver', 'paving_stones', 'asphalt', 'cobblestone', 'sett']},
 }
 
-
+#Build the graph from the special nodes
 G, edge_df, nodes_df = BuildGraph.build_nx_graph(
         parameters['subgraph_params']['allowed_highway_types'],
         parameters['subgraph_params']['allowed_surface_types'],
@@ -40,7 +40,16 @@ G, edge_df, nodes_df = BuildGraph.build_nx_graph(
 method=None
 
 def get_connected_edges(given_node):
-    """Return the edges connected to the specified node in the graph."""
+    """
+    Return the edges connected to the specified node in the graph.
+
+    Args:
+        given_node (str): The node for which connected edges are to be retrieved.
+
+    Returns:
+        str: A JSON string containing a list of edges connected to the given node.
+              If the node does not exist in the graph, returns an empty list.
+    """
     
     if given_node in G:
         connected_edges = list(G.edges(given_node))
@@ -53,6 +62,7 @@ def get_connected_edges(given_node):
         }
 
     return json.dumps(connected_edges)
+
 
 function_descriptions = [
     {
@@ -72,6 +82,23 @@ function_descriptions = [
 
 
 def invoke_llm(prompt):
+    """
+    Invokes the OpenAI API to process a prompt and determine the impact of events on the accessibility of edges in a graph.
+
+    Args:
+        prompt (str): The prompt containing information about an event affecting the graph.
+
+    Returns:
+        tuple: A tuple containing the results of various analyses based on the prompt:
+            - output_usability (str): Determines if the event impacts transportation usability.
+            - output_dynamic (str): Determines if the event impacts the whole length of an edge or just a part of it.
+            - output_length (str): Provides a value between 0 and 100 indicating the extent of the impact on edge accessibility.
+            - output_time (str): Provides a value in minutes indicating the time delay for vehicles passing through the edge.
+            - output_nodes (str): Lists the edges impacted by an event occurring at a specific node.
+            - output_nodes_time (str): Provides a time delay in minutes for vehicles due to events at specific nodes.
+            - method (str): The method used for quantifying the impact, either "factor" for accessibility or "minutes" for time delay.
+    """
+
     output_usability=None
     output_dynamic=None
     output_length=None
@@ -111,6 +138,7 @@ def invoke_llm(prompt):
 
     response_content = output_usability.strip().lower()
 
+    # Check if the event impacts the transportation and is happening on an edge
     if "true" in response_content and "edge" in response_content:
         context_dynamic =  f"""As a professional graph modeler, you're tasked with determining the 
         accessibility of edges in a transportation network. You are given an event that impacts
@@ -140,6 +168,7 @@ def invoke_llm(prompt):
         output_dynamic = response_dynamic.choices[0].message.content
         response_content = output_dynamic.strip().lower()
 
+        # Checks if the event impacts the whole length of the edge
         if "true" in response_content:
             context_length = f"""As a professional graph modeler, you're tasked with determining the 
             accessibility of edges in a transportation network. You must determine how much was the 
@@ -172,6 +201,7 @@ def invoke_llm(prompt):
             method = "factor"
             output_length = response_length.choices[0].message.content
 
+        # If the event impacts only a part of the edge
         else:
             context_time = f"""As a professional graph modeler, you're tasked with determining the 
             accessibility of edges in a transportation network. You are given an event that impacts the
@@ -200,6 +230,7 @@ def invoke_llm(prompt):
             method = "minutes"
             output_time = response_time.choices[0].message.content
 
+    # Checks if the event impacts the transportation and it is happening on a node
     elif "true" in response_content and "node" in response_content:
         context_nodes = f"""You are a graph expert and you are given the graph of a university hospital
                 campus. Nodes are the buildings in the graph and edges are the routes between
@@ -222,6 +253,7 @@ def invoke_llm(prompt):
             
         message = response_nodes.choices[0].message
 
+        # Checks if the model called the function
         if message.function_call:
             params = json.loads(message.function_call.arguments)
             chosen_function = eval(message.function_call.name)

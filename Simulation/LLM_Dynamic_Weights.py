@@ -1,6 +1,5 @@
 import time
 from typing import Any, Dict
-
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain_community.llms import Ollama
@@ -8,10 +7,7 @@ from dotenv import load_dotenv
 from langchain_community.graphs.networkx_graph import NetworkxEntityGraph
 import re
 import os
-
 import ast
-
-
 from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.prompts.prompt import PromptTemplate
 from langchain_openai import OpenAI,ChatOpenAI
@@ -27,6 +23,18 @@ load_dotenv(override=True)
 
 
 def get_examples_factor():
+    """
+    Provides a list of example scenarios with corresponding questions and answers that evaluate how much 
+    the accessibility of a given edge is affected by an event. Each example includes a question, an answer with 
+    follow-up reasoning, and the final value assigned to represent the degree of impact on accessibility.
+
+    Returns:
+        list: A list of dictionaries where each dictionary contains the following keys:
+            - 'question': A string that poses the scenario to evaluate the edge's accessibility.
+            - 'answer': A string that contains the follow-up questions, intermediate answers, and the final value.
+            - 'reasoning': A string explaining the logic behind the final value assigned to the edge's accessibility.
+    """
+
     examples = [
     {
         "question": "At edge edge_N2_N3 someone fell on the floor blocking it. Please provide a mandatory single value between 0 and 100 for how much is the accessibility of the edge affected.",
@@ -64,20 +72,6 @@ def get_examples_factor():
     Because the event of someone dying is important enough to block access to the edge edge_1_2 we are giving an extremely high value of 100.
     """,
     },
-    # {
-    #     "question": "The edge list provided is: [('A', 'B'), ('B', 'C'), ('C','A'), ('C', 'D'), ('D', 'E'), ('C','F')]\n Someone is having a heart attack on node C. Please provide the affected edges.",
-    #     "answer": """
-    # Are follow up questions needed here: Yes.
-    # Follow up: Is the event important enough so that node C is not accessible anymore?
-    # Intermediate answer: Yes, someone having a heart attack would make node C inaccessible.
-    # Follow up: Which edges contain node C?
-    # Intermediate answer: Edges ('B', 'C'), ('C','A'), ('C', 'D'), ('C','F') contain node C
-    # So the final answer is: List of edges that have to be removed: ('B', 'C'), ('C','A'), ('C', 'D'), ('C','F'). False the edge is not usable.
-    # """,
-    #     "reasoning":"""
-    # Because the event of someone having a heart attack is important enough to block access to the node C so we are removing the edges that contain the node C, those being ('B', 'C'), ('C','A'), ('C', 'D'), ('C','F')
-    # """,
-    # },
     {
         "question": "At edge edge_A_B someone dropped their papers on the ground. Please provide a mandatory single value between 0 and 100 for how much is the accessibility of the edge affected.",
         "answer": """
@@ -102,20 +96,6 @@ def get_examples_factor():
     Because the event of the pathway being covered in thick mud is important enough to disrupt the accessibility of edge_A_B so we are giving a high value of 70.
     """,
     },
-    # {
-    #     "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'),('3','6')]\n Someone is having a seisure on node 2. Please provide the affected edges.",
-    #     "answer": """
-    # Are follow up questions needed here: Yes.
-    # Follow up: Is the event important enough so that node 2 is not accessible anymore?
-    # Intermediate answer: Yes, someone dying would make node 2 inaccessible.
-    # Follow up: Which edges contain node 2?
-    # Intermediate answer: Edges ('1','2'), ('2','3') contain node 2
-    # So the final answer is: List of edges that have to be removed: ('1','2'), ('2','3'). False the edge is not usable.
-    # """,
-    #     "reasoning":"""
-    # Because the event of someone having a seisure is important enough to block access to the node 2 so we are removing the edges that contain the node 2, those being ('1','2'), ('2','3')
-    # """,
-    # },
     {
         "question": "At edge edge_C_D a group of people are chatting. Please provide a mandatory single value between 0 and 100 for how much is the accessibility of the edge affected.",
         "answer": """
@@ -140,32 +120,6 @@ def get_examples_factor():
     Because the event of a medium-sized animal being on the path is important enough to moderately affect the accessibility of edge_N1_N4 so we are giving a moderate value of 50.
     """,
     },
-    # {
-    #         "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'),('3','6')]\n A vehicle accident has occured on node 3. Please provide the affected edges.",
-    #         "answer": """
-    #     Are follow up questions needed here: Yes.
-    #     Follow up: Is the event important enough so that node 3 is not accessible anymore?
-    #     Intermediate answer: Yes, a vehicle accident would make node 3 inaccessible.
-    #     Follow up: Which edges contain node 3?
-    #     Intermediate answer: Edges ('2','3'), ('3','4'), ('3','6') contain node 3
-    #     So the final answer is: List of edges that have to be removed: ('2','3'), ('3','4'), ('3','6'). False the edge is not usable.
-    #     """,
-    #         "reasoning": """
-    #     Because the event of a vehicle accident is important enough to block access to the node 3 so we are removing the edges that contain the node 3, those being ('2','3'), ('3','4'), ('3','6')
-    #     """,
-    # },
-    # {
-    #         "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'),('3','6')]\n A person is walking with a child holding their hand on node 3. Please provide the affected edges.",
-    #         "answer": """
-    #         Are follow up questions needed here: Yes.
-    #         Follow up: Is the event important enough so that node 3 is not accessible anymore?
-    #         Intermediate answer: No, a person walking with a child holding their hand would not make node 3 inaccessible.
-    #         So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-    #         """,
-    #         "reasoning": """
-    #         Because the event of a person walking with a child holding their hand is not important enough to block access to the node 3 so we are not removing the edges that contain the node 3, so no edges are affected
-    #         """,
-    # },
     {
         "question": "At edge edge_N5_N6 a burst fire hydrant floods the path. Please provide a mandatory single value between 0 and 100 for how much is the accessibility of the edge affected.",
         "answer": """
@@ -202,77 +156,23 @@ def get_examples_factor():
     Because the event of small branches being on the ground would affect the accessibility of edge_N3_N4 a little so we are giving a low value of 20.
     """,
     },
-    # {
-    #         "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'), ('2','6'), ('3','7')]\n A fallen fence blocks the access near node 6. Please provide the affected edges.",
-    #         "answer": """
-    #         Are follow up questions needed here: Yes.
-    #         Follow up: Is the event important enough so that node 6 is not accessible anymore?
-    #         Intermediate answer: Yes, a fallen fence blocking the access would make node 6 inaccessible.
-    #         Follow up: Which edges contain node 6?
-    #         Intermediate answer: Edges ('2','6') contain node 6
-    #         So the final answer is: List of edges that have to be removed: ('2','6'). False the edge is not usable.
-    #         """,
-    #         "reasoning": """
-    #         Because the event of a fallen fence blocking the access is important enough to block access to the node 6 so we are removing the edges that contain the node 6, those being ('2','6')
-    #         """,
-    # },
-    # {
-    #         "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'), ('2','6'), ('3','7')]\n Road repair work is in progress near node 2. Please provide the affected edges.",
-    #         "answer": """
-    #         Are follow up questions needed here: Yes.
-    #         Follow up: Is the event important enough so that node 2 is not accessible anymore?
-    #         Intermediate answer: Yes, road repair work would make node 2 inaccessible.
-    #         Follow up: Which edges contain node 2?
-    #         Intermediate answer: Edges ('1','2'), ('2', '3'), ('2','6') contain node 2
-    #         So the final answer is: List of edges that have to be removed: ('1','2'), ('2', '3'), ('2','6'). False the edge is not usable.
-    #         """,
-    #         "reasoning": """
-    #         Because the event of road repair work is important enough to block access to the node 2 so we are removing the edges that contain the node 2, those being ('1','2'), ('2', '3'), ('2','6')
-    #         """,
-    # },
-    # {
-    #         "question": "The edge list provided is: [('node1', 'node2'), ('node2', 'node3'), ('node3', 'node4'), ('node4', 'node5'), ('node2','node6'), ('node3','node7')]\n A cyclist is riding along the path near node node3. Please provide the affected edges.",
-    #         "answer": """
-    #         Are follow up questions needed here: Yes.
-    #         Follow up: Is the event important enough so that node node3 is not accessible anymore?
-    #         Intermediate answer: No, a cyclist riding along the path would not make node node3 inaccessible.
-    #         So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-    #         """,
-    #         "reasoning": """
-    #         Because the event of a cyclist riding along the path is not important enough to block access to the node node3 so we are not removing any edges. No edges are affected.
-    #         """,
-    # },
-    # {
-    #         "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'), ('2','6'), ('3','7')]\n  A delivery person is dropping off a package near node 1. Please provide the affected edges.",
-    #         "answer": """
-    #         Are follow up questions needed here: Yes.
-    #         Follow up: Is the event important enough so that node 1 is not accessible anymore?
-    #         Intermediate answer: No, a delivery person dropping off a package would not make node 1 inaccessible.
-    #         So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-    #         """,
-    #         "reasoning": """
-    #         Because the event of a delievery person dropping off a package is not important enough to block access to the node 1 so we are not removing the edges that contain the node 1. No edges are affected.
-    #         """,
-    # },
-    # {
-    #         "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'), ('2','6'), ('3','7')]\n A large fallen tree blocks the pathway near node 6. Please provide the affected edges.",
-    #         "answer": """
-    #         Are follow up questions needed here: Yes.
-    #         Follow up: Is the event important enough so that node 6 is not accessible anymore?
-    #         Intermediate answer: Yes, a large fallen tree blocking the pathway would make node 6 inaccessible.
-    #         Follow up: Which edges contain node 6?
-    #         Intermediate answer: Edges ('2','6') contain node 6
-    #         So the final answer is: List of edges that have to be removed: ('2','6'). False the edge is not usable.
-    #         """,
-    #         "reasoning": """
-    #         Because the event of a fallen large tree blocking the access is important enough to block access to the node 6 so we are removing the edges that contain the node 6, those being ('2','6')
-    #         """,
-    # }
     ]
     return examples
 
 
 def examples_length():
+    """
+    Provides a list of example scenarios with corresponding questions and answers that evaluate whether an event affects 
+    the entire length of an edge or just a specific part of it. Each example includes a question, an answer with follow-up reasoning, 
+    and the final True/False value indicating if the event affects the whole edge or not.
+
+    Returns:
+        list: A list of dictionaries where each dictionary contains the following keys:
+            - 'question': A string that poses the scenario to evaluate if the event affects the entire edge.
+            - 'answer': A string that contains follow-up questions, intermediate answers, and the final True/False value.
+            - 'reasoning': A string explaining the logic behind the final True/False value assigned based on the event's impact.
+    """
+
     examples = [
     {
         "question": "At edge edge_N2_N3 someone fell on the floor blocking it. Please provide a mandatory True/False value if the event affects the whole edge or not.",
@@ -298,32 +198,6 @@ def examples_length():
     Because the event of someone dropping their ice cream on the floor affects the accessibility of the edge only in a specific spot we are giving the value False.
     """,
     },
-    # {
-    #     "question": "At edge edge_1_2 someone died. Please provide a mandatory single value between 0 and 100 for how much is the accessibility of the edge affected.",
-    #     "answer": """
-    # Are follow up questions needed here: Yes.
-    # Follow up: Would a vehicle be affected by the event for the whole length of edge edge_1_2?
-    # Intermediate answer: Critticaly, someone dying would make the edge edge_1_2 nearly inaccessible for the transportation vehicles.
-    # So the final answer is: The value is 100.
-    # """,
-    #     "reasoning":"""
-    # Because the event of someone dying is important enough to block access to the edge edge_1_2 we are giving an extremely high value of 100.
-    # """,
-    # },
-    # {
-    #     "question": "The edge list provided is: [('A', 'B'), ('B', 'C'), ('C','A'), ('C', 'D'), ('D', 'E'), ('C','F')]\n Someone is having a heart attack on node C. Please provide the affected edges.",
-    #     "answer": """
-    # Are follow up questions needed here: Yes.
-    # Follow up: Is the event important enough so that node C is not accessible anymore?
-    # Intermediate answer: Yes, someone having a heart attack would make node C inaccessible.
-    # Follow up: Which edges contain node C?
-    # Intermediate answer: Edges ('B', 'C'), ('C','A'), ('C', 'D'), ('C','F') contain node C
-    # So the final answer is: List of edges that have to be removed: ('B', 'C'), ('C','A'), ('C', 'D'), ('C','F'). False the edge is not usable.
-    # """,
-    #     "reasoning":"""
-    # Because the event of someone having a heart attack is important enough to block access to the node C so we are removing the edges that contain the node C, those being ('B', 'C'), ('C','A'), ('C', 'D'), ('C','F')
-    # """,
-    # },
     {
         "question": "At edge edge_A_B a barrier blocks the entrance. Please provide a mandatory True/False value if the event affects the whole edge or not.",
         "answer": """
@@ -402,6 +276,18 @@ def examples_length():
 
 
 def examples_time_penalty():
+    """
+    Provides a list of example scenarios with corresponding questions and answers that evaluate how long the accessibility of an edge 
+    for transportation vehicles will be affected by an event, measured in minutes. Each example includes a question, 
+    an answer with follow-up reasoning, and the final value assigned to represent the time impact on accessibility.
+
+    Returns:
+        list: A list of dictionaries where each dictionary contains the following keys:
+            - 'question': A string that poses the scenario to evaluate the time penalty on the edge's accessibility.
+            - 'answer': A string that contains the follow-up questions, intermediate answers, and the final value in minutes.
+            - 'reasoning': A string explaining the logic behind the final time value assigned to the edge's accessibility.
+    """
+
     examples=[
     {
         "question": "At edge edge_N2_N3 someone fell on the floor blocking it. Please provide a mandatory single value in minutes for how much time will the accessibility of the edge for the transportation vehicles be affected.",
@@ -479,28 +365,68 @@ def examples_time_penalty():
 
     return examples
 
-def get_model(model_type,approach):
-    template = get_prompt_template(approach)
 
+def get_model(model_type,approach):
+    """
+    Creates and returns an LLMChain model instance based on the specified model type and approach. 
+
+    Args:
+        model_type (str): The type of language model to use, which could specify different architectures or sizes (e.g., 'gpt-4', 'gpt-3.5').
+        approach (str): The approach to follow, which determines the prompt template used to interact with the language model.
+
+    Returns:
+        LLMChain: An instance of the LLMChain class, configured with the specified prompt template and language model.
+    """
+
+    template = get_prompt_template(approach)
     llm = get_llm(model_type)
 
     return LLMChain(prompt=template, llm=llm)
 
 
 def get_prompt_template(approach):
+    """
+    Retrieves the appropriate prompt template based on the specified approach.
+
+    Args:
+        approach (str): The approach to use for generating the prompt template. Valid values include:
+            - 'fewshot': Retrieves the few-shot learning template.
+            - 'zeroshot': Retrieves the zero-shot learning template.
+
+    Returns:
+        Dict[str, Any]: The prompt template corresponding to the provided approach.
+    """
+
     template: Dict[str, Any] = {
         'fewshot': get_template_fewshot(),
         'zeroshot': get_template_zeroshot(),
-        'testing_fewshot': get_template_testing_fewshot(),
     }
 
     return template[approach]
 
 def get_template_fewshot():
-    #Getting the examples for FewShot approach
-    examples = get_examples_factor()
+    """
+    Creates and returns a few-shot prompt template for determining the accessibility of edges in a transportation network 
+    based on various events. The few-shot approach provides several examples to help guide the model's response.
 
-    #Create the template and model
+    The prompt guides the model to assess how much an edge in the network is affected by an event, returning a value 
+    between 0-100 based on the severity of the impact:
+        - 0-25: Slightly affected
+        - 25-50: Moderately affected
+        - 50-75: Seriously affected
+        - 75-100: Critically affected
+
+    The model bases its answer on provided examples but only outputs a value for the last event.
+
+    Returns:
+        FewShotPromptTemplate: The few-shot prompt template that includes:
+            - A list of examples (from `get_examples_factor()`),
+            - A prefix to explain the task to the model,
+            - A suffix prompting the model for the final value based on the input event,
+            - Example formatting and input variables to structure the prompt.
+    """
+   
+    examples = get_examples_factor()
     example_prompt = PromptTemplate(
     input_variables=["question", "answer"], template="Example Question: {question}\n{answer}")
 
@@ -521,6 +447,26 @@ def get_template_fewshot():
 
 
 def get_template_zeroshot():
+    """
+    Creates and returns a zero-shot prompt template for determining the accessibility of edges in a transportation network 
+    based on the impact of an obstacle provided as input.
+
+    The prompt instructs the model to assess how much an edge is affected by an event, returning a value between 0-100 
+    based on the severity of the impact:
+        - 0-25: Slightly affected
+        - 25-50: Moderately affected
+        - 50-75: Seriously affected
+        - 75-100: Critically affected
+
+    Unlike few-shot prompting, this template does not provide any examples. The model makes its judgment based purely on the 
+    given context and input.
+
+    Returns:
+        PromptTemplate: The zero-shot prompt template that includes:
+            - A predefined context explaining the task and the value range for determining edge accessibility.
+            - Input variables for the template, specifically the input describing the event.
+    """
+
     context_zero_shot = """As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network. 
     You must determine how much was the provided edge affected based on how important the obstacle given as input is. 
     The values are between 0-100 with 100 being the most affected, values between 0-25 are for events that affect the accessibility of the edge a little bit, 
@@ -533,37 +479,31 @@ def get_template_zeroshot():
     return zeroshot_template
 
 
-def get_template_testing_fewshot():
-    #Getting the examples for FewShot approach
-    examples = get_examples_factor()
-    
-    #Create the template and model
-    example_prompt = PromptTemplate(
-    input_variables=["question", "answer"], template="Example Question: {question}\n{answer}")
-
-    fewshot_testing_template = FewShotPromptTemplate(
-    examples=examples,
-    example_prompt=example_prompt,
-    prefix ="""As a professional graph modeler, you're tasked with determining the accessibility of edges in a transportation network. 
-    You must determine how much was the provided edge affected based on how important the obstacle given as input is. 
-    The values are between 0-100 with 100 being the most affected, values between 0-25 are for events that affect the accessibility of the edge a little bit, 
-    values between 25-50 are for events that moderately affect the accessibility of the edge, values between 50-75 are for events that seriously affect the accessibility of the edge 
-    and values between 75-100 affect the accessibility of the edge critically. 
-    Don't provide the examples in you response but base your answer on them.""",
-    suffix="At edge edge_7120224687_7112240050 {input} Please provide a mandatory single value between 0 and 100 for how much is the accessibility of the edge for the transportation vehicles is affected. Format it exactly like this: The value is X.",
-    input_variables=["input"],
-    example_separator='\n\n\n')
-
-    return fewshot_testing_template
-
-
-
 
 def get_template_length_fewshot():
-    #Getting the examples for FewShot approach
-    examples = examples_length()
+    """
+    Creates and returns a few-shot prompt template for determining if an event affects the entire length of an edge 
+    in a transportation network or just a portion of it.
 
-    #Create the template and model
+    This template is designed to help the model evaluate whether an event impacts the entire length of an edge 
+    or only a specific part based on provided examples. It includes examples that illustrate how to decide and 
+    format the impact assessment.
+
+    The prompt instructs the model to determine if the accessibility of the edge is affected for the whole edge or just a part. 
+    It provides a True/False answer based on the examples provided.
+
+    The template includes examples for the model to reference and does not include examples in the final response, 
+    only basing the answer on them.
+
+    Returns:
+        FewShotPromptTemplate: The few-shot prompt template that includes:
+            - Examples to guide the model.
+            - An example prompt for formatting the provided examples.
+            - A prefix with instructions and context for evaluating edge accessibility.
+            - A suffix specifying the input format for the edge impact assessment.
+    """
+    
+    examples = examples_length()
     example_prompt = PromptTemplate(
     input_variables=["question", "answer"], template="Example Question: {question}\n{answer}")
 
@@ -582,10 +522,28 @@ def get_template_length_fewshot():
 
 
 def get_template_time_penalty_fewshot():
-    #Getting the examples for FewShot approach
-    examples = examples_time_penalty()
+    """
+    Creates and returns a few-shot prompt template for determining the time penalty imposed on a vehicle 
+    when passing through an edge affected by an event in a transportation network.
 
-    #Create the template and model
+    This template helps the model evaluate the time penalty based on the impact of the event on the accessibility of the edge. 
+    It includes examples to illustrate how to determine and format the time penalty for the last event.
+
+    The prompt instructs the model to provide a time penalty value in minutes, formatted as "The value is X minutes," 
+    based on the examples provided.
+
+    The template includes examples for the model to reference and does not include examples in the final response, 
+    only basing the answer on them.
+
+    Returns:
+        FewShotPromptTemplate: The few-shot prompt template that includes:
+            - Examples to guide the model.
+            - An example prompt for formatting the provided examples.
+            - A prefix with instructions and context for evaluating the time penalty based on the event.
+            - A suffix specifying the input format for the time penalty assessment.
+    """
+    
+    examples = examples_time_penalty()
     example_prompt = PromptTemplate(
     input_variables=["question", "answer"], template="Example Question: {question}\n{answer}")
 
@@ -602,10 +560,20 @@ def get_template_time_penalty_fewshot():
     return fewshot_template
 
 
-
-
-
 def get_llm(model_type):
+    """
+    Retrieves the language model based on the specified model type.
+
+    Args:
+        model_type (str): The type of the language model to retrieve. Should be one of:
+            - 'openai': Retrieves the OpenAI language model.
+            - 'llama2': Retrieves the Llama2 language model.
+            - 'llama3': Retrieves the Llama3 language model.
+
+    Returns:
+        LLM: The language model corresponding to the specified `model_type`.
+    """
+
     model: Dict[str, Any] = {
         'openai': get_model_openai(),
         'llama2': get_model_llama2(),
@@ -614,30 +582,71 @@ def get_llm(model_type):
 
     return model[model_type]
 
+
 def get_model_openai():
+    """
+    Retrieves an OpenAI language model instance.
+
+    Returns:
+        OpenAI: An instance of the OpenAI language model initialized with the provided API key.
+
+    """
+
     return OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
+
 def get_model_llama2():
+    """
+    Retrieves a Llama2 language model instance.
+
+    Returns:
+        LLama: An instance of the Llama2 language model initialized with the specified model configuration.
+    """
     return LLama(model=llama2)
 
+
 def get_model_llama3():
+    """
+    Retrieves a Llama3 language model instance.
+
+    Returns:
+        LLama: An instance of the Llama3 language model initialized with the specified model configuration.
+    """
+
     return LLama(model=llama3)
 
 
 def invoke_llm(prompt, model_type='llama2', approach='zeroshot'):
-    #Load the edges
+    """
+    Invokes a language model to generate a response based on the provided prompt.
+
+    Args:
+        prompt (str): The input prompt that will be fed to the language model for generating a response.
+        model_type (str, optional): The type of the language model to use. Defaults to 'llama2'.
+        approach (str, optional): The approach to use with the model. Defaults to 'zeroshot'.
+
+    Returns:
+        str: The text response generated by the language model.
+    """
+
     G=load_edges()
-
-    #Create the LLM
     new_graph=get_model(model_type,approach)
-
-    #Create and run the prompt
     answer=new_graph.invoke(prompt)
 
-    #Return the output of the LLM
     return answer["text"]
 
+
 def parse_output(output):
+    """
+    Parses a string output to determine if it contains a boolean value (`True` or `False`).
+
+    Args:
+        output (str): The string output to be parsed.
+
+    Returns:
+        bool or None: Returns `True` if "True" is found in the output, `False` if "False" is found, or `None` if neither is found.
+    """
+
     pattern = r"[T|t]rue|[F|f]alse"
     result = re.findall(pattern, output)
     if len(result)==0:
@@ -653,17 +662,30 @@ def parse_output(output):
 
 #Fucntion for callling the LLM for Dynamic Weights
 def invoke_llm_chain(prompt, model_type='openai', approach='fewshot'):
-    #Load the edges
+    """
+    Invokes a language model chain to assess the impact of an event on the accessibility of an edge.
+
+    This function first determines whether an event affects the entire length of the edge or only a portion of it.
+    Based on this assessment, it invokes a second language model chain to evaluate the impact either in terms of time penalty
+    or as a factor affecting the accessibility.
+
+    Args:
+        prompt (str): The input prompt detailing the event and edge information.
+        model_type (str, optional): The type of language model to use ('openai', 'llama2', 'llama3'). Defaults to 'openai'.
+        approach (str, optional): The approach for few-shot or zero-shot learning. Defaults to 'fewshot'.
+
+    Returns:
+        tuple: A tuple containing three elements:
+            - `answer` (str): The final output from the language model chain, which could be a time penalty in minutes or a factor.
+            - `output_length` (str): The initial output indicating if the event affects the whole length of the edge.
+    """
+
     G=load_edges()
-
     template = get_template_length_fewshot()
-
     llm = get_llm(model_type)
-
     length_chain = LLMChain(prompt=template, llm=llm)
 
     output_length = length_chain.invoke(prompt)
-
     print("Affected for the whole length: ",output_length["text"])
 
     output = parse_output(output_length["text"])
@@ -680,28 +702,32 @@ def invoke_llm_chain(prompt, model_type='openai', approach='fewshot'):
     llm=get_llm(model_type)
     chain = LLMChain(prompt=template, llm=llm)
 
-
-    #Create and run the prompt
     answer=chain.invoke(prompt)
 
-    #Return the output of the LLM
+   
     return answer["text"], output_length["text"], output
 
+
 def parsing_llm_result(answer):
+    """
+    Parses the output from a language model to extract and clean information about edges whose weights have changed to infinity.
+
+    Args:
+        answer (str): The output text from the language model containing information about edge weights.
+
+    Returns:
+        list: A list of tuples representing the edges whose weights have changed to infinity, with each tuple containing
+              two integer values.
+    """
+
     pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
-
     removed_edges = re.findall(pattern, answer, re.DOTALL)
-
-    # print("List of removed edges:", removed_edges)
-
+    
     removed_edges_cleaned = []
 
     for removed_edge in removed_edges:
-        # print(removed_edge)
         cleaned = removed_edge.strip("'´")
-        # print(cleaned)
         cleaned = ast.literal_eval(cleaned)
-        # print(cleaned)
         removed_edges_cleaned.append(cleaned)
 
     print("List of edges which weights are changed to infinity:", removed_edges)
@@ -709,7 +735,14 @@ def parsing_llm_result(answer):
     return removed_edges
 
 
+
 def load_edges():
+    """
+    Loads edge data from a CSV file and returns a list of edges as tuples.
+
+    Returns:
+        list: A list of tuples where each tuple represents an edge with two node identifiers.
+    """
     import pandas as pd
     try:
         df = pd.read_csv(os.path.join('..','Resources','edges_UH_Graph.csv'))
@@ -718,14 +751,22 @@ def load_edges():
 
 
     edges_list = [(f'{row[0]}', f'{row[1]}') for _, row in df.iterrows()]
-    #print("EDGES" ,edges_list)
     return edges_list
 
 def parse_output_weights(output):
-    #try a pettern for The value is X
-    pattern = r"[V|v]alue[^\d]{0,20}\d{1,3}"
+    """
+    Extracts a numeric value from the output string, typically representing a weight.
 
+    Args:
+        output (str): The output string from which to extract the numeric value.
+
+    Returns:
+        int or None: The extracted numeric value as an integer, or None if no valid number is found.
+    """
+    #try a pattern for The value is X
+    pattern = r"[V|v]alue[^\d]{0,20}\d{1,3}"
     result = re.findall(pattern, output)
+
     if len(result)==0:
         pattern = r"[^\d]{2,5}(\d{1,3})(?:[^\d]{2,5}|\.)"
         result = re.findall(pattern, output)
@@ -737,41 +778,42 @@ def parse_output_weights(output):
     result[0] = re.findall(final_pattern, result[0])[0]
     result_number = int(result[0])
 
-
-
     return result_number
 
-def main(ref_routing):
-    # Get node id as input from the command line
-    #time.sleep(5)
-    prompt = input("Enter your prompt: ")
 
-    # Get output of the LLM
+def main(ref_routing):
+    """
+    Main function to handle user input, invoke the LLM, parse the output, and update the graph.
+
+    Args:
+        ref_routing (Routing): An instance of the Routing class which contains the graph to be updated.
+    """
+
+    prompt = input("Enter your prompt: ")
     output = invoke_llm(prompt)
-    #output=try_llm(prompt)
     print(output)
 
     # Parse the output
     parsed_res = parsing_llm_result(output)
-    # print(parsed_res)
+    
     print("Value:",parse_output_weights(output))
     print(type(parse_output_weights(output)))
+
     # Update graph in the routing
     ref_routing.graph = set_weights_to_inf(ref_routing.graph, parsed_res)
 
 
 def main_chain():
+    """
+    Main function to handle user input, invoke the LLM chain, and process the output.
+    """
+
     prompt = input("Enter your prompt: ")
 
-    # Get output of the LLM
     output,type_result = invoke_llm_chain(prompt)
-    #output=try_llm(prompt)
+
     print()
     print(type_result,output)
-
-    # Parse the output
-    #parsed_res = parsing_llm_result(output)
-    # print(parsed_res)
     print("Value:",parse_output_weights(output))
     print(type(parse_output_weights(output)))
 

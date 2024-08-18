@@ -8,7 +8,7 @@ import re
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-df = pd.read_csv('C:\\Users\\user\\OneDrive\\Desktop\\MTP\\medicar\\Simulation\\responses_metadataset.csv', sep=';')
+df = pd.read_csv(os.path.join(os.getenv("RESOURCES"),'responses_metadataset.csv'), sep=';')
 client = OpenAI(api_key = os.getenv("OPENAI_API_KEY"))
 scores_length=[]
 scores_time=[]

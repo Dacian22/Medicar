@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 import BuildGraph
 import LLM_Dynamic_Weights
 import LLM_MetaModel
-import Playground_LLM_Dacian
+import LLM_Edge_Usability
 import TestEvaluationCsv
 
 lock = threading.Lock()
@@ -517,25 +517,25 @@ class Routing():  # singleton class. Do not create more than one object of this 
         if value_model == 'gpt-few-shot':
             if edge_id is None:
                 edge_id = self.parse_edge(value_prompt)
-            llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "fewshot")
+            llm_output = LLM_Edge_Usability.invoke_llm(value_prompt, "openai", "fewshot")
             success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId,
                                                  edgeId=edge_id)
         elif value_model == 'llama-few-shot':
             if edge_id is None:
                 edge_id = self.parse_edge(value_prompt)
-            llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "fewshot")
+            llm_output = LLM_Edge_Usability.invoke_llm(value_prompt, "llama2", "fewshot")
             success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId,
                                                  edgeId=edge_id)
         elif value_model == 'gpt-zero-shot':
             if edge_id is None:
                 edge_id = self.parse_edge(value_prompt)
-            llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "openai", "zeroshot")
+            llm_output = LLM_Edge_Usability.invoke_llm(value_prompt, "openai", "zeroshot")
             success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId,
                                                  edgeId=edge_id)
         elif value_model == 'llama-zero-shot':
             if edge_id is None:
                 edge_id = self.parse_edge(value_prompt)
-            llm_output = Playground_LLM_Dacian.invoke_llm(value_prompt, "llama2", "zeroshot")
+            llm_output = LLM_Edge_Usability.invoke_llm(value_prompt, "llama2", "zeroshot")
             success_code = self.apply_llm_output(llm_output, value_prompt, human=human, vehicleId=vehicleId,
                                                  edgeId=edge_id)
         elif value_model == 'gpt-few-shot-dynamic':
