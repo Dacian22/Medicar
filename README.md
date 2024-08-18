@@ -36,7 +36,16 @@ The `OrderManager` sends an MQTT-message to the `Simulation` under the topic “
 | `main.py`                 | Main script to build the graph and activate the routing  |
 | `BuildGraph.py`           | Source code of graph creation                            |
 | `Routing.py`              | Source code of the class Routing                         |
-... LLM files
+| `LLM_Dynamic_Weights.py`      | Determines if the incident impacts the whole length of the edge or only a part of it                     |
+ | `LLM_Edge_Usability.py`     | Determines if the incident impacts the usability of the edge or not                     |
+ | `LLM_Evaluation.py`     |    Evaluates the performance of our Edge Accessibility Evaluator, Edge Delay Estimator, Node Delay Estimator models               |
+ | `LLM_Function_Calling.py`     | Determines if the incident impacts only the given node or the neighborhood as well              |
+ | `LLM_MetaModel.py`     | Combines the best approaches in a single call        |
+
+ 
+
+
+ 
 
 ### Module `Vehicle`
 | File                      | Role                                                     |
