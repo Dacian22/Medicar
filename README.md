@@ -45,11 +45,13 @@ The `OrderManager` sends an MQTT-message to the `Simulation` under the topic “
 | `Vehicle.py`              |                                                          |
 
 ### Module `OrderManager`
+The `OrderManager` module processes orders by extracting details from heuristics stored in a CSV file. It creates `Order` objects based on the extracted information. These orders are then sent in a JSON format via MQTT under the topic “/order” to the   `Simulation` module for further processing.
+
 | File                      | Role                                                     |
 |---------------------------|----------------------------------------------------------|
-| `main.py`                 |                                                          |
-| `order.py`                |                                                          |
-| `order_manager.py`        |                                                          |
+| `main.py`                 | Initializes order processing based on heuristics                                                     |
+| `order.py`                | Creates Order objects from heuristics                                                    |
+| `order_manager.py`        | Loads heuristics and sends orders via MQTT                                                     |
 
 ## LLM Evaluation
 The following two pictures show the final evaluation results of our large language models. For further explaination of the models feel free to take a look at our presentation slides in the folder `Artifacts/Presentation-Slides`. 
