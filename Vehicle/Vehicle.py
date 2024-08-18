@@ -155,10 +155,10 @@ class Vehicle:
         '''
         payload = dict()
         # VDA 5050 standard properties
-        payload["headerId"] = "NAN"  # TODO: headerId not implemented (not VDA 5050 compliant)
+        payload["headerId"] = "NAN"
         payload["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
         payload["vehicleId"] = self.vehicle_id
-        payload["position"] = self.current_position  # TODO: format is not VDA 5050 compliant
+        payload["position"] = self.current_position
         payload["speeed"] = self.current_speed
 
         # custom properties
@@ -180,7 +180,6 @@ class Vehicle:
         payload["prompt"] = incident_prompt
         payload["edgeId"] = edgeId
         payload["vehicleId"] = self.vehicle_id
-        # print("Sending incident: " + json.dumps(payload))
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/incident",
                             json.dumps(payload), qos=2)
 

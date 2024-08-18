@@ -17,6 +17,8 @@ This team project aims to develop robust AI-based routing strategies that integr
 * Create .env file in the root directory according to the .env.example file
 * Start the main.py scripts in the following order: First Simulation, second Vehicle and third OrderManager
 * To generate prompts by the vehicles, activate the button under the tab "Prompts"
+
+If you want to create prompts by yourself, you can find examples of possible prompts under Resources/edge_incidents for individual models and Resources/metadataset for our metamodel.
 ## Repository Structure
 The project is structured in a modular way. Each module is responsible for a specific task. The main modules are: 
 * `Simulation`
@@ -48,13 +50,14 @@ The `OrderManager` sends an MQTT-message to the `Simulation` under the topic “
  
 
 ### Module `Vehicle`
+The module `Vehicle` creates a given number of vehicles and locates them according to the start coordinates. It includes several functions to communicate under the topic “/vehicles” with the module `Simulation` via MQTT. `Vehicle` sends information about the current status of the vehicles and gets the routes for the orders from the module `Simulation`.
 | File                      | Role                                                     |
 |---------------------------|----------------------------------------------------------|
-| `main.py`                 |                                                          |
-| `Vehicle.py`              |                                                          |
+| `main.py`                 | Main script to activate and locate vehicles              |
+| `Vehicle.py`              | Source code of the class Vehicle                         |
 
 ### Module `OrderManager`
-The `OrderManager` module processes orders by extracting details from heuristics stored in a CSV file. It creates `Order` objects based on the extracted information. These orders are then sent in a JSON format via MQTT under the topic “/order” to the   `Simulation` module for further processing.
+The `OrderManager` module processes orders by extracting details from heuristics stored in a CSV file. It creates `Order` objects based on the extracted information. These orders are then sent in a JSON format via MQTT under the topic “/order” to the `Simulation` module for further processing.
 
 | File                      | Role                                                     |
 |---------------------------|----------------------------------------------------------|
