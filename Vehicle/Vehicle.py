@@ -9,6 +9,8 @@ import paho.mqtt.client as mqtt
 import paho.mqtt.client as paho
 import pandas as pd
 from dotenv import load_dotenv
+import warnings
+warnings.filterwarnings("ignore")
 
 
 class Vehicle:

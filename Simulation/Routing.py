@@ -50,9 +50,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
             graph: The graph structure representing nodes (buildings) and edges (routes between them).
             edge_df: A Pandas DataFrame containing information about the edges of the graph.
             nodes_df: A Pandas DataFrame containing information about the nodes of the graph.
-
-        Returns:
-            None
         """
 
         load_dotenv(override=True)
@@ -91,6 +88,15 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "hello", "simulation online", qos=2)
         threading.Thread(target=self.get_map).start()
         threading.Thread(target=self.process_orders).start()
+
+    
+    def on_publish(self, client, userdata, mid, reason_code, properties=None):
+        # print("mid: " + str(mid))
+        pass
+
+    def on_subscribe(self, client, userdata, mid, reason_code_list, properties, granted_qos=None):
+        # print("Subscribed: " + str(mid) + " " + str(granted_qos))
+        pass
 
 
     def on_message(self, client, userdata, msg):

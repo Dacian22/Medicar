@@ -63,7 +63,16 @@ class OrderManager:
         """
         print("Connected with result code " + str(rc))
 
-        
+    
+    def on_publish(self, client, userdata, mid):
+        pass
+
+    def on_message(self, client, userdata, message):
+        pass
+
+    def on_subscribe(self, client, userdata, mid, granted_qos, properties):
+        pass
+
     def load_heuristics(self):
         """
         Loads heuristic data from a CSV file and returns it as a list of rows.
