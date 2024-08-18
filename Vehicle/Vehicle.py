@@ -31,6 +31,12 @@ class Vehicle:
     current_do_task_thread = None
 
     def __init__(self, _vehicle_id, _current_position, _current_target_node):
+        '''
+        Constructor for the Vehicle class
+        :param _vehicle_id: String
+        :param _current_position: tuple of floats (latitude, longitude)
+        :param _current_target_node: String
+        '''
         load_dotenv()
         self.vehicle_id = _vehicle_id
         self.current_position = _current_position
@@ -41,6 +47,14 @@ class Vehicle:
         self.possible_incident_list = [test[0] for _, test in df.iterrows()]
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
+        '''
+        Callback function for the MQTT client. It is called when the client connects to the MQTT broker.
+        :param client: mqtt.Client
+        :param userdata: any
+        :param flags: dict
+        :param rc: int
+        :param properties: dict
+        '''
         # test connection
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/route", qos=2)
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/random_seed",
@@ -57,15 +71,42 @@ class Vehicle:
             self.current_do_task_thread.start()
 
     def on_publish(self, client, userdata, mid, reason_code, properties=None):
+        '''
+        Callback function for the MQTT client. It is called when the client publishes a message to the MQTT broker.
+        :param client: mqtt.Client
+        :param userdata: any
+        :param mid: int
+        :param reason_code: int
+        :param properties: dict
+        '''
         pass
 
     def on_subscribe(self, client, userdata, mid, reason_code_list, properties, granted_qos=None):
+        '''
+        Callback function for the MQTT client. It is called when the client subscribes to a topic on the MQTT broker.
+        :param client: mqtt.Client
+        :param userdata: any
+        :param mid: int
+        :param reason_code_list: list
+        :param properties: dict
+        :param granted_qos: list
+        '''
         pass
 
     def on_message(self, client, userdata, msg):
+        '''
+        Callback function for the MQTT client. It is called when the client receives a message from the MQTT broker.
+        :param client: mqtt.Client
+        :param userdata: any
+        :param msg: mqtt.MQTTMessage
+        '''
         threading.Thread(target=self.message_worker, args=[msg]).start()
 
     def message_worker(self, msg):
+        '''
+        Worker function for the on_message callback function. It processes the received message.
+        :param msg: mqtt.MQTTMessage
+        '''
         if msg.topic == os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/route":
             self.receive_route(msg.payload.decode("utf-8"))
         elif msg.topic == os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/random_seed":
@@ -94,6 +135,9 @@ class Vehicle:
             print("ERROR: Received unsupported message: " + msg.topic)
 
     def send_stop(self):
+        '''
+        Sends a stop command to the vehicle.
+        '''
         if self.status == "moving":
             print(f"Vehicle {self.vehicle_id}: Received stop command")
             self.status = "stopping"
@@ -106,6 +150,9 @@ class Vehicle:
             print(f"Vehicle {self.vehicle_id}: ERROR: Received stop command while not moving")
 
     def send_vehicle_status(self):
+        '''
+        Sends the current status of the vehicle to the simulation.
+        '''
         payload = dict()
         # VDA 5050 standard properties
         payload["headerId"] = "NAN"  # TODO: headerId not implemented (not VDA 5050 compliant)
@@ -124,6 +171,11 @@ class Vehicle:
                             json.dumps(payload), qos=0)
 
     def send_incident(self, incident_prompt, edgeId):
+        '''
+        Sends an incident to the simulation.
+        :param incident_prompt: String
+        :param edgeId: String
+        '''
         payload = dict()
         payload["prompt"] = incident_prompt
         payload["edgeId"] = edgeId
@@ -133,6 +185,10 @@ class Vehicle:
                             json.dumps(payload), qos=2)
 
     def receive_route(self, message):
+        '''
+        Receives a route from the simulation.
+        :param message: String
+        '''
         payload = json.loads(message)
         self.current_order_counter += 1
 
@@ -150,6 +206,9 @@ class Vehicle:
         self.current_do_task_thread.start()
 
     def connect_to_mqtt(self):
+        '''
+        Connects the vehicle to the MQTT broker.
+        '''
         # Connect to MQTT
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, protocol=paho.MQTTv5)
         self.client.on_connect = self.on_connect
@@ -173,6 +232,11 @@ class Vehicle:
         self.client.loop_forever()  # loop start (if constantly sending status)
 
     def get_linear_function_for_edge(self, edge):
+        '''
+        Calculates the linear function for an edge.
+        :param edge: dict
+        :return: tuple of floats (slope, y-intercept)
+        '''
         divider = (float(edge["endCoordinate"][0]) - float(edge["startCoordinate"][0]))
         if divider == 0:  # edge is vertical
             divider = 0.0000001
@@ -183,6 +247,10 @@ class Vehicle:
         return m, n
 
     def move_along_edge(self, edge):
+        '''
+        Moves the vehicle along an edge.
+        :param edge: dict
+        '''
         edge["startCoordinate"][0] = float(edge["startCoordinate"][0])
         edge["startCoordinate"][1] = float(edge["startCoordinate"][1])
         edge["endCoordinate"][0] = float(edge["endCoordinate"][0])
@@ -214,6 +282,10 @@ class Vehicle:
                 break
 
     def dotask(self, task):
+        '''
+        Executes a task.
+        :param task: dict
+        '''
         print(task)
         if task["edges"] is None or len(task["edges"]) == 0:  # edges are empty => do not move
             print(f"Vehicle {self.vehicle_id}: ERROR: Received task with no edges")
