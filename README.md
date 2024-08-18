@@ -33,16 +33,16 @@ The folder `Artifacts` contains pdf-files with presentation slides and informati
 ### Module `Simulation`
 The module `Simulation` connects the two other main modules `OrderManager` and `Vehicle`.
 The `OrderManager` sends an MQTT-message to the `Simulation` under the topic “/order”. The module `Simulation` creates the route for the order and sends it via MQQT to `Vehicle` under the topic “/vehicles” such that the order can be fulfilled and gets responses regarding the current state. Furthermore, `Simulation` includes all the LLM models to handle the impact of events to the graph and the routing of the vehicles.
-| File                      | Role                                                     |
-|---------------------------|----------------------------------------------------------|
-| `main.py`                 | Main script to build the graph and activate the routing  |
-| `BuildGraph.py`           | Source code of graph creation                            |
-| `Routing.py`              | Source code of the class Routing                         |
-| `LLM_Dynamic_Weights.py`      | Determines if the incident impacts the whole length of the edge or only a part of it                     |
- | `LLM_Edge_Usability.py`     | Determines if the incident impacts the usability of the edge or not                     |
- | `LLM_Evaluation.py`     |    Evaluates the performance of our Edge Accessibility Evaluator, Edge Delay Estimator, Node Delay Estimator models               |
- | `LLM_Function_Calling.py`     | Determines if the incident impacts only the given node or the neighborhood as well              |
- | `LLM_MetaModel.py`     | Combines the best approaches in a single call        |
+| File                      | Role                                                                                                                 |
+|---------------------------|----------------------------------------------------------------------------------------------------------------------|
+| `main.py`                 | Main script to build the graph and activate the routing                                                              |
+| `BuildGraph.py`           | Source code of graph creation                                                                                        |
+| `Routing.py`              | Source code of the class Routing                                                                                     |
+| `LLM_Dynamic_Weights.py`  | Determines if an incident impacts the whole length of the edge or only a part of it                                  |
+| `LLM_Edge_Usability.py`   | Determines if an incident impacts the usability of the edge or not                                                   |
+| `LLM_Evaluation.py`       |    Evaluates the performance of our Edge Accessibility Evaluator, Edge Delay Estimator, Node Delay Estimator models  |
+| `LLM_Function_Calling.py` | Determines if an incident impacts only the given node or the neighborhood as well                                    |
+| `LLM_MetaModel.py`        | Combines the best approaches in a single call                                                                        |
 
 
 ### Module `Vehicle`
@@ -57,11 +57,25 @@ The `OrderManager` module processes orders by extracting details from heuristics
 
 | File                      | Role                                                     |
 |---------------------------|----------------------------------------------------------|
-| `main.py`                 | Initializes order processing based on heuristics                                                     |
-| `order.py`                | Creates Order objects from heuristics                                                    |
-| `order_manager.py`        | Loads heuristics and sends orders via MQTT                                                     |
+| `main.py`                 | Initializes order processing based on heuristics         |
+| `order.py`                | Creates Order objects from heuristics                    |
+| `order_manager.py`        | Loads heuristics and sends orders via MQTT               |
 
 ## LLM Evaluation
+The output files for all our models can be found in the folder `Resources`. The following table indicates which output file corresponds to which model.
+
+| Output File                          | Model                                                    |
+|--------------------------------------|----------------------------------------------------------|
+| `EvaluationDatasetEdgesTime.csv`     |Evaluation LLM for Edge Delay Estimator                                      |
+| `EvaluationDatasetFewShot.csv`       |Edge Usability (OpenAI few-shot approach)                 |
+| `EvaluationDatasetLength.csv`        |Evaluation LLM for Edge Accessibility Evaluator                              |
+| `EvaluationDatasetLlama2.csv`        |Edge Usability (Llama2 few-shot approach)                 |
+| `EvaluationDatasetLlama2ZeroShot.csv`|Edge Usability (Llama2 zero-shot approach)                |
+| `EvaluationDatasetNodesTime.csv`     |Evaluation LLM for Node Delay Estimator                                      |
+| `EvaluationDatasetOpenAIFewShotWeights.csv` |Dynamic Edge Weights                               |
+| `EvaluationDatasetZeroShot.csv`      |Edge Usability (OpenAI zero-shot approach                 |
+| `responses_metadataset.csv`          |Metamodel                                                 |
+
 The following two pictures show the final evaluation results of our large language models. For further explaination of the models, feel free to take a look at our presentation slides in the folder `Artifacts/Presentation-Slides`. 
 ### Submodels
 In the following picture you can see the evaluation results of our independent submodels.
