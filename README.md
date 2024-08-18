@@ -18,7 +18,7 @@ This team project aims to develop robust AI-based routing strategies that integr
 * Start the main.py scripts in the following order: First Simulation, second Vehicle and third OrderManager
 * To generate prompts by the vehicles, activate the button under the tab "Prompts"
 
-If you want to create prompts by yourself, you can find examples of possible prompts under Resources/edge_incidents for individual models and Resources/metadataset for our metamodel.
+If you want to create prompts by yourself, you can find examples of possible prompts under `Resources/edge_incidents` for individual models and `Resources/metadataset` for our metamodel.
 ## Repository Structure
 The project is structured in a modular way. Each module is responsible for a specific task. The main modules are: 
 * `Simulation`
@@ -29,10 +29,10 @@ Communication between these modules is done solely via MQTT, otherwise they are 
 
 
 The folder `Artifacts` contains pdf-files with presentation slides and information about the LLM evaluation.
-`Resources` includes csv-files with the LLM outputs for evaluation purposes as well as a heuristic file of orders and the osm-file of the University Hospital of Freiburg. The folder `docs` exists to include picture in the README.
+`Resources` includes csv-files with the LLM outputs for evaluation purposes as well as a heuristic file of orders and the osm-file of the University Hospital of Freiburg. The folder `docs` exists to include pictures in the README.
 ### Module `Simulation`
 The module `Simulation` connects the two other main modules `OrderManager` and `Vehicle`.
-The `OrderManager` sends an MQTT-message to the `Simulation` under the topic “/order”. The module `Simulation` creates the route for the order and sends it via MQQT to `Vehicle` under the topic “/vehicles” such that the order can be fulfilled. Furthermore, `Simulation` includes all the LLM models to handle the impact of events to the graph and the routing of the vehicles.
+The `OrderManager` sends an MQTT-message to the `Simulation` under the topic “/order”. The module `Simulation` creates the route for the order and sends it via MQQT to `Vehicle` under the topic “/vehicles” such that the order can be fulfilled and gets responses regarding the current state. Furthermore, `Simulation` includes all the LLM models to handle the impact of events to the graph and the routing of the vehicles.
 | File                      | Role                                                     |
 |---------------------------|----------------------------------------------------------|
 | `main.py`                 | Main script to build the graph and activate the routing  |
@@ -44,13 +44,9 @@ The `OrderManager` sends an MQTT-message to the `Simulation` under the topic “
  | `LLM_Function_Calling.py`     | Determines if the incident impacts only the given node or the neighborhood as well              |
  | `LLM_MetaModel.py`     | Combines the best approaches in a single call        |
 
- 
-
-
- 
 
 ### Module `Vehicle`
-The module `Vehicle` creates a given number of vehicles and locates them according to the start coordinates. It includes several functions to communicate under the topic “/vehicles” with the module `Simulation` via MQTT. `Vehicle` sends information about the current status of the vehicles and gets the routes for the orders from the module `Simulation`.
+The module `Vehicle` creates a given number of vehicles and locates them according to the given start coordinates. It includes several functions to communicate under the topic “/vehicles” with the module `Simulation` via MQTT. `Vehicle` sends information about the current status of the vehicles and gets the routes for the orders from the module `Simulation`.
 | File                      | Role                                                     |
 |---------------------------|----------------------------------------------------------|
 | `main.py`                 | Main script to activate and locate vehicles              |
@@ -66,7 +62,7 @@ The `OrderManager` module processes orders by extracting details from heuristics
 | `order_manager.py`        | Loads heuristics and sends orders via MQTT                                                     |
 
 ## LLM Evaluation
-The following two pictures show the final evaluation results of our large language models. For further explaination of the models feel free to take a look at our presentation slides in the folder `Artifacts/Presentation-Slides`. 
+The following two pictures show the final evaluation results of our large language models. For further explaination of the models, feel free to take a look at our presentation slides in the folder `Artifacts/Presentation-Slides`. 
 ### Submodels
 In the following picture you can see the evaluation results of our independent submodels.
 
