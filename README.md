@@ -18,7 +18,7 @@ This team project aims to develop robust AI-based routing strategies that integr
 * Start the main.py scripts in the following order: First Simulation, second Vehicle and third OrderManager
 * To generate prompts by the vehicles, activate the button under the tab "Prompts"
 
-If you want to create prompts by yourself, you can find examples of possible prompts under `Resources/edge_incidents` for individual models and `Resources/metadataset` for our metamodel.
+If you want to create prompts by yourself, you can find examples of possible prompts under `Resources/edge_incidents.csv` for individual models and `Resources/metadataset.csv` for our metamodel.
 ## Repository Structure
 The project is structured in a modular way. Each module is responsible for a specific task. The main modules are: 
 * `Simulation`
