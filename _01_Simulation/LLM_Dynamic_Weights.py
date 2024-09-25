@@ -745,9 +745,9 @@ def load_edges():
     """
     import pandas as pd
     try:
-        df = pd.read_csv(os.path.join('..','Resources','edges_UH_Graph.csv'))
+        df = pd.read_csv(os.path.join('..','_00_Resources','edges_UH_Graph.csv'))
     except:
-        df = pd.read_csv(os.path.join('Resources','edges_UH_Graph.csv'))
+        df = pd.read_csv(os.path.join('_00_Resources','edges_UH_Graph.csv'))
 
 
     edges_list = [(f'{row[0]}', f'{row[1]}') for _, row in df.iterrows()]

@@ -80,8 +80,8 @@ The following two pictures show the final evaluation results of our large langua
 ### Submodels
 In the following picture you can see the evaluation results of our independent submodels.
 
-![LLM Results Submodels](docs/LLM_results_submodels.png)
+![LLM Results Submodels](_05_Artifacts/docs/LLM_results_submodels.png)
 ### Metamodel
 This picture shows the accuracies of the final metamodel.
 
-![LLM Results Metamodel](docs/LLM_results_metamodel.png)
+![LLM Results Metamodel](_05_Artifacts/docs/LLM_results_metamodel.png)

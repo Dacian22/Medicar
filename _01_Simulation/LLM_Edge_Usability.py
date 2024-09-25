@@ -1,25 +1,21 @@
-import time
+import sys
+
+sys.path.append('/Users/paulkoenig/WebstormProjects/medicar/_01_Simulation/LLM_Edge_Usability.py')
 from typing import Any, Dict
-from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
-from langchain_community.llms import Ollama
 from dotenv import load_dotenv
-from langchain_community.graphs.networkx_graph import NetworkxEntityGraph
 import re
 import os
 import ast
 from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.prompts.prompt import PromptTemplate
-from langchain_openai import OpenAI,ChatOpenAI
-from BuildGraph import set_weights_to_inf
-from langsmith import Client
+from langchain_openai import OpenAI
 from langserve import RemoteRunnable
 llama2 = RemoteRunnable("http://127.0.0.1:8489/llama2")
 llama3 = RemoteRunnable("http://127.0.0.1:8489/llama3")
 from LLamaLLMWrapper import LLama
 
 load_dotenv(override=True)
-#client=Client(api_key=os.getenv("LANGCHAIN_API_KEY"))
 
 
 def get_examples():
@@ -383,6 +379,45 @@ def get_model_llama3():
     return LLama(model=llama3)
 
 
+def load_edges():
+    """
+    Loads edges from a CSV file into a list of tuples.
+
+    Returns:
+        list of tuple: A list where each tuple represents an edge with two elements (node1, node2).
+    """
+
+    import pandas as pd
+    try:
+        df = pd.read_csv(os.path.join('..','_00_Resources','edges_UH_Graph.csv'))
+    except:
+        df = pd.read_csv(os.path.join('_00_Resources','edges_UH_Graph.csv'))
+
+
+    edges_list = [(f'{row[0]}', f'{row[1]}') for _, row in df.iterrows()]
+
+    return edges_list
+
+def parse_response(response):
+    """
+    If response contains True (edge usable) or False (edge not usable) these values are returned as booleans.
+    Otherwise None is returned.
+
+    Args:
+        response (str): The response from the language model.
+
+    Returns:
+        bool: The boolean value extracted from the response, or None if no boolean value is found.
+    """
+
+    if "true" in response.lower():
+        return True
+    elif "false" in response.lower():
+        return False
+    else:
+        return None
+
+
 def invoke_llm(prompt, model_type='openai', approach='fewshot'):
     """
     Invokes a language model with a given prompt using a specified model type and approach.
@@ -401,77 +436,3 @@ def invoke_llm(prompt, model_type='openai', approach='fewshot'):
     answer=new_graph.invoke(prompt)
 
     return answer["text"]
-
-
-
-def parsing_llm_result(answer):
-    """
-    Parses the result from a language model to extract and clean a list of edges that have their weights changed to infinity.
-
-    Args:
-        answer (str): The response text from the language model containing information about edges with modified weights.
-
-    Returns:
-        list: A list of tuples representing the edges whose weights are changed to infinity. Each tuple contains two elements.
-    """
-
-    pattern = r"\([`']?\d+[`']?, [`']?\d+[`']?\)"
-    removed_edges = re.findall(pattern, answer, re.DOTALL) 
-
-    removed_edges_cleaned = []
-
-    for removed_edge in removed_edges:
-        cleaned = removed_edge.strip("'´")
-        cleaned = ast.literal_eval(cleaned)
-        removed_edges_cleaned.append(cleaned)
-
-    print("List of edges which weights are changed to infinity:", removed_edges)
-
-    return removed_edges
-
-
-def load_edges():
-    """
-    Loads edges from a CSV file into a list of tuples.
-
-    Returns:
-        list of tuple: A list where each tuple represents an edge with two elements (node1, node2).
-    """
-
-    import pandas as pd
-    try:
-        df = pd.read_csv(os.path.join('..','Resources','edges_UH_Graph.csv'))
-    except:
-        df = pd.read_csv(os.path.join('Resources','edges_UH_Graph.csv'))
-
-
-    edges_list = [(f'{row[0]}', f'{row[1]}') for _, row in df.iterrows()]
-
-    return edges_list
-
-
-def main(ref_routing):
-    """
-    Main function for processing a prompt with a language model and updating a graph.
-
-    Args:
-        ref_routing (object): An object with a `graph` attribute that represents the graph to be updated.
-
-    """
-     
-    time.sleep(5)
-    prompt = input("Enter your prompt: ")
-    output = invoke_llm(prompt)
-    print(output)
-
-    # Parse the output
-    parsed_res = parsing_llm_result(output)
-
-    # Update graph in the routing
-    ref_routing.graph = set_weights_to_inf(ref_routing.graph, parsed_res)
-
-
-if __name__ == "__main__":
-    main("")
-
-

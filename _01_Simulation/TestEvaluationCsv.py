@@ -124,9 +124,9 @@ def load_tests():
     """
     import pandas as pd
     try:
-        df = pd.read_csv(os.path.join('..','Resources','edges_UH_Graph_Ids.csv'))
+        df = pd.read_csv(os.path.join('..','_00_Resources','edges_UH_Graph_Ids.csv'))
     except:
-        df = pd.read_csv(os.path.join('Resources','csv','edges_UH_Graph_Ids.csv'))
+        df = pd.read_csv(os.path.join('_00_Resources','csv','edges_UH_Graph_Ids.csv'))
 
     df_test = pd.read_csv(os.path.join(os.getenv("RESOURCES"),'EvaluationDataset.csv'),delimiter=';')
 

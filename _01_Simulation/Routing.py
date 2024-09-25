@@ -1476,7 +1476,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         order["vehicle_id"] = vehicle_colors[vehicle_id_int - 1 % len(vehicle_colors)]
                     except ValueError:
                         pass
-                    order["Vehicle"] = order["vehicle_id"]
+                    order["_02_Vehicle"] = order["vehicle_id"]
                     del order["vehicle_id"]
                 if 'timestamp' in order:
                     del order['timestamp']
@@ -1494,7 +1494,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             for row in data:
                 style_data_conditional.append({
                     'if': {'column_id': 'Vehicle', 'row_index': data.index(row)},
-                    'backgroundColor': row['Vehicle']
+                    'backgroundColor': row['_02_Vehicle']
                 })
             return style_data_conditional
 
@@ -1525,7 +1525,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         vehicle["vehicle_id"] = vehicle_colors[int(vehicle["vehicle_id"]) - 1 % len(vehicle_colors)]
                     except ValueError:
                         print(f"Could not convert vehicle_id to color: {vehicle['vehicle_id']}")
-                    vehicle["Vehicle"] = vehicle["vehicle_id"]
+                    vehicle["_02_Vehicle"] = vehicle["vehicle_id"]
                     del vehicle["vehicle_id"]
                 if 'timestamp' in vehicle:
                     del vehicle['timestamp']
@@ -1555,7 +1555,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             for row in data:
                 style_data_conditional.append({
                     'if': {'column_id': 'Vehicle', 'row_index': data.index(row)},
-                    'backgroundColor': row['Vehicle']
+                    'backgroundColor': row['_02_Vehicle']
                 })
             return style_data_conditional
 
