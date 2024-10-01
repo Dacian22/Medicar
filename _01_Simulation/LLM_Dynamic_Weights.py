@@ -19,7 +19,6 @@ llama3 = RemoteRunnable("http://127.0.0.1:8489/llama3")
 from LLamaLLMWrapper import LLama
 
 load_dotenv(override=True)
-#client=Client(api_key=os.getenv("LANGCHAIN_API_KEY"))
 
 
 def get_examples_factor():
@@ -704,7 +703,6 @@ def invoke_llm_chain(prompt, model_type='openai', approach='fewshot'):
 
     answer=chain.invoke(prompt)
 
-   
     return answer["text"], output_length["text"], output
 
 
@@ -801,24 +799,3 @@ def main(ref_routing):
 
     # Update graph in the routing
     ref_routing.graph = set_weights_to_inf(ref_routing.graph, parsed_res)
-
-
-def main_chain():
-    """
-    Main function to handle user input, invoke the LLM chain, and process the output.
-    """
-
-    prompt = input("Enter your prompt: ")
-
-    output,type_result = invoke_llm_chain(prompt)
-
-    print()
-    print(type_result,output)
-    print("Value:",parse_output_weights(output))
-    print(type(parse_output_weights(output)))
-
-
-if __name__ == "__main__":
-    main_chain()
-
-
