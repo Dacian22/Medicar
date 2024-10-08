@@ -1,7 +1,6 @@
 import copy
 import json
 import os
-import queue
 import re
 import sys
 import threading
@@ -226,8 +225,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
         print(f"\n## WARNING! Could not find a path for order {order['order_id']}\n")
 
         # Send empty route to vehicle
-        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{order['vehicle_id']}/cancel_route", qos=2)
-
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{order['vehicle_id']}/cancel_route",
+                            qos=2)
 
     def update_route_to_vehicle_async(self, vehicle_id, route, order):
         """
