@@ -64,17 +64,19 @@ The `OrderManager` module processes orders by extracting details from heuristics
 ## LLM Evaluation
 The output files for all our models can be found in the folder `Resources`. The following table indicates which output file corresponds to which model.
 
-| Output File                          | Model                                                    |
-|--------------------------------------|----------------------------------------------------------|
-| `EvaluationDatasetEdgesTime.csv`     |Evaluation LLM for Edge Delay Estimator                                      |
-| `EvaluationDatasetFewShot.csv`       |Edge Usability (OpenAI few-shot approach)                 |
-| `EvaluationDatasetLength.csv`        |Evaluation LLM for Edge Accessibility Evaluator                              |
-| `EvaluationDatasetLlama2.csv`        |Edge Usability (Llama2 few-shot approach)                 |
-| `EvaluationDatasetLlama2ZeroShot.csv`|Edge Usability (Llama2 zero-shot approach)                |
-| `EvaluationDatasetNodesTime.csv`     |Evaluation LLM for Node Delay Estimator                                      |
-| `EvaluationDatasetOpenAIFewShotWeights.csv` |Dynamic Edge Weights                               |
-| `EvaluationDatasetZeroShot.csv`      |Edge Usability (OpenAI zero-shot approach                 |
-| `responses_metadataset.csv`          |Metamodel                                                 |
+| Output File                                     | Model                                      |
+|-------------------------------------------------|--------------------------------------------|
+| `eval-res-edge-usability-llama2-zeroshot.csv`   | Edge Usability (Llama2 zero-shot approach) |
+| `eval-res-edge-usability-llama2-fewshot.csv`    | Edge Usability (Llama2 few-shot approach)  |
+| `eval-res-edge-usability-openai-zeroshot.csv`   | Edge Usability (OpenAI zero-shot approach) |
+| `eval-res-edge-usability-openai-fewshot.csv`    | Edge Usability (OpenAI few-shot approach)  |
+| `eval-res-dynamic-openai-fewshot.csv`           | Dynamic Edge Weights                       |
+| `eval-res-dynamic-openai-length-penalty.csv`    | Dynamic Edge Accessibility Evaluator       |
+| `eval-res-dynamic-openai-time-penalty.csv`      | Dynamic Edge Delay Estimator               |
+| `eval-res-dynamic-openai-node-time-penalty.csv` | Dynamic for Node Delay Estimator           |
+| `eval-res-metamodel.csv`                        | Metamodel                                  |
+
+The output_files can be recreated by running `run-experiments.ipynb`
 
 The following two pictures show the final evaluation results of our large language models. For further explaination of the models, feel free to take a look at our presentation slides in the folder `Artifacts/Presentation-Slides`. 
 ### Submodels
