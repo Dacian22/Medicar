@@ -61,7 +61,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.vehicles = {}
         self.orders = {}
         self.events = {}
-        self.order_queue = queue.Queue()
         self.generate_incidents = "off"
         self.current_model = "gpt-few-shot"
         self.dash_app_thread = None
@@ -119,7 +118,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
             vehicle_id = msg.topic.split("/")[2]
             vehicle_status = json.loads(msg.payload.decode())
             self.vehicles[vehicle_id] = vehicle_status
-            print("Received vehicle status message: " + vehicle_id)
 
         elif msg.topic.startswith(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/") and msg.topic.endswith(
                 "/incident"):
@@ -141,7 +139,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
             order = json.loads(msg.payload.decode("utf-8"))
             order["status"] = "waiting..."
             self.orders[order["order_id"]] = order
-            self.order_queue.put(order)
 
     def process_orders(self):
         """
@@ -150,12 +147,21 @@ class Routing():  # singleton class. Do not create more than one object of this 
         while True:
             # If vehicles are available (idle)
             if len(self.vehicles) > 0 and any(
-                    vehicle["status"] == "idle" for vehicle in self.vehicles.values()) and not self.order_queue.empty():
-                order = self.order_queue.get()
-                self.handle_order(order, order["order_id"])
-            time.sleep(0.1)
+                    vehicle["status"] == "idle" for vehicle in self.vehicles.values()) and len(self.orders) > 0:
+                for _, order in self.orders.items():
+                    if order["status"] == "waiting...":
+                        vehicle_id = self.get_vehicle_id_for_order(order)
+                        if vehicle_id is None:
+                            print("No vehicle available")
+                        else:
+                            self.vehicles[vehicle_id]["status"] = "busy"
+                            order["vehicle_id"] = vehicle_id
+                            order["status"] = "assigned"
+                            self.handle_order(order)
+                        break
+            time.sleep(2)
 
-    def handle_order(self, order, order_id):
+    def handle_order(self, order):
         """
         Assigns a vehicle to an order, calculates the route, and sends the route to the vehicle.
 
@@ -164,34 +170,32 @@ class Routing():  # singleton class. Do not create more than one object of this 
             order_id (str): The unique identifier for the order.
         """
 
-        vehicle_id = self.get_vehicle_id_for_order(order)
-        order["vehicle_id"] = vehicle_id
         path_to_target, _ = self.find_astar_path(self.graph,
                                                  self.get_node_id_from_name(order["source"]),
                                                  self.get_node_id_from_name(order["target"]))
         if path_to_target is None:
             threading.Thread(target=self.cancel_route_to_vehicle_async,
-                             args=(vehicle_id, order)).start()
+                             args=(order)).start()
             return
 
         # Check if vehicle is already on source node
-        if self.vehicles[vehicle_id]["targetNode"] == self.get_node_id_from_name(order["source"]):
+        if self.vehicles[order["vehicle_id"]]["targetNode"] == self.get_node_id_from_name(order["source"]):
             path = path_to_target
         else:
             path_to_source, _ = self.find_astar_path(self.graph,
-                                                     self.vehicles[vehicle_id]["targetNode"],
+                                                     self.vehicles[order["vehicle_id"]]["targetNode"],
                                                      self.get_node_id_from_name(order["source"]))
             if path_to_source is None:
                 threading.Thread(target=self.cancel_route_to_vehicle_async,
-                                 args=(vehicle_id, order)).start()
+                                 args=(order)).start()
                 return
             path = path_to_source + path_to_target
 
-        message = self.translate_path_to_mqtt(path, order_id)
+        message = self.translate_path_to_mqtt(path, order["order_id"])
 
         # send the message to the MQTT broker and set vehicle status to busy
         threading.Thread(target=self.send_route_to_vehicle_async,
-                         args=(vehicle_id, message)).start()
+                         args=(order["vehicle_id"], message)).start()
         order["status"] = "in progress..."
 
     def send_route_to_vehicle_async(self, vehicle_id, route):
@@ -203,13 +207,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
             route (dict): The route information to be sent to the vehicle.
         """
 
-        if self.vehicles[vehicle_id]["status"] != "idle":
-            print(f"ERROR: Vehicle {vehicle_id} is not idle")
-            return
+        # if self.vehicles[vehicle_id]["status"] != "idle":
+        #     print(f"ERROR: Vehicle {vehicle_id} is not idle")
+        #     return
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/route", json.dumps(route),
                             qos=2)
 
-    def cancel_route_to_vehicle_async(self, vehicle_id, order):
+    def cancel_route_to_vehicle_async(self, order):
         """
         Asynchronously cancels the route for the specified vehicle and updates the order status.
 
@@ -217,12 +221,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
             vehicle_id (str): The unique identifier for the vehicle.
             order (dict): The order information, including its ID and status.
         """
-
+        # Set status order to unreachable
         order["status"] = "unreachable"
         print(f"\n## WARNING! Could not find a path for order {order['order_id']}\n")
+
         # Send empty route to vehicle
-        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/cancel_route", qos=2)
-        return
+        self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{order['vehicle_id']}/cancel_route", qos=2)
+
 
     def update_route_to_vehicle_async(self, vehicle_id, route, order):
         """
@@ -446,7 +451,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         if order["vehicle_id"] == "None":
             distances = self.get_distances_from_vehicles_to_order(order, True)
             if distances == {}:
-                distances = self.get_distances_from_vehicles_to_order(order, False)
+                return None
             return min(distances, key=distances.get)
         else:
             return order["vehicle_id"]
