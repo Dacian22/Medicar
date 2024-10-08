@@ -29,8 +29,7 @@ def main():
     mqtt_password = os.getenv("HYVE_MQTT_PWD")
     heuristics_file = os.path.join(os.getenv("RESOURCES"), "orders.csv")
 
-    order_manager = OrderManager(mqtt_broker_url, mqtt_username, mqtt_password, heuristics_file)
-    order_manager.process_heuristics()
+    _ = OrderManager(mqtt_broker_url, mqtt_username, mqtt_password, heuristics_file)
 
 
 if __name__ == "__main__":

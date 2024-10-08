@@ -59,18 +59,19 @@ class Vehicle:
         :param properties: dict
         '''
         # test connection
+        print("Connected with result code " + str(rc))
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/route", qos=2)
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/random_seed",
                               qos=2)
         self.client.subscribe(
             os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/generate_incidents", qos=2)
-        self.send_vehicle_status()
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/stop",
                               qos=2)
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/update_route",
                               qos=2)
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/cancel_route",
                               qos=2)
+        self.send_vehicle_status()
         if self.current_task is not None:
             self.current_do_task_thread = threading.Thread(target=self.dotask, args=[self.current_task])
             self.current_do_task_thread.start()
@@ -173,7 +174,7 @@ class Vehicle:
         payload["currentSequenceId"] = self.currentSequenceId
 
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/status",
-                            json.dumps(payload), qos=0)
+                            json.dumps(payload), qos=2)
 
     def send_incident(self, incident_prompt, edgeId):
         '''
@@ -225,8 +226,8 @@ class Vehicle:
         self.client.tls_insecure_set(True)
 
         # Set queue size
-        self.client.max_inflight_messages_set(20)
-        self.client.max_queued_messages_set(100_000)
+        # self.client.max_inflight_messages_set(20)
+        # self.client.max_queued_messages_set(100_000)
 
         # set username and password
         self.client.username_pw_set(os.getenv("HYVE_MQTT_USR"), os.getenv("HYVE_MQTT_PWD"))
@@ -290,7 +291,6 @@ class Vehicle:
         Executes a task.
         :param task: dict
         '''
-        print(task)
         if task["edges"] is None or len(task["edges"]) == 0:  # edges are empty => do not move
             print(f"Vehicle {self.vehicle_id}: ERROR: Received task with no edges")
             return

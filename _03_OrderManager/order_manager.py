@@ -11,6 +11,7 @@ from order import Order
 
 class OrderManager:
     time_between_orders = 2  # seconds
+    heuristics = None
 
     def __init__(self, mqtt_broker_url, mqtt_username, mqtt_password, heuristics_file):
         """
@@ -32,16 +33,17 @@ class OrderManager:
 
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, protocol=paho.MQTTv5)
         self.client.on_connect = self.on_connect
-        self.client.tls_set()
+
+        # enable TLS for secure connection
+        self.client.tls_set()  # tls_version=mqtt.client.ssl.PROTOCOL_TLS
+        self.client.tls_insecure_set(True)
+
         self.client.username_pw_set(mqtt_username, mqtt_password)
         self.client.connect(mqtt_broker_url, 8883)
-        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/+/status", qos=2)
 
         self.heuristics_file = heuristics_file
-        self.heuristics = self.load_heuristics()
 
-        self.idle_vehicles = []
-        self.client.loop_start()
+        self.client.loop_forever()
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
         """
@@ -58,15 +60,9 @@ class OrderManager:
             Prints the result code of the connection to the console.
         """
         print("Connected with result code " + str(rc))
-
-    def on_publish(self, client, userdata, mid):
-        pass
-
-    def on_message(self, client, userdata, message):
-        pass
-
-    def on_subscribe(self, client, userdata, mid, granted_qos, properties):
-        pass
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/+/status", qos=2)
+        self.heuristics = self.load_heuristics()
+        self.process_heuristics()
 
     def load_heuristics(self):
         """
@@ -107,8 +103,6 @@ class OrderManager:
             self.send_order(order_instance)
             time.sleep(self.time_between_orders)
 
-        self.client.loop_start()
-
     def send_order(self, order):
         """
         Sends the order to the specified MQTT topic in JSON format.
@@ -133,23 +127,3 @@ class OrderManager:
         topic = f"order_manager/transportation/orders/{order.order_id}"
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + topic, order_json, qos=2)
         print("Order sent:", order_json)
-
-    def closest_vehicle_callback(self, client, userdata, message):
-        """
-        Callback function triggered when a message regarding the closest vehicle is received.
-
-        This function decodes the incoming MQTT message payload, which is expected to be in JSON format,
-        and extracts the `vehicle_id` of the closest vehicle.
-
-        Args:
-            client (mqtt.Client): The MQTT client instance that received the message.
-            userdata (Any): The user data passed to the callback (unused in this case).
-            message (mqtt.Message): The message object containing the topic, payload, and other metadata.
-
-        Returns:
-            vehicle_id (str): The ID of the closest vehicle extracted from the message payload.
-
-        """
-
-        vehicle_id = json.loads(message.payload.decode())
-        return vehicle_id

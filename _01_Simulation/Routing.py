@@ -64,6 +64,8 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.order_queue = queue.Queue()
         self.generate_incidents = "off"
         self.current_model = "gpt-few-shot"
+        self.dash_app_thread = None
+        self.process_orders_thread = None
         self.connect_to_mqtt()
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
@@ -88,8 +90,12 @@ class Routing():  # singleton class. Do not create more than one object of this 
         # subscribe to order finish
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/+/order_finish", qos=2)
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "hello", "simulation online", qos=2)
-        threading.Thread(target=self.get_map).start()
-        threading.Thread(target=self.process_orders).start()
+        if self.dash_app_thread is None:
+            self.dash_app_thread = threading.Thread(target=self.get_map)
+            self.dash_app_thread.start()
+        if self.process_orders_thread is None:
+            self.process_orders_thread = threading.Thread(target=self.process_orders)
+            self.process_orders_thread.start()
 
     def on_publish(self, client, userdata, mid, reason_code, properties=None):
         # print("mid: " + str(mid))
@@ -113,6 +119,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             vehicle_id = msg.topic.split("/")[2]
             vehicle_status = json.loads(msg.payload.decode())
             self.vehicles[vehicle_id] = vehicle_status
+            print("Received vehicle status message: " + vehicle_id)
 
         elif msg.topic.startswith(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/") and msg.topic.endswith(
                 "/incident"):
@@ -212,7 +219,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         """
 
         order["status"] = "unreachable"
-        print(f"\n## WARNING! Could not find a path for order {order.order_id}\n")
+        print(f"\n## WARNING! Could not find a path for order {order['order_id']}\n")
         # Send empty route to vehicle
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/cancel_route", qos=2)
         return
@@ -245,9 +252,11 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.client.on_publish = self.on_publish
         self.client.on_subscribe = self.on_subscribe
         self.client.on_message = self.on_message
+
         # enable TLS for secure connection
-        self.client.tls_set()
+        self.client.tls_set()  # tls_version=mqtt.client.ssl.PROTOCOL_TLS
         self.client.tls_insecure_set(True)
+
         # set username and password
         self.client.username_pw_set(os.getenv("HYVE_MQTT_USR"), os.getenv("HYVE_MQTT_PWD"))
         # connect to HiveMQ Cloud on port 8883 (default for MQTT)
@@ -1457,7 +1466,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         order["vehicle_id"] = vehicle_colors[vehicle_id_int - 1 % len(vehicle_colors)]
                     except ValueError:
                         pass
-                    order["_02_Vehicle"] = order["vehicle_id"]
+                    order["Vehicle"] = order["vehicle_id"]
                     del order["vehicle_id"]
                 if 'timestamp' in order:
                     del order['timestamp']
@@ -1475,7 +1484,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             for row in data:
                 style_data_conditional.append({
                     'if': {'column_id': 'Vehicle', 'row_index': data.index(row)},
-                    'backgroundColor': row['_02_Vehicle']
+                    'backgroundColor': row['Vehicle']
                 })
             return style_data_conditional
 
@@ -1506,7 +1515,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         vehicle["vehicle_id"] = vehicle_colors[int(vehicle["vehicle_id"]) - 1 % len(vehicle_colors)]
                     except ValueError:
                         print(f"Could not convert vehicle_id to color: {vehicle['vehicle_id']}")
-                    vehicle["_02_Vehicle"] = vehicle["vehicle_id"]
+                    vehicle["Vehicle"] = vehicle["vehicle_id"]
                     del vehicle["vehicle_id"]
                 if 'timestamp' in vehicle:
                     del vehicle['timestamp']
@@ -1536,7 +1545,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             for row in data:
                 style_data_conditional.append({
                     'if': {'column_id': 'Vehicle', 'row_index': data.index(row)},
-                    'backgroundColor': row['_02_Vehicle']
+                    'backgroundColor': row['Vehicle']
                 })
             return style_data_conditional
 
