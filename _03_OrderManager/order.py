@@ -1,10 +1,11 @@
 import re
 import time
 
+
 class Order:
     order_id_dict = {}
-    
-    def __init__(self,heuristic, order_id):
+
+    def __init__(self, heuristic, order_id):
         """
         Initialize an instance of the class with the provided heuristic and order ID.
 
@@ -30,8 +31,7 @@ class Order:
         self.target = ""
         self.items = []
         self.order_interval = 0
-        self.vehicle_id  = None
-    
+        self.vehicle_id = None
 
     def extract_order(self):
         """
@@ -74,7 +74,6 @@ class Order:
         else:
             raise ValueError("Invalid interval format")
 
-   
     def create_order(self):
         """
         Creates an order by extracting the necessary components from the heuristic and 
@@ -101,40 +100,34 @@ class Order:
         self.items = items
         self.order_interval = interval
         self.vehicle_id = vehicle_id
-    
-    
 
     def to_dict(self):
-       """
-        Converts the current order object into a dictionary format, capturing relevant details.
-
-        Returns:
-            dict: A dictionary containing the following key-value pairs:
-                - "order_id" (str or int): The unique identifier for the order.
-                - "timestamp" (str): The current timestamp in the format "YYYY-MM-DD HH:MM:SS".
-                - "source" (str): The source location of the order.
-                - "target" (str): The target location of the order.
-                - "items" (list): The list of items for the order.
-                - "vehicle_id" (str): The ID of the vehicle assigned to the order (only included if not None).
-
-        Raises:
-            ValueError: If `self.vehicle_id` is None, the method raises an error as the vehicle ID is considered required.
         """
-       
-       order_dict = {
-           "order_id": self.order_id,
-           "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-           "source": self.source,
-           "target": self.target,
-           "items": self.items,
-       }
-      
-       if self.vehicle_id is not None:
+         Converts the current order object into a dictionary format, capturing relevant details.
+
+         Returns:
+             dict: A dictionary containing the following key-value pairs:
+                 - "order_id" (str or int): The unique identifier for the order.
+                 - "timestamp" (str): The current timestamp in the format "YYYY-MM-DD HH:MM:SS".
+                 - "source" (str): The source location of the order.
+                 - "target" (str): The target location of the order.
+                 - "items" (list): The list of items for the order.
+                 - "vehicle_id" (str): The ID of the vehicle assigned to the order (only included if not None).
+
+         Raises:
+             ValueError: If `self.vehicle_id` is None, the method raises an error as the vehicle ID is considered required.
+         """
+
+        order_dict = {
+            "order_id": self.order_id,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+            "source": self.source,
+            "target": self.target,
+            "items": self.items,
+        }
+
+        if self.vehicle_id is not None:
             order_dict["vehicle_id"] = self.vehicle_id
-            return order_dict 
-       else:
-           raise ValueError("Vehicle ID is None")
-
-
-
-
+            return order_dict
+        else:
+            raise ValueError("Vehicle ID is None")

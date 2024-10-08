@@ -7,6 +7,7 @@ import sys
 import threading
 import time
 import warnings
+
 import networkx as nx
 import numpy as np
 import paho.mqtt.client as mqtt
@@ -15,10 +16,11 @@ import plotly.graph_objects as go
 from dash import Dash, dash_table
 from dash import html, dcc, Output, Input, State, no_update
 from dotenv import load_dotenv
+
 import BuildGraph
 import LLM_Dynamic_Weights
-import LLM_MetaModel
 import LLM_Edge_Usability
+import LLM_MetaModel
 import TestEvaluationCsv
 
 lock = threading.Lock()
@@ -89,7 +91,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         threading.Thread(target=self.get_map).start()
         threading.Thread(target=self.process_orders).start()
 
-    
     def on_publish(self, client, userdata, mid, reason_code, properties=None):
         # print("mid: " + str(mid))
         pass
@@ -97,7 +98,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
     def on_subscribe(self, client, userdata, mid, reason_code_list, properties, granted_qos=None):
         # print("Subscribed: " + str(mid) + " " + str(granted_qos))
         pass
-
 
     def on_message(self, client, userdata, msg):
         """
@@ -122,7 +122,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             prompt = incident["edgeId"] + " " + incident["prompt"]
             threading.Thread(target=self.invoke_selected_model,
                              args=[prompt, self.current_model, False, incident["vehicleId"]]).start()
-            
+
         elif msg.topic.startswith(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/") and msg.topic.endswith(
                 "/order_finish"):
             print("Received order finished message: " + msg.payload.decode("utf-8"))
@@ -136,7 +136,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
             self.orders[order["order_id"]] = order
             self.order_queue.put(order)
 
-    
     def process_orders(self):
         """
         Continuously processes orders from the order queue if vehicles are available and idle.
@@ -148,7 +147,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
                 order = self.order_queue.get()
                 self.handle_order(order, order["order_id"])
             time.sleep(0.1)
-
 
     def handle_order(self, order, order_id):
         """
@@ -168,7 +166,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             threading.Thread(target=self.cancel_route_to_vehicle_async,
                              args=(vehicle_id, order)).start()
             return
-        
+
         # Check if vehicle is already on source node
         if self.vehicles[vehicle_id]["targetNode"] == self.get_node_id_from_name(order["source"]):
             path = path_to_target
@@ -189,22 +187,20 @@ class Routing():  # singleton class. Do not create more than one object of this 
                          args=(vehicle_id, message)).start()
         order["status"] = "in progress..."
 
-
-    def send_route_to_vehicle_async(self, vehicle_id, route): 
+    def send_route_to_vehicle_async(self, vehicle_id, route):
         """
         Asynchronously sends a route to the specified vehicle via MQTT.
 
         Args:
             vehicle_id (str): The unique identifier for the vehicle.
             route (dict): The route information to be sent to the vehicle.
-        """ 
-       
+        """
+
         if self.vehicles[vehicle_id]["status"] != "idle":
             print(f"ERROR: Vehicle {vehicle_id} is not idle")
             return
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/route", json.dumps(route),
                             qos=2)
-
 
     def cancel_route_to_vehicle_async(self, vehicle_id, order):
         """
@@ -221,7 +217,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/cancel_route", qos=2)
         return
 
-
     def update_route_to_vehicle_async(self, vehicle_id, route, order):
         """
         Asynchronously updates the route for the specified vehicle and updates the order status.
@@ -236,7 +231,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + f"vehicles/{vehicle_id}/update_route",
                             json.dumps(route),
                             qos=2)
-        
+
         # Update the order status
         order["status"] = "rerouted..."
         return
@@ -251,14 +246,13 @@ class Routing():  # singleton class. Do not create more than one object of this 
         self.client.on_subscribe = self.on_subscribe
         self.client.on_message = self.on_message
         # enable TLS for secure connection
-        self.client.tls_set() 
+        self.client.tls_set()
         self.client.tls_insecure_set(True)
         # set username and password
         self.client.username_pw_set(os.getenv("HYVE_MQTT_USR"), os.getenv("HYVE_MQTT_PWD"))
         # connect to HiveMQ Cloud on port 8883 (default for MQTT)
         self.client.connect(os.getenv("HYVE_MQTT_URL"), 8883)
         self.client.loop_forever()
-
 
     def get_distance(self, start_node_id, end_node_id):
         """
@@ -274,7 +268,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
 
         return nx.astar_path_length(self.graph, str(start_node_id), str(end_node_id), weight='weight')
 
-
     def get_distance_from_vehicle_to_order(self, vehicle_id, order):
         """
         Calculates the shortest path length from a vehicle's current location to the source node of an order.
@@ -286,11 +279,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
         Returns:
             float: The distance between the vehicle's current location and the source node of the order.
         """
-        
+
         vehicle = self.vehicles[vehicle_id]
         start_node_id = self.get_node_id_from_name(order["source"])
         return self.get_distance(vehicle["targetNode"], start_node_id)
-    
 
     def find_astar_path(self, G, start_node_id, end_node_id):
         """
@@ -336,7 +328,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         dijkstra_time = end_time - start_time
         return shortest_path, dijkstra_time
 
-
     def find_bellman_ford_path(self, G, start_node_id, end_node_id):
         """
         Finds the shortest path between two nodes in a graph using the Bellman-Ford algorithm.
@@ -358,7 +349,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         end_time = time.perf_counter()
         bellman_ford_time = end_time - start_time
         return shortest_path, bellman_ford_time
-
 
     def evaluate_shortest_path_weight(self, G, shortest_path):
         """
@@ -382,7 +372,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
             total_weight += edge_weight
         return total_weight
 
-    
     def translate_path_to_mqtt(self, shortest_path, order_id):
         """
         Translates a shortest path into a message format suitable for MQTT communication.
@@ -407,12 +396,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
         message = {'edges': edges, 'orderId': order_id}
         return message
 
-
     def get_node_id_from_name(self, name):
         """Retrieves the node ID from the node name."""
 
         return self.nodes_df[self.nodes_df["name"] == name].index[0]
-    
 
     def get_distances_from_vehicles_to_order(self, order, use_only_idle_vehicles):
         """
@@ -455,7 +442,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         else:
             return order["vehicle_id"]
 
-
     def parse_edge(self, llm_output, edge_id=None):
         """
         Parses an edge identifier from a given LLM output.
@@ -468,7 +454,7 @@ class Routing():  # singleton class. Do not create more than one object of this 
             tuple or list: A tuple containing the edge ID as (source_id, target_id) or a list of such tuples if multiple edges are found. 
                         Returns "ERROR" if no valid edge information could be parsed.
         """
-        
+
         pattern1 = r"\([`']?(\d+)[`']?,.?[`']?(\d+)[`']?\)"
         pattern2 = r"(?:edge_)?([0-9]+)_([0-9]+)"
         if edge_id is None:
@@ -489,7 +475,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         else:
             edge_id = int(re.findall(pattern2, edge_id)[0][0]), int(re.findall(pattern2, edge_id)[0][1])
         return edge_id
-    
 
     def apply_llm_output(self, llm_output, prompt, edgeId, human=True, vehicleId=None, dynamic=False):
         """
@@ -613,8 +598,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         else:
             print("ERROR: Could not set weight")
             return "ERROR"
-
-
 
     def apply_llm_output_meta(self, llm_output_usability, llm_output_dynamic, llm_output_length, llm_output_time,
                               llm_output_nodes, llm_output_nodes_time, prompt, method, edgeId,
@@ -801,8 +784,6 @@ class Routing():  # singleton class. Do not create more than one object of this 
         print(f"Rerouting vehicle {vehicle_id}...")
         threading.Thread(target=self.update_route_to_vehicle_async,
                          args=(vehicle_id, message, order)).start()
-        
-
 
     def invoke_selected_model(self, value_prompt, value_model, human=True, vehicleId=None, edge_id=None):
         """
@@ -1039,10 +1020,10 @@ class Routing():  # singleton class. Do not create more than one object of this 
                         if edge["sequenceId"] >= current_sequence_id:
                             lons.append(self.nodes_df.loc[int(edge["startNodeId"])]["lon"])
                             lons.append(self.nodes_df.loc[int(edge["endNodeId"])]["lon"])
-                            
+
                             lats.append(self.nodes_df.loc[int(edge["startNodeId"])]["lat"])
                             lats.append(self.nodes_df.loc[int(edge["endNodeId"])]["lat"])
-                            
+
                     fig.add_trace(go.Scattermapbox(mode='lines',
                                                    lon=lons,
                                                    lat=lats,
@@ -1448,9 +1429,9 @@ class Routing():  # singleton class. Do not create more than one object of this 
             return self.invoke_selected_model(value_prompt, value_model)
 
         @app.callback(
-            Output('choose-random-seed-button', 'style'),  
+            Output('choose-random-seed-button', 'style'),
             [Input('llm-model-dropdown', 'value'),
-             Input('choose-random-seed-button', 'style')],  
+             Input('choose-random-seed-button', 'style')],
             prevent_initial_call=True,
         )
         def update_model(value_model, style_hack):

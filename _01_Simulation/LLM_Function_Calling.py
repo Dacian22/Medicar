@@ -1,28 +1,27 @@
-import networkx as nx
-import openai
-from dotenv import load_dotenv
-from openai import OpenAI
-import os
 import json
-import BuildGraph
+import os
 import warnings
+
+from openai import OpenAI
+
+import BuildGraph
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 parameters = {
     "subgraph_params": {
         'special_nodes': ['Emmaus Kapelle', 'Apotheke des Universitätsklinikums',
-                 'Neurozentrum', 'Café am Ring', 'Die Andere Galerie', 'Augenklinik / HNO',
-                 'Tonus', 'Neurozentrum', 'Café am Eck', 'Bistro am Lorenzring',
-                 'Urologie', 'Luther Kindergarten', 'Kiosk Frauenklinik', 'Ernährungsmedizin',
-                 'Medienzentrum', '3SAM Tagespflege', 'Klinik für Onkologische Rehabilitation',
-                 'Stimme vom Berg', 'Klinik für Frauenheilkunde', 'Cafeteria im Casino',
-                 'Sympathy', 'Die Himmelsleiter', 'Zwischen den Räumen',
-                 'Terrakotta', 'Große Kugelkopfsäule', 'Freischwimmer', 'Notaufnahme', 'Gum',
-                 'Tripylon', 'Notfallpraxis der niedergelassenen Ärzte', 'Klinik für Palliativmedizin',
-                 'Lebensalter', 'Blutspende Freiburg', 'Christian Daniel Nussbaum','Das große Spiel',
-                 'Hippokrates von Kos', 'Theodor Billroth',
-                 'Adolf Lorenz', 'Universitätsklinikum Freiburg - Klinik für Innere Medizin'],
+                          'Neurozentrum', 'Café am Ring', 'Die Andere Galerie', 'Augenklinik / HNO',
+                          'Tonus', 'Neurozentrum', 'Café am Eck', 'Bistro am Lorenzring',
+                          'Urologie', 'Luther Kindergarten', 'Kiosk Frauenklinik', 'Ernährungsmedizin',
+                          'Medienzentrum', '3SAM Tagespflege', 'Klinik für Onkologische Rehabilitation',
+                          'Stimme vom Berg', 'Klinik für Frauenheilkunde', 'Cafeteria im Casino',
+                          'Sympathy', 'Die Himmelsleiter', 'Zwischen den Räumen',
+                          'Terrakotta', 'Große Kugelkopfsäule', 'Freischwimmer', 'Notaufnahme', 'Gum',
+                          'Tripylon', 'Notfallpraxis der niedergelassenen Ärzte', 'Klinik für Palliativmedizin',
+                          'Lebensalter', 'Blutspende Freiburg', 'Christian Daniel Nussbaum', 'Das große Spiel',
+                          'Hippokrates von Kos', 'Theodor Billroth',
+                          'Adolf Lorenz', 'Universitätsklinikum Freiburg - Klinik für Innere Medizin'],
         'allowed_highway_types': ['footway', 'unclassified', 'service', 'platform',
                                   'steps', 'residential', 'construction', 'path', 'secondary_link',
                                   'tertiary', 'pedestrian', 'secondary', 'cycleway'],
@@ -31,14 +30,14 @@ parameters = {
 
 # Build the graph from the special nodes
 G, edge_df, nodes_df = BuildGraph.build_nx_graph(
-        parameters['subgraph_params']['allowed_highway_types'],
-        parameters['subgraph_params']['allowed_surface_types'],
-        parameters['subgraph_params']['special_nodes'])
+    parameters['subgraph_params']['allowed_highway_types'],
+    parameters['subgraph_params']['allowed_surface_types'],
+    parameters['subgraph_params']['special_nodes'])
 
 
 def get_neighbor_nodes(given_node):
     """Return the neighbors of the specified node in the graph."""
-    
+
     if given_node in G:
         impacted_nodes = list(G.neighbors(given_node))
         impacted_nodes = impacted_nodes.append(given_node)
@@ -51,6 +50,7 @@ def get_neighbor_nodes(given_node):
         }
 
     return json.dumps(neighbor_nodes)
+
 
 function_descriptions = [
     {
@@ -80,12 +80,12 @@ context = """You are a graph expert and you are given the graph of a university 
 
 full_prompt = f"{context} \n {user_prompt}"
 
-client = OpenAI(api_key = os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Get the original response from the model
 response1 = client.chat.completions.create(
     model="gpt-3.5-turbo",
-    messages = [{'role': 'user', 'content': full_prompt}],
+    messages=[{'role': 'user', 'content': full_prompt}],
     max_tokens=300,
     temperature=0,
 )
@@ -96,15 +96,13 @@ response_content = output.content.strip().lower()
 
 # Check if other nodes are impacted as well
 if "only impacted node " not in response_content:
-    
     response1 = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages = [{'role': 'user', 'content': full_prompt}],
+        messages=[{'role': 'user', 'content': full_prompt}],
         max_tokens=300,
         functions=function_descriptions,
         function_call="auto",
     )
-
 
 output = response1.choices[0].message
 
@@ -114,12 +112,11 @@ if output.function_call:
     chosen_function = eval(output.function_call.name)
     answer = chosen_function(**params)
 
-
     response2 = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages = [{'role': 'user', 'content': full_prompt},
-                    {'role': "function", "name": output.function_call.name, "content": answer},
-        ],
+        messages=[{'role': 'user', 'content': full_prompt},
+                  {'role': "function", "name": output.function_call.name, "content": answer},
+                  ],
         max_tokens=300,
         functions=function_descriptions,
     )
@@ -128,4 +125,3 @@ if output.function_call:
 
 else:
     print(output.content)
-

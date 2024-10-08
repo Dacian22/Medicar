@@ -1,7 +1,8 @@
 import os
-from dotenv import load_dotenv
-from order_manager import OrderManager
 
+from dotenv import load_dotenv
+
+from order_manager import OrderManager
 
 load_dotenv()
 

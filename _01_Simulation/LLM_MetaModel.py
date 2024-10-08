@@ -1,43 +1,41 @@
-import networkx as nx
-import openai
-from dotenv import load_dotenv
-from openai import OpenAI
-import os
 import json
-import BuildGraph
+import os
 import warnings
-from langchain.prompts.few_shot import FewShotPromptTemplate
-from langchain.prompts.prompt import PromptTemplate
+
+from openai import OpenAI
+
+import BuildGraph
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 parameters = {
     "subgraph_params": {
         'special_nodes': ['Emmaus Kapelle', 'Apotheke des Universitätsklinikums',
-                 'Neurozentrum', 'Café am Ring', 'Die Andere Galerie', 'Augenklinik / HNO',
-                 'Tonus', 'Neurozentrum', 'Café am Eck', 'Bistro am Lorenzring',
-                 'Urologie', 'Luther Kindergarten', 'Kiosk Frauenklinik', 'Ernährungsmedizin',
-                 'Medienzentrum', '3SAM Tagespflege', 'Klinik für Onkologische Rehabilitation',
-                 'Stimme vom Berg', 'Klinik für Frauenheilkunde', 'Cafeteria im Casino',
-                 'Sympathy', 'Die Himmelsleiter', 'Zwischen den Räumen',
-                 'Terrakotta', 'Große Kugelkopfsäule', 'Freischwimmer', 'Notaufnahme', 'Gum',
-                 'Tripylon', 'Notfallpraxis der niedergelassenen Ärzte', 'Klinik für Palliativmedizin',
-                 'Lebensalter', 'Blutspende Freiburg', 'Christian Daniel Nussbaum','Das große Spiel',
-                 'Hippokrates von Kos', 'Theodor Billroth',
-                 'Adolf Lorenz', 'Universitätsklinikum Freiburg - Klinik für Innere Medizin'],
+                          'Neurozentrum', 'Café am Ring', 'Die Andere Galerie', 'Augenklinik / HNO',
+                          'Tonus', 'Neurozentrum', 'Café am Eck', 'Bistro am Lorenzring',
+                          'Urologie', 'Luther Kindergarten', 'Kiosk Frauenklinik', 'Ernährungsmedizin',
+                          'Medienzentrum', '3SAM Tagespflege', 'Klinik für Onkologische Rehabilitation',
+                          'Stimme vom Berg', 'Klinik für Frauenheilkunde', 'Cafeteria im Casino',
+                          'Sympathy', 'Die Himmelsleiter', 'Zwischen den Räumen',
+                          'Terrakotta', 'Große Kugelkopfsäule', 'Freischwimmer', 'Notaufnahme', 'Gum',
+                          'Tripylon', 'Notfallpraxis der niedergelassenen Ärzte', 'Klinik für Palliativmedizin',
+                          'Lebensalter', 'Blutspende Freiburg', 'Christian Daniel Nussbaum', 'Das große Spiel',
+                          'Hippokrates von Kos', 'Theodor Billroth',
+                          'Adolf Lorenz', 'Universitätsklinikum Freiburg - Klinik für Innere Medizin'],
         'allowed_highway_types': ['footway', 'unclassified', 'service', 'platform',
                                   'steps', 'residential', 'construction', 'path', 'secondary_link',
                                   'tertiary', 'pedestrian', 'secondary', 'cycleway'],
         'allowed_surface_types': [None, 'grass_paver', 'paving_stones', 'asphalt', 'cobblestone', 'sett']},
 }
 
-#Build the graph from the special nodes
+# Build the graph from the special nodes
 G, edge_df, nodes_df = BuildGraph.build_nx_graph(
-        parameters['subgraph_params']['allowed_highway_types'],
-        parameters['subgraph_params']['allowed_surface_types'],
-        parameters['subgraph_params']['special_nodes'])
+    parameters['subgraph_params']['allowed_highway_types'],
+    parameters['subgraph_params']['allowed_surface_types'],
+    parameters['subgraph_params']['special_nodes'])
 
-method=None
+method = None
+
 
 def get_connected_edges(given_node):
     """
@@ -50,12 +48,12 @@ def get_connected_edges(given_node):
         str: A JSON string containing a list of edges connected to the given node.
               If the node does not exist in the graph, returns an empty list.
     """
-    
+
     if given_node in G:
         connected_edges = list(G.edges(given_node))
         connected_edges = {
             "connected_edges": list(G.edges(given_node)),
-        }              
+        }
     else:
         connected_edges = {
             "connected_edges": "",
@@ -99,14 +97,14 @@ def invoke_llm(prompt):
             - method (str): The method used for quantifying the impact, either "factor" for accessibility or "minutes" for time delay.
     """
 
-    output_usability=None
-    output_dynamic=None
-    output_length=None
-    output_time=None
-    output_nodes=None
-    output_nodes_time=None
+    output_usability = None
+    output_dynamic = None
+    output_length = None
+    output_time = None
+    output_nodes = None
+    output_nodes_time = None
 
-    context_usability =  f"""You are a graph expert and you are given the graph of a university hospital
+    context_usability = f"""You are a graph expert and you are given the graph of a university hospital
                     campus. Nodes are the buildings in the graph and edges are the routes between
                     the buildings.  You will be given some information that something is happening 
                     at a specific node or edge. You need to determine if what is happening will have an
@@ -122,14 +120,14 @@ def invoke_llm(prompt):
                     Answer:  True, the event will have an impact in transportation and other nodes are impacted as well. \n
                     Question: There is a surgery going on at node C. Does it impact the transportation? \n 
                     Anwer: False, the event won't have an impact in transportation and only the current node is impacted by this event. \n"""
-    
+
     user_prompt = prompt
     full_prompt_usability = f"{context_usability} \n {user_prompt}"
 
-    client = OpenAI(api_key = os.getenv("OPENAI_API_KEY"))
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     response_usability = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages = [{'role': 'user', 'content': full_prompt_usability}],
+        messages=[{'role': 'user', 'content': full_prompt_usability}],
         max_tokens=300,
         temperature=0,
     )
@@ -140,7 +138,7 @@ def invoke_llm(prompt):
 
     # Check if the event impacts the transportation and is happening on an edge
     if "true" in response_content and "edge" in response_content:
-        context_dynamic =  f"""As a professional graph modeler, you're tasked with determining the 
+        context_dynamic = f"""As a professional graph modeler, you're tasked with determining the 
         accessibility of edges in a transportation network. You are given an event that impacts
         the usability of the edge. Now, you must determine whether this event wuld impact the whole
         length of the edge or it happens in a single point of the edge. 
@@ -159,10 +157,10 @@ def invoke_llm(prompt):
         full_prompt_dynamic = f"{context_dynamic} \n {user_prompt}"
 
         response_dynamic = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages = [{'role': 'user', 'content': full_prompt_dynamic}],
-        max_tokens=300,
-        temperature=0,
+            model="gpt-3.5-turbo",
+            messages=[{'role': 'user', 'content': full_prompt_dynamic}],
+            max_tokens=300,
+            temperature=0,
         )
 
         output_dynamic = response_dynamic.choices[0].message.content
@@ -188,16 +186,16 @@ def invoke_llm(prompt):
 
                 Please provide a mandatory single value between 0 and 100 for how much the accessibility of 
                 the edge for the transportation vehicles is affected. Format it exactly like this: The value is X."""
-            
+
             full_prompt_length = f"{context_length} \n {user_prompt}"
 
             response_length = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages = [{'role': 'user', 'content': full_prompt_length}],
-            max_tokens=300,
-            temperature=0,
+                model="gpt-3.5-turbo",
+                messages=[{'role': 'user', 'content': full_prompt_length}],
+                max_tokens=300,
+                temperature=0,
             )
-            
+
             method = "factor"
             output_length = response_length.choices[0].message.content
 
@@ -217,16 +215,16 @@ def invoke_llm(prompt):
 
             Please provide a mandatory single value in minutes for how much is the accessibility of the edge 
             for the transportation vehicles is affected. Format it exactly like this: The value is X minutes."""
-        
+
             full_prompt_time = f"{context_time} \n {user_prompt}"
 
             response_time = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages = [{'role': 'user', 'content': full_prompt_time}],
-            max_tokens=300,
-            temperature=0,
+                model="gpt-3.5-turbo",
+                messages=[{'role': 'user', 'content': full_prompt_time}],
+                max_tokens=300,
+                temperature=0,
             )
-        
+
             method = "minutes"
             output_time = response_time.choices[0].message.content
 
@@ -238,19 +236,18 @@ def invoke_llm(prompt):
                 You will be given some information that something is happening at a specific node. Now,
                 you need to determine which edges are impacted from this event. Be concise and only give the 
                 list of impacted edges in this format for each edge 'edge_node1_node2'."""
-        
-        full_prompt_nodes= f"{context_nodes} \n {user_prompt}"
+
+        full_prompt_nodes = f"{context_nodes} \n {user_prompt}"
 
         response_nodes = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages = [{'role': 'user', 'content': full_prompt_nodes}],
+            messages=[{'role': 'user', 'content': full_prompt_nodes}],
             max_tokens=300,
             temperature=0,
             functions=function_descriptions,
             function_call="auto",
-            )
-        
-            
+        )
+
         message = response_nodes.choices[0].message
 
         # Checks if the model called the function
@@ -259,12 +256,11 @@ def invoke_llm(prompt):
             chosen_function = eval(message.function_call.name)
             answer = chosen_function(**params)
 
-
             response_nodes = client.chat.completions.create(
                 model="gpt-3.5-turbo",
-                messages = [{'role': 'user', 'content': full_prompt_nodes},
-                            {'role': "function", "name": message.function_call.name, "content": answer},
-                ],
+                messages=[{'role': 'user', 'content': full_prompt_nodes},
+                          {'role': "function", "name": message.function_call.name, "content": answer},
+                          ],
                 max_tokens=300,
                 functions=function_descriptions,
             )
@@ -290,20 +286,20 @@ def invoke_llm(prompt):
             Please provide a mandatory single value in minutes for how much the vehicle will be delayed. 
             Format it exactly like this: The value is X minutes.
                 """
-        
-            full_prompt_nodes_time= f"{context_nodes_time} \n {user_prompt}"
+
+            full_prompt_nodes_time = f"{context_nodes_time} \n {user_prompt}"
 
             response_nodes_time = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages = [{'role': 'user', 'content': full_prompt_nodes_time}],
-            max_tokens=300,
-            temperature=0.3,
+                model="gpt-3.5-turbo",
+                messages=[{'role': 'user', 'content': full_prompt_nodes_time}],
+                max_tokens=300,
+                temperature=0.3,
             )
 
             method = 'minutes'
             output_nodes_time = response_nodes_time.choices[0].message.content
 
-    else: # False
+    else:  # False
         output_dynamic = None
         output_length = None
         output_time = None
@@ -312,8 +308,9 @@ def invoke_llm(prompt):
         method = None
 
     return output_usability, output_dynamic, output_length, output_time, output_nodes, output_nodes_time, method
-    
+
 
 if __name__ == "__main__":
-    output_usability, output_dynamic, output_length, output_time, output_nodes, output_nodes_time, method = invoke_llm(input("Enter prompt: "))
+    output_usability, output_dynamic, output_length, output_time, output_nodes, output_nodes_time, method = invoke_llm(
+        input("Enter prompt: "))
     print(output_usability, output_dynamic, output_length, output_time, output_nodes, output_nodes_time)

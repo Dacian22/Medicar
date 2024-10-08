@@ -1,20 +1,18 @@
-import paho.mqtt.client as paho
-import paho.mqtt.client as mqtt
-from order import Order
-import threading
-import time
-import json
 import csv
-
+import json
 import os
+import time
+
+import paho.mqtt.client as mqtt
+import paho.mqtt.client as paho
+
+from order import Order
 
 
 class OrderManager:
-
     time_between_orders = 2  # seconds
-    
-    
-    def __init__(self, mqtt_broker_url, mqtt_username, mqtt_password,heuristics_file):
+
+    def __init__(self, mqtt_broker_url, mqtt_username, mqtt_password, heuristics_file):
         """
         Initializes an MQTT client, connects to the broker, and subscribes to vehicle status topics.
         Also loads heuristics from a provided file and initializes idle vehicle tracking.
@@ -34,7 +32,7 @@ class OrderManager:
 
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, protocol=paho.MQTTv5)
         self.client.on_connect = self.on_connect
-        self.client.tls_set()  
+        self.client.tls_set()
         self.client.username_pw_set(mqtt_username, mqtt_password)
         self.client.connect(mqtt_broker_url, 8883)
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/+/status", qos=2)
@@ -42,11 +40,9 @@ class OrderManager:
         self.heuristics_file = heuristics_file
         self.heuristics = self.load_heuristics()
 
-       
         self.idle_vehicles = []
         self.client.loop_start()
 
-   
     def on_connect(self, client, userdata, flags, rc, properties=None):
         """
         Callback function that is triggered when the MQTT client successfully connects to the broker.
@@ -63,7 +59,6 @@ class OrderManager:
         """
         print("Connected with result code " + str(rc))
 
-    
     def on_publish(self, client, userdata, mid):
         pass
 
@@ -86,12 +81,11 @@ class OrderManager:
         heuristics = []
         with open(self.heuristics_file, 'r', encoding='utf-8') as file:
             reader = csv.reader(file)
-            next(reader) 
+            next(reader)
             for row in reader:
                 heuristics.append(row)
         return heuristics
-    
-    
+
     def process_heuristics(self):
         """
         Processes each heuristic in the loaded heuristics list by creating and sending orders.
@@ -114,8 +108,7 @@ class OrderManager:
             time.sleep(self.time_between_orders)
 
         self.client.loop_start()
-    
-    
+
     def send_order(self, order):
         """
         Sends the order to the specified MQTT topic in JSON format.
@@ -136,12 +129,10 @@ class OrderManager:
 
         order_dict = order.to_dict()
         order_json = json.dumps(order_dict)
-        
+
         topic = f"order_manager/transportation/orders/{order.order_id}"
         self.client.publish(os.getenv("MQTT_PREFIX_TOPIC") + "/" + topic, order_json, qos=2)
         print("Order sent:", order_json)
-
-
 
     def closest_vehicle_callback(self, client, userdata, message):
         """

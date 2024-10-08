@@ -4,12 +4,13 @@ import os
 import random
 import threading
 import time
+import warnings
 
 import paho.mqtt.client as mqtt
 import paho.mqtt.client as paho
 import pandas as pd
 from dotenv import load_dotenv
-import warnings
+
 warnings.filterwarnings("ignore")
 
 
@@ -66,8 +67,10 @@ class Vehicle:
         self.send_vehicle_status()
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/stop",
                               qos=2)
-        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/update_route", qos=2)
-        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/cancel_route", qos=2)
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/update_route",
+                              qos=2)
+        self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/" + self.vehicle_id + "/cancel_route",
+                              qos=2)
         if self.current_task is not None:
             self.current_do_task_thread = threading.Thread(target=self.dotask, args=[self.current_task])
             self.current_do_task_thread.start()

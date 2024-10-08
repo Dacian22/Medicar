@@ -1,25 +1,23 @@
-import openai
-from dotenv import load_dotenv
-from openai import OpenAI
 import os
-import warnings
-import pandas as pd
 import re
+import warnings
+
+import pandas as pd
+from openai import OpenAI
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-df = pd.read_csv(os.path.join(os.getenv("RESOURCES"),'eval-res-metamodel.csv'), sep=';')
-client = OpenAI(api_key = os.getenv("OPENAI_API_KEY"))
-scores_length=[]
-scores_time=[]
-scores_nodes_time=[]
-examples_length=[]
-examples_time=[]
-examples_nodes_time=[]
-factors=[]
-times=[]
-nodes_times=[]
-
+df = pd.read_csv(os.path.join(os.getenv("RESOURCES"), 'eval-res-metamodel.csv'), sep=';')
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+scores_length = []
+scores_time = []
+scores_nodes_time = []
+examples_length = []
+examples_time = []
+examples_nodes_time = []
+factors = []
+times = []
+nodes_times = []
 
 for index, row in df.iterrows():
     if pd.notna(row['output_length']):
@@ -43,22 +41,21 @@ for index, row in df.iterrows():
 
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages = [{'role': 'user', 'content': prompt}],
+            messages=[{'role': 'user', 'content': prompt}],
             max_tokens=300,
             temperature=0,
-            )
-            
-           
+        )
+
         output = response.choices[0].message.content
-        score = re.findall(r'\d+\.\d+|\d+', output) 
+        score = re.findall(r'\d+\.\d+|\d+', output)
         if score:
             scores_length.append(float(score[0]))
         else:
             scores_length.append(None)
-        
+
         examples_length.append(row['examples'])
         factors.append(factor)
-    
+
     elif pd.notna(row['output_time']):
         output_time = str(row['output_time'])
         time = re.findall(r'\d+\.\d+|\d+', output_time)
@@ -79,22 +76,21 @@ for index, row in df.iterrows():
 
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages = [{'role': 'user', 'content': prompt}],
+            messages=[{'role': 'user', 'content': prompt}],
             max_tokens=300,
             temperature=0,
-            )
-            
-           
+        )
+
         output = response.choices[0].message.content
-        score = re.findall(r'\d+\.\d+|\d+', output) 
+        score = re.findall(r'\d+\.\d+|\d+', output)
         if score:
             scores_time.append(float(score[0]))
         else:
             scores_time.append(None)
-        
+
         examples_time.append(row['examples'])
         times.append(time)
-    
+
     elif pd.notna(row['output_nodes_time']):
         output_nodes_time = str(row['output_nodes_time'])
         time = re.findall(r'\d+\.\d+|\d+', output_nodes_time)
@@ -115,22 +111,20 @@ for index, row in df.iterrows():
 
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages = [{'role': 'user', 'content': prompt}],
+            messages=[{'role': 'user', 'content': prompt}],
             max_tokens=300,
             temperature=0,
-            )
-            
-           
+        )
+
         output = response.choices[0].message.content
-        score = re.findall(r'\d+\.\d+|\d+', output) 
+        score = re.findall(r'\d+\.\d+|\d+', output)
         if score:
             scores_nodes_time.append(float(score[0]))
         else:
             scores_nodes_time.append(None)
-        
+
         examples_nodes_time.append(row['examples'])
         nodes_times.append(time)
-
 
 new_df_length = pd.DataFrame({'Example': examples_length, 'Factor': factors, 'Score': scores_length})
 new_df_length.to_csv('evaluation_length.csv', index=False)
@@ -138,5 +132,6 @@ new_df_length.to_csv('evaluation_length.csv', index=False)
 new_df_time = pd.DataFrame({'Example': examples_time, 'Time Penalty in minutes': times, 'Score': scores_time})
 new_df_time.to_csv('evaluation_time.csv', index=False)
 
-new_df_nodes_time = pd.DataFrame({'Example': examples_nodes_time, 'Time Penalty in minutes': nodes_times, 'Score': scores_nodes_time})
+new_df_nodes_time = pd.DataFrame(
+    {'Example': examples_nodes_time, 'Time Penalty in minutes': nodes_times, 'Score': scores_nodes_time})
 new_df_nodes_time.to_csv('evaluation_nodes_time.csv', index=False)
