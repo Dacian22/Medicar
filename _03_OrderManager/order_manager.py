@@ -12,6 +12,7 @@ from order import Order
 class OrderManager:
     time_between_orders = 2  # seconds
     heuristics = None
+    orders_sent = False
 
     def __init__(self, mqtt_broker_url, mqtt_username, mqtt_password, heuristics_file):
         """
@@ -61,8 +62,10 @@ class OrderManager:
         """
         print("Connected with result code " + str(rc))
         self.client.subscribe(os.getenv("MQTT_PREFIX_TOPIC") + "/" + "vehicles/+/status", qos=2)
-        self.heuristics = self.load_heuristics()
-        self.process_heuristics()
+        if not self.orders_sent:
+            self.heuristics = self.load_heuristics()
+            self.process_heuristics()
+            self.orders_sent = True
 
     def load_heuristics(self):
         """
