@@ -685,16 +685,13 @@ def invoke_llm_chain(prompt, model_type='openai', approach='fewshot'):
     length_chain = LLMChain(prompt=template, llm=llm)
 
     output_length = length_chain.invoke(prompt)
-    print("Affected for the whole length: ",output_length["text"])
 
     output = parse_output(output_length["text"])
 
     if output==False:
-        print("Minutes")
         output='minutes'
         template = get_template_time_penalty_fewshot()
     else:
-        print("Factor")
         output='factor'
         template = get_template_fewshot()
 
@@ -727,8 +724,6 @@ def parsing_llm_result(answer):
         cleaned = removed_edge.strip("'´")
         cleaned = ast.literal_eval(cleaned)
         removed_edges_cleaned.append(cleaned)
-
-    print("List of edges which weights are changed to infinity:", removed_edges)
 
     return removed_edges
 

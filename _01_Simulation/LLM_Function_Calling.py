@@ -44,7 +44,7 @@ def get_neighbor_nodes(given_node):
         impacted_nodes = impacted_nodes.append(given_node)
         neighbor_nodes = {
             "neighbor_nodes": list(G.neighbors(given_node)),
-        }              
+        }
     else:
         neighbor_nodes = {
             "neighbor_nodes": "",

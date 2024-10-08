@@ -12,19 +12,19 @@ client=Client(api_key=os.getenv("LANGCHAIN_API_KEY"))
 def get_output_file_openai_fewshot():
     """Opens and returns the evaluation dataset file for few-shot OpenAI evaluation."""
 
-    f = open(os.path.join(os.getenv("RESOURCES"), "EvaluationDatasetFewShot.csv"))
+    f = open(os.path.join(os.getenv("RESOURCES"), "eval-res-edge-usability-openai-fewshot.csv"))
     return f
 
 def get_output_file_llama2_fewshot():
     """Opens and returns the evaluation dataset file for few-shot Llama2 evaluation."""
 
-    f = open(os.path.join(os.getenv("RESOURCES"), "EvaluationDatasetLLama2.csv"))
+    f = open(os.path.join(os.getenv("RESOURCES"), "eval-res-edge-usability-llama2-fewshot.csv"))
     return f
 
 def get_output_file_llama2_zero_shot():
     """Opens and returns the evaluation dataset file for zero-shot Llama2 evaluation."""
 
-    f = open(os.path.join(os.getenv("RESOURCES"),'EvaluationDatasetLLama2ZeroShot.csv'),'w')
+    f = open(os.path.join(os.getenv("RESOURCES"),'eval-res-edge-usability-llama2-zeroshot.csv'),'w')
     return f
 
 def get_output_file_llama3_zero_shot():
@@ -42,7 +42,7 @@ def get_output_file_llama2_zeroshot_weights():
 def get_output_file_openai_fewshot_weights():
     """Opens and returns the evaluation dataset file for few-shot with weights OpenAI evaluation."""
 
-    f = open(os.path.join(os.getenv("RESOURCES"),'EvaluationDatasetOpenaiFewShotWeights.csv'),'w')
+    f = open(os.path.join(os.getenv("RESOURCES"),'eval-res-dynamic-openai-fewshot.csv'),'w')
     return f
 
 
