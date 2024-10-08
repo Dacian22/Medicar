@@ -1,7 +1,7 @@
 import json
 import os
 import warnings
-
+import re
 from openai import OpenAI
 
 import BuildGraph
@@ -68,60 +68,98 @@ function_descriptions = [
     }
 ]
 
-user_prompt = input("Please enter your prompt: ")
-context = """You are a graph expert and you are given the graph of a university hospital
-            campus. Nodes are the buildings in the graph and edges are the routes between
-            the buidlings. You will be given some information that something is happening 
-            at a specific node. You need to determine if what is happening impacts other buildings in 
-            the graph. The event impacts other buildings if it causes people crowds outside the buildings.
-            If not, answer that the only impacted node is the given node. 
-            Otherwise, give the impacted nodes including the given node.
-            Give a definite answer."""
+def parse_impacted_nodes(response):
+    """
+    Parses the response to extract node IDs.
 
-full_prompt = f"{context} \n {user_prompt}"
+    Args:
+        response (str): The response from the model.
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    Returns:
+        list: A list of node IDs.
+    """
+    
+    node_pattern = r"(?:\d+\.\s*)?(?:node\s*)?(\d+)"
+    
+    # Extract all node IDs using regex
+    node_ids = re.findall(node_pattern, response, re.IGNORECASE)
+    
+    # Return unique node IDs as a list
+    return list(set(node_ids))
 
-# Get the original response from the model
-response1 = client.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[{'role': 'user', 'content': full_prompt}],
-    max_tokens=300,
-    temperature=0,
-)
 
-output = response1.choices[0].message
+def invoke_llm(prompt):
+    """
+    Invokes the OpenAI API to process a prompt and determine the impact of events on the neighbouring nodes.
 
-response_content = output.content.strip().lower()
+    Args:
+        prompt (str): The prompt containing information about an event affecting the graph.
 
-# Check if other nodes are impacted as well
-if "only impacted node " not in response_content:
-    response1 = client.chat.completions.create(
+    Returns:
+        list of impacted nodes.
+    """
+
+    impacted_nodes = None
+    
+    context = """You are a graph expert and you are given the graph of a university hospital
+                campus. Nodes are the buildings in the graph and edges are the routes between
+                the buidlings. You will be given some information that something is happening 
+                at a specific node. You need to determine if what is happening impacts other buildings in 
+                the graph. The event impacts other buildings if it causes people crowds outside the buildings.
+                If not, answer that the only impacted node is the given node. 
+                Otherwise, give the impacted nodes including the given node.
+                Give a definite answer."""
+    
+    user_prompt = prompt
+    full_prompt = f"{context} \n {user_prompt}"
+
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    # Get the original response from the model
+    first_response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{'role': 'user', 'content': full_prompt}],
         max_tokens=300,
-        functions=function_descriptions,
-        function_call="auto",
+        temperature=0,
     )
 
-output = response1.choices[0].message
+    output = first_response.choices[0].message
 
-# Check if the model has called the function
-if output.function_call:
-    params = json.loads(output.function_call.arguments)
-    chosen_function = eval(output.function_call.name)
-    answer = chosen_function(**params)
+    response_content = output.content.strip().lower()
 
-    response2 = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{'role': 'user', 'content': full_prompt},
-                  {'role': "function", "name": output.function_call.name, "content": answer},
-                  ],
-        max_tokens=300,
-        functions=function_descriptions,
-    )
+    # Check if other nodes are impacted as well
+    if "only impacted node " not in response_content:
+        first_response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{'role': 'user', 'content': full_prompt}],
+            max_tokens=300,
+            functions=function_descriptions,
+            function_call="auto",
+        )
 
-    print(response2.choices[0].message.content)
+    output = first_response.choices[0].message
 
-else:
-    print(output.content)
+    # Check if the model has called the function
+    if output.function_call:
+        params = json.loads(output.function_call.arguments)
+        chosen_function = eval(output.function_call.name)
+        answer = chosen_function(**params)
+
+        second_response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{'role': 'user', 'content': full_prompt},
+                    {'role': "function", "name": output.function_call.name, "content": answer},
+                    ],
+            max_tokens=300,
+            functions=function_descriptions,
+        )
+
+        impacted_nodes = parse_impacted_nodes(second_response.choices[0].message.content)
+        print(second_response.choices[0].message.content)
+
+    else:
+        impacted_nodes = parse_impacted_nodes(output.content)
+        print(output.content)
+    
+    
+    return impacted_nodes

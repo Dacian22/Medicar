@@ -33,215 +33,66 @@ def get_examples():
 
     examples = [
         {
-            "question": "The edge list provided is: [('N1', 'N2'), ('N2', 'N3'), ('N3', 'N4'), ('N4', 'N5'),('N3','N6')]\n Someone fell on the floor on node N2 blocking it. Please provide the affected edges.",
+            "question": "Someone fell on the floor on edge edge_N1_N2. Please answer with True if the edge is usable and False if the edge is not usable.",
             "answer": """
     Are follow up questions needed here: Yes.
-    Follow up: Is the event important enough so that node N2 is not accessible anymore?
-    Intermediate answer: Yes, someone falling down would make node N2 inaccessible.
-    Follow up: Which edges contain node N2?
-    Intermediate answer: Edges ('N1','N2'), ('N2','N3') contain node N2
-    So the final answer is: List of edges that have to be removed: ('N1','N2'), ('N2','N3'). False the edge is not usable.
+    Follow up: Is the event important enough so that edge N1_N2 is not accessible anymore?
+    Intermediate answer: Yes, someone falling down would make edge N1_N2 inaccessible.
+    So the final answer is: List of edges that have to be removed: ('N1','N2'). False the edge is not usable.
     """,
             "reasoning": """
-    Because the event of someone falling down on the floor is important enough to block access to the node N2 so we are removing the edges that contain the node N2, those being ('N1','N2'), ('N2','N3')
+    Because the event of someone falling down on the floor is important enough to block access to the edge N1_N2 so we are removing this edge('N1','N2').
     """,
         },
         {
-            "question": "The edge list provided is: [('N1', 'N2'), ('N2', 'N3'), ('N3', 'N4'), ('N4', 'N5'),('N3','N6')]\n Someone dropped their ice cream on the floor on node N2. Please provide the affected edges.",
+            "question": "Someone dropped their ice cream on the floor on edge edge_N2_N3. Please answer with True if the edge is usable and False if the edge is not usable.",
             "answer": """
     Are follow up questions needed here: Yes.
-    Follow up: Is the event important enough so that node N2 is not accessible anymore?
-    Intermediate answer: No, someone dropping their ice cream would not make node N2 inaccessible.
+    Follow up: Is the event important enough so that edge edge_N2_N3 is not accessible anymore?
+    Intermediate answer: No, someone dropping their ice cream would not make edge edge_N2_N3 inaccessible.
     So the final answer is: List of edges that have to be removed: []. True the edge is usable.
     """,
             "reasoning": """
-    Because the event of someone dropping their ice cream on the floor is not important enough to block access to the node N2 so we are not removing the edges that contain the node N2, so NO edges are affected
+    Because the event of someone dropping their ice cream on the floor is not important enough to block access to the edge edge_N2_N3 so we are not removing this edge, so NO edges are affected.
     """,
         },
         {
-            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'),('3','6')]\n Someone died on node 2. Please provide the affected edges.",
+            "question": "Someone is having a heart attack on edge edge_N5_N6. Please answer with True if the edge is usable and False if the edge is not usable.",
             "answer": """
     Are follow up questions needed here: Yes.
-    Follow up: Is the event important enough so that node 2 is not accessible anymore?
-    Intermediate answer: Yes, someone dying would make node 2 inaccessible.
-    Follow up: Which edges contain node 2?
-    Intermediate answer: Edges ('1','2'), ('2','3') contain node 2
-    So the final answer is: List of edges that have to be removed: ('1','2'), ('2','3'). False the edge is not usable.
+    Follow up: Is the event important enough so that edge edge_N5_N6 is not accessible anymore?
+    Intermediate answer: Yes, someone having a heart attack would make edge edge_N5_N6 inaccessible.
+    So the final answer is: List of edges that have to be removed: ('N5','N6'). False the edge is not usable.
     """,
             "reasoning": """
-    Because the event of someone dying is important enough to block access to the node 2 so we are removing the edges that contain the node 2, those being ('1','2'), ('2','3')
+    Because the event of someone dying is important enough to block access to the edge edge_N5_N6 so we are removing this edge ('N5','N6').
     """,
         },
         {
-            "question": "The edge list provided is: [('A', 'B'), ('B', 'C'), ('C','A'), ('C', 'D'), ('D', 'E'), ('C','F')]\n Someone is having a heart attack on node C. Please provide the affected edges.",
+            "question": "Someone dropped their papers on edge edge_N1_N6. Please answer with True if the edge is usable and False if the edge is not usable.",
             "answer": """
     Are follow up questions needed here: Yes.
-    Follow up: Is the event important enough so that node C is not accessible anymore?
-    Intermediate answer: Yes, someone having a heart attack would make node C inaccessible.
-    Follow up: Which edges contain node C?
-    Intermediate answer: Edges ('B', 'C'), ('C','A'), ('C', 'D'), ('C','F') contain node C
-    So the final answer is: List of edges that have to be removed: ('B', 'C'), ('C','A'), ('C', 'D'), ('C','F'). False the edge is not usable.
+    Follow up: Is the event important enough so that edge edge_N1_N6 is not accessible anymore?
+    Intermediate answer: No, someone dropping their papers would not make edge edge_N1_N6 inaccessible.
+    So the final answer is: List of edges that have to be removed: []. True, the edge is usable.
     """,
             "reasoning": """
-    Because the event of someone having a heart attack is important enough to block access to the node C so we are removing the edges that contain the node C, those being ('B', 'C'), ('C','A'), ('C', 'D'), ('C','F')
+    Because the event of someone dropping their papers is not important enough to block access to the edge edge_N5_N6 so we are not removing this edge, so NO edges are affected.
     """,
         },
         {
-            "question": "The edge list provided is: [('A', 'B'), ('B', 'C'), ('C','A'), ('C', 'D'), ('D', 'E'), ('C','F')]\n Someone dropped their papers on node C. Please provide the affected edges.",
-            "answer": """
-    Are follow up questions needed here: Yes.
-    Follow up: Is the event important enough so that node C is not accessible anymore?
-    Intermediate answer: No, someone dropping their papers would notmake node C inaccessible.
-    So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-    """,
-            "reasoning": """
-    Because the event of someone dropping their papers is not important enough to block access to the node C so we are not removing the edges that contain the node C, so NO edges are affected.
-    """,
-        },
-        {
-            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'),('3','6')]\n Someone is having a seisure on node 2. Please provide the affected edges.",
-            "answer": """
-    Are follow up questions needed here: Yes.
-    Follow up: Is the event important enough so that node 2 is not accessible anymore?
-    Intermediate answer: Yes, someone dying would make node 2 inaccessible.
-    Follow up: Which edges contain node 2?
-    Intermediate answer: Edges ('1','2'), ('2','3') contain node 2
-    So the final answer is: List of edges that have to be removed: ('1','2'), ('2','3'). False the edge is not usable.
-    """,
-            "reasoning": """
-    Because the event of someone having a seisure is important enough to block access to the node 2 so we are removing the edges that contain the node 2, those being ('1','2'), ('2','3')
-    """,
-        },
-        {
-            "question": "The edge list provided is: [('A', 'B'), ('B', 'C'), ('C','A'), ('C', 'D'), ('D', 'E'), ('C','F')]\n A group of people are chatting on node F. Please provide the affected edges.",
+            "question": "A group of people are chatting on edge edge_N3_N2. Please answer with True if the edge is usable and False if the edge is not usable.",
             "answer": """
         Are follow up questions needed here: Yes.
-        Follow up: Is the event important enough so that node F is not accessible anymore?
-        Intermediate answer: No, people chatting would not make node F inaccessible.
+        Follow up: Is the event important enough so that edge edge_N3_N2 is not accessible anymore?
+        Intermediate answer: No, people chatting would not make edge edge_N3_N2 inaccessible.
         So the final answer is: List of edges that have to be removed: []. True the edge is usable.
         """,
             "reasoning": """
-        Because the event of people chatting is not important enough to block access to the node F so we are not removing the edges that contain the node F, so NO edges are affected.
+        Because the event of people chatting is not important enough to block access to the edge edge_N3_N2 so we are not removing this edge, so NO edges are affected.
         """,
         },
-        {
-            "question": "The edge list provided is: [('A', 'B'), ('B', 'C'), ('C','A'), ('C', 'D'), ('D', 'E'), ('C','F')]\n A small animal crosses the pathway on node D. Please provide the affected edges.",
-            "answer": """
-            Are follow up questions needed here: Yes.
-            Follow up: Is the event important enough so that node D is not accessible anymore?
-            Intermediate answer: No, a small animal crossing the pathway would not make node D inaccessible.
-            So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-            """,
-            "reasoning": """
-            Because the event of a small animal crossing the pathway is not important enough to block access to the node D so we are not removing the edges that contain the node D, so NO edges are affected.
-            """,
-        },
-        {
-            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'),('3','6')]\n A vehicle accident has occured on node 3. Please provide the affected edges.",
-            "answer": """
-        Are follow up questions needed here: Yes.
-        Follow up: Is the event important enough so that node 3 is not accessible anymore?
-        Intermediate answer: Yes, a vehicle accident would make node 3 inaccessible.
-        Follow up: Which edges contain node 3?
-        Intermediate answer: Edges ('2','3'), ('3','4'), ('3','6') contain node 3
-        So the final answer is: List of edges that have to be removed: ('2','3'), ('3','4'), ('3','6'). False the edge is not usable.
-        """,
-            "reasoning": """
-        Because the event of a vehicle accident is important enough to block access to the node 3 so we are removing the edges that contain the node 3, those being ('2','3'), ('3','4'), ('3','6')
-        """,
-        },
-        {
-            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'),('3','6')]\n A person is walking with a child holding their hand on node 3. Please provide the affected edges.",
-            "answer": """
-            Are follow up questions needed here: Yes.
-            Follow up: Is the event important enough so that node 3 is not accessible anymore?
-            Intermediate answer: No, a person walking with a child holding their hand would not make node 3 inaccessible.
-            So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-            """,
-            "reasoning": """
-            Because the event of a person walking with a child holding their hand is not important enough to block access to the node 3 so we are not removing the edges that contain the node 3, so no edges are affected
-            """,
-        },
-        {
-            "question": "The edge list provided is: [('N1', 'N2'), ('N2', 'N3'), ('N3', 'N4'), ('N4', 'N5'),('N3','N6')]\n A burst fire hydrant floods the path at node N3. Please provide the affected edges.",
-            "answer": """
-            Are follow up questions needed here: Yes.
-            Follow up: Is the event important enough so that node N3 is not accessible anymore?
-            Intermediate answer: Yes, a burst fire hydrant flooding the path would make node N3 inaccessible.
-            Follow up: Which edges contain node N3?
-            Intermediate answer: Edges ('N2','N3'), ('N3','N4'), ('N3','N6') contain node N3
-            So the final answer is: List of edges that have to be removed: ('N2','N3'), ('N3','N4'), ('N3','N6'). False the edge is not usable.
-            """,
-            "reasoning": """
-            Because the event of a burst fire hydrant flooding the path is important enough to block access to the node N3 so we are removing the edges that contain the node N3, those being ('N2','N3'), ('N3','N4'), ('N3','N6')
-            """,
-        },
-        {
-            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'), ('2','6'), ('3','7')]\n A fallen fence blocks the access near node 6. Please provide the affected edges.",
-            "answer": """
-            Are follow up questions needed here: Yes.
-            Follow up: Is the event important enough so that node 6 is not accessible anymore?
-            Intermediate answer: Yes, a fallen fence blocking the access would make node 6 inaccessible.
-            Follow up: Which edges contain node 6?
-            Intermediate answer: Edges ('2','6') contain node 6
-            So the final answer is: List of edges that have to be removed: ('2','6'). False the edge is not usable.
-            """,
-            "reasoning": """
-            Because the event of a fallen fence blocking the access is important enough to block access to the node 6 so we are removing the edges that contain the node 6, those being ('2','6')
-            """,
-        },
-        {
-            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'), ('2','6'), ('3','7')]\n Road repair work is in progress near node 2. Please provide the affected edges.",
-            "answer": """
-            Are follow up questions needed here: Yes.
-            Follow up: Is the event important enough so that node 2 is not accessible anymore?
-            Intermediate answer: Yes, road repair work would make node 2 inaccessible.
-            Follow up: Which edges contain node 2?
-            Intermediate answer: Edges ('1','2'), ('2', '3'), ('2','6') contain node 2
-            So the final answer is: List of edges that have to be removed: ('1','2'), ('2', '3'), ('2','6'). False the edge is not usable.
-            """,
-            "reasoning": """
-            Because the event of road repair work is important enough to block access to the node 2 so we are removing the edges that contain the node 2, those being ('1','2'), ('2', '3'), ('2','6')
-            """,
-        },
-        {
-            "question": "The edge list provided is: [('node1', 'node2'), ('node2', 'node3'), ('node3', 'node4'), ('node4', 'node5'), ('node2','node6'), ('node3','node7')]\n A cyclist is riding along the path near node node3. Please provide the affected edges.",
-            "answer": """
-            Are follow up questions needed here: Yes.
-            Follow up: Is the event important enough so that node node3 is not accessible anymore?
-            Intermediate answer: No, a cyclist riding along the path would not make node node3 inaccessible.
-            So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-            """,
-            "reasoning": """
-            Because the event of a cyclist riding along the path is not important enough to block access to the node node3 so we are not removing any edges. No edges are affected.
-            """,
-        },
-        {
-            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'), ('2','6'), ('3','7')]\n  A delivery person is dropping off a package near node 1. Please provide the affected edges.",
-            "answer": """
-            Are follow up questions needed here: Yes.
-            Follow up: Is the event important enough so that node 1 is not accessible anymore?
-            Intermediate answer: No, a delivery person dropping off a package would not make node 1 inaccessible.
-            So the final answer is: List of edges that have to be removed: []. True the edge is usable.
-            """,
-            "reasoning": """
-            Because the event of a delievery person dropping off a package is not important enough to block access to the node 1 so we are not removing the edges that contain the node 1. No edges are affected.
-            """,
-        },
-        {
-            "question": "The edge list provided is: [('1', '2'), ('2', '3'), ('3', '4'), ('4', '5'), ('2','6'), ('3','7')]\n A large fallen tree blocks the pathway near node 6. Please provide the affected edges.",
-            "answer": """
-            Are follow up questions needed here: Yes.
-            Follow up: Is the event important enough so that node 6 is not accessible anymore?
-            Intermediate answer: Yes, a large fallen tree blocking the pathway would make node 6 inaccessible.
-            Follow up: Which edges contain node 6?
-            Intermediate answer: Edges ('2','6') contain node 6
-            So the final answer is: List of edges that have to be removed: ('2','6'). False the edge is not usable.
-            """,
-            "reasoning": """
-            Because the event of a fallen large tree blocking the access is important enough to block access to the node 6 so we are removing the edges that contain the node 6, those being ('2','6')
-            """,
-        }
+        
     ]
     return examples
 
